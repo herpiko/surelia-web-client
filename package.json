@@ -1,0 +1,37 @@
+{
+  "name": "surelia-web-client",
+  "version": "0.0.1",
+  "description": "Surelia",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test",
+    "bower": "./node_modules/.bin/bower install",
+    "single": "npm run build && node index single",
+    "server": "npm run build && node index ",
+    "restart": "npm run build && node index restart",
+    "stop": "./node_modules/.bin/idup stop teman-iklan",
+    "kill": "./node_modules/.bin/idup kill",
+    "build": "rm -rf public && ./node_modules/.bin/gulp"
+  },
+  "author": "KodeKreatif <info@kodekreatif.co.id>",
+  "license": "GNU AGPLv3",
+  "dependencies": {
+    "hapi": "^8.6.0",
+    "hapi-mongoose-db-connector": "^2.0.1",
+    "hapi-swagger": "^0.7.3",
+    "idup": "^0.0.1"
+  },
+  "devDependencies": {
+    "bower": "^1.4.1",
+    "gulp": "^3.9.0",
+    "gulp-concat": "^2.5.2",
+    "gulp-minify-html": "^1.0.3",
+    "gulp-ng-html2js": "^0.2.0",
+    "gulp-rimraf": "^0.1.1",
+    "gulp-uglify": "^1.2.0",
+    "mocha": "^2.2.5",
+    "must": "^0.12.0",
+    "run-sequence": "^1.1.0",
+    "supertest": "^1.0.1"
+  }
+}
