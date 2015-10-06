@@ -87,14 +87,32 @@ server.listen(1143, function(){
   describe("SMTP", function() {
     describe("SMTP Initial and Auth", function() {
 
+      it("Should connect to SMTP server", function(done){
+        var options = {
+          host : "localhost",
+          port : 2525,
+
+          // Gmail configuration
+          /* host : "smtp.gmail.com", */
+          /* port : 465, */
+          /* requireTLS : true, */
+          /* secure : true */
+        }
+        smtp = new SMTPConnection(options);
+        smtp.connect()
+          .then(function(){
+            done();
+          })
+          .catch(function(err){
+            console.log(err);
+            should(1).equal(2);
+          })
+      })
       // XXX This unit testing is skipped as the fake smtp server is not supporting auth yet
       /* it("Should get authenticated to SMTP server", function(done){ */
-      /*   var options = { */
-      /*     host : "localhost", */
-      /*     port : 2525, */
-      /*   } */
-      /*   smtp = new SMTPConnection(options); */
-      /*   smtp.auth("someemail@example.com", "password") */
+      /*   /1* var username = "someemail@example.com"; *1/ */
+      /*   /1* var password = "justapassword"; *1/ */
+      /*   smtp.auth(username, password) */
       /*     .then(function(){ */
       /*       done(); */
       /*     }) */
@@ -103,40 +121,28 @@ server.listen(1143, function(){
       /*       should(1).equal(2); */
       /*     }) */
       /* }) */
-      it("Should connect and send mail to SMTP server", function(done){
-        var options = {
-          host : "localhost",
-          port : 2525,
-        }
-        smtp = new SMTPConnection(options);
-        smtp.connect()
-          .then(function(){
-            var sender = "email1@example.com";
-            var recipients = ["email2@example.com"];
-            var newMail = composer({
-              to : sender,
-              from : recipients,
-              sender : "Sender",
-            });
-            newMail.build(function(err, message){
-              if (err) {
-                return reject(err)
-              }
-              smtp.send(sender, recipients, message)
-                .then(function(info){
-                  console.log(info);
-                  done();
-                })
-                .catch(function(err){
-                  console.log(err);
-                  should(1).equal(2);
-                })
+      it("Should be able to send mail to SMTP server", function(done){
+        var sender = "email1@example.com";
+        var recipients = ["email2@example.com"];
+        var newMail = composer({
+          to : sender,
+          from : recipients,
+          sender : "Sender",
+        });
+        newMail.build(function(err, message){
+          if (err) {
+            return reject(err)
+          }
+          smtp.send(sender, recipients, message)
+            .then(function(info){
+              console.log(info);
+              done();
             })
-          })
-          .catch(function(err){
-            console.log(err);
-            should(1).equal(2);
-          })
+            .catch(function(err){
+              console.log(err);
+              should(1).equal(2);
+            })
+        })
       })
     });
   });
