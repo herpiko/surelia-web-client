@@ -67,7 +67,7 @@ var server = hoodiecrow({
 });
 
 
-var Imap = require(__dirname + "/../../../api/imap").module.Imap;
+var Imap = require(__dirname + "/../../../api/surelia").module.Imap;
 var credentials = {
   user : "testuser",
   password : "testpass",
@@ -77,7 +77,7 @@ var credentials = {
 }
 var mail = new Imap(credentials);
 
-var SMTPConnection = require(__dirname + "/../../../api/imap").module.SMTP;
+var SMTPConnection = require(__dirname + "/../../../api/surelia").module.SMTP;
 var smtp;
 
 // Connect to the server once it is actually listening
