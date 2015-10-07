@@ -8,28 +8,52 @@ var timeout = 500
 
 // Define Hoodiecrow IMAP server
 var server = hoodiecrow({
+  plugins: ["SPECIAL-USE"],
   storage: {
     "INBOX": {
+      "special-use": "\\Inbox",
       messages: [{
-        raw: "Subject: hello 1\r\n\r\nWorld 1!",
-        internaldate: "14-Sep-2013 21:22:28 -0300",
+        raw: "From: sender name <sender@example.com>\r\n" +
+            "To: Receiver name <receiver@example.com>\r\n" +
+            "Subject: hello 1\r\n" +
+            "Date: Fri, 13 Sep 2013 15:01:00 +0300\r\n" +
+            "\r\n" +
+            "World 1!"
       }, {
-        raw: "Subject: hello 2\r\n\r\nWorld 2!",
-        flags: ["\\Seen"]
+        raw: "From: sender name <sender@example.com>\r\n" +
+            "To: Receiver name <receiver@example.com>\r\n" +
+            "Subject: hello 2\r\n" +
+            "Date: Fri, 13 Sep 2013 15:01:00 +0300\r\n" +
+            "\r\n" +
+            "World 2!"
       }, {
-        raw: "Subject: hello 3\r\n\r\nWorld 3!"
+        raw: "From: sender name <sender@example.com>\r\n" +
+            "To: Receiver name <receiver@example.com>\r\n" +
+            "Subject: hello 3\r\n" +
+            "Date: Fri, 13 Sep 2013 15:01:00 +0300\r\n" +
+            "\r\n" +
+            "World 3!"
       }, {
         raw: "From: sender name <sender@example.com>\r\n" +
             "To: Receiver name <receiver@example.com>\r\n" +
             "Subject: hello 4\r\n" +
-            "Message-Id: <abcde>\r\n" +
             "Date: Fri, 13 Sep 2013 15:01:00 +0300\r\n" +
             "\r\n" +
             "World 4!"
       }, {
-        raw: "Subject: hello 5\r\n\r\nWorld 5!"
+        raw: "From: sender name <sender@example.com>\r\n" +
+            "To: Receiver name <receiver@example.com>\r\n" +
+            "Subject: hello 5\r\n" +
+            "Date: Fri, 13 Sep 2013 15:01:00 +0300\r\n" +
+            "\r\n" +
+            "World 5!"
       }, {
-        raw: "Subject: hello 6\r\n\r\nWorld 6!"
+        raw: "From: sender name <sender@example.com>\r\n" +
+            "To: Receiver name <receiver@example.com>\r\n" +
+            "Subject: hello 6\r\n" +
+            "Date: Fri, 13 Sep 2013 15:01:00 +0300\r\n" +
+            "\r\n" +
+            "World 6!"
       }]
     },
     "": {
@@ -57,7 +81,7 @@ var server = hoodiecrow({
                 "special-use": "\\Flagged"
             },
             "Trash": {
-                "special-use": "\\Trash"
+              "special-use": "\\Trash",
             }
           }
         }
@@ -74,6 +98,13 @@ var credentials = {
   host : "localhost",
   port : 1143,
   tls : false
+
+  // Gmail configuration
+  /* user : "someone@gmail.com", */
+  /* password : "justapassword", */
+  /* host : "imap.gmail.com", */
+  /* port : 993, */
+  /* tls : true */
 }
 var mail = new Imap(credentials);
 
@@ -108,19 +139,18 @@ server.listen(1143, function(){
             should(1).equal(2);
           })
       })
-      // XXX This unit testing is skipped as the fake smtp server is not supporting auth yet
-      /* it("Should get authenticated to SMTP server", function(done){ */
-      /*   /1* var username = "someemail@example.com"; *1/ */
-      /*   /1* var password = "justapassword"; *1/ */
-      /*   smtp.auth(username, password) */
-      /*     .then(function(){ */
-      /*       done(); */
-      /*     }) */
-      /*     .catch(function(err){ */
-      /*       console.log(err); */
-      /*       should(1).equal(2); */
-      /*     }) */
-      /* }) */
+      it.skip("Should get authenticated to SMTP server", function(done){
+        /* var username = "someemail@example.com"; */
+        /* var password = "justapassword"; */
+        smtp.auth(username, password)
+          .then(function(){
+            done();
+          })
+          .catch(function(err){
+            console.log(err);
+            should(1).equal(2);
+          })
+      })
       it("Should be able to send mail to SMTP server", function(done){
         var sender = "email1@example.com";
         var recipients = ["email2@example.com"];
@@ -157,6 +187,7 @@ server.listen(1143, function(){
       it("should be able to list special boxes ", function(done) {
         mail.getSpecialBoxes()
           .then(function(result){
+            console.log(mail.specials);
             done();
           })
           .catch(function(err){
@@ -166,6 +197,7 @@ server.listen(1143, function(){
       it("should be able to list the contents of main box ", function(done) {
         mail.listBox("INBOX")
           .then(function(result){
+            console.log(result);
             should(result.length).equal(6);
             done();
           })
@@ -174,7 +206,7 @@ server.listen(1143, function(){
           })
       });
       it("should be able to list the contents of main box with more parameter ", function(done) {
-        mail.listBox("INBOX", 1, 2, "TEXT")
+        mail.listBox("INBOX", 1, 2)
           .then(function(result){
             console.log(result);
             should(result.length).equal(2);
@@ -320,7 +352,7 @@ server.listen(1143, function(){
               .then(function(result){
                 console.log(result[0].attributes.flags);
                 should(result[0].attributes.uid).equal(1);
-                should(result[0].buffer).equal("Subject: hello 2\r\n\r\n");
+                should(result[0].header.from[0]).equal("sender name <sender@example.com>");
                 done();
               })
               .catch(function(err) {
@@ -348,9 +380,7 @@ server.listen(1143, function(){
             .then(function(){
               mail.listBox(mail.specials.Drafts.path)
                 .then(function(result){
-                  console.log(result);
-                  
-                  should(result[0].buffer.substr(0, 54)).equal("Content-Type: text/plain\r\nFrom: someemail1@example.com");
+                  should(result[0].header.from[0]).equal("someemail1@example.com");
                   should(result[0].attributes.uid).equal(1);
                   done();
                 })

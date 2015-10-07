@@ -4,7 +4,15 @@ var _ = require("lodash");
 var inspect = require("util").inspect;
 
 /**
- * Constructor
+ * @typedef promise
+ *
+ * @prototype {Function} then - When success, with it's result (if any)
+ * @prototype {Function} catch - When fail, with it's error (if any)
+ *
+ */
+
+/**
+ * Imap Constructor
  *
  */
 
@@ -12,9 +20,11 @@ var Imap = function(credentials) {
   this.client = new Client(credentials);
 }
 
+
 /**
- * Connect to IMAP server
- * 
+ * Connect to IMAP server. Returns in then() if success.
+ *
+ * @returns {Promise}
  */
 
 Imap.prototype.connect = function() {
@@ -36,39 +46,51 @@ Imap.prototype.connect = function() {
 }
 
 /**
- * Lists the mail boxes
- * 
+ * Lists the mail's special-use boxes. This function returns an array of special use boxes with it's path.
+ *
+ * @returns {Promise} - It success in then(), otherwise, caught error if fails in catch();
  */
 
 Imap.prototype.getSpecialBoxes = function() {
   var self = this;
   return new Promise(function(resolve, reject){
     var specials = {};
-    var specialBoxes = ["Drafts", "Sent", "Spam", "Inbox", "Trash"];
+    // See : http://tools.ietf.org/html/rfc6154#page-3
+    var specialBoxes = ["All", "Archive", "Drafts", "Sent", "Junk", "Inbox", "Trash"];
     self.client.getBoxes(function(err, mboxes){
       if (err) {
         return reject(err);
       }
       var boxes = Object.keys(mboxes);
-      async.each(specialBoxes, function iterator(special, callback) {
-        async.each(boxes, function iterator(index, cb){
+      async.each(specialBoxes, function iterator(special, doneIteratingSpecialBoxes) {
+        async.each(boxes, function iterator(index, doneIteratingBoxes){
           if (mboxes[index].children !=null) {
             var childrens = Object.keys(mboxes[index].children);
-            async.each(childrens, function iterator(child, cb){
-              if (child == special) {
-                specials[child] = {
+            async.each(childrens, function iterator(child, doneIteratingChildrens){
+              var currentSpecialUse = mboxes[index].children[child].special_use_attrib; 
+              if (currentSpecialUse == "\\" + special) {
+                specials[special] = {
                   path : index + mboxes[index].delimiter + child
                 }
               }
             }, function(err) {
-              cb();
+              doneIteratingCildrens(err);
             })
+          } else {
+            if (mboxes[index].special_use_attribs == "\\" + special || mboxes[index].attribs.indexOf("\\" + special)) {
+              specials[special] = {
+                path : index
+              }
+            }
           }
-          cb();
+          doneIteratingBoxes();
         }, function(err){
-          callback();
+          doneIteratingSpecialBoxes(err);
         })
       }, function(err){
+        if (err) {
+          return reject(err);
+        }
         self.specials = specials;
         resolve(specials)
       })
@@ -77,8 +99,9 @@ Imap.prototype.getSpecialBoxes = function() {
 }
 
 /**
- * Lists the mail boxes
+ * Lists the mail boxes. This function returns  an array of top level mail boxes
  * 
+ * @returns {Promise} - It success in then(), otherwise, caught error if fails in catch();
  */
 
 Imap.prototype.getBoxes = function() {
@@ -94,18 +117,19 @@ Imap.prototype.getBoxes = function() {
 }
 
 /**
- * Lists the contents of the mail box
+ * Lists the contents of the mail box. This function returns a list of messages' header and attributes
  *
- * @param {String} name - the name of the box
- * @param {Number} start - the offset
- * @param {Number} limit - the expected number of result
- * @param {Object} searchParams - search parameters
+ * @param {String} name - The name of the box
+ * @param {Number} start - The offset
+ * @param {Number} limit - The expected number of result
+ * @param {Object} searchParams - Search parameters
+ * @returns {Promise} - It success in then(), otherwise, caught error if fails in catch();
  * 
  */
 Imap.prototype.listBox = function(name, start, limit, searchParams) {
   var self = this;
   return new Promise(function(resolve, reject){
-    var bodies = searchParams || 'HEADER';
+    var bodies = searchParams || 'HEADER.FIELDS (FROM TO SUBJECT DATE)';
     var result = [];
     self.client.openBox(name, true, function(err, box){
       if (err) {
@@ -120,7 +144,7 @@ Imap.prototype.listBox = function(name, start, limit, searchParams) {
       for (var i = start || 1; i <= fetchLimit; i++) {
         seqArray.push(i);
       }
-      async.each(seqArray, function iterator(seq, callback) {
+      async.each(seqArray, function iterator(seq, doneIteratingMessages) {
         var mail = {}
         var f = self.client.seq.fetch(seq, {
           bodies : bodies,
@@ -135,7 +159,7 @@ Imap.prototype.listBox = function(name, start, limit, searchParams) {
               buffer += chunk.toString("utf8");
             });
             stream.once("end", function(attrs){
-              mail.buffer = buffer;
+              mail.header = Client.parseHeader(buffer, true);
             });
           })
           msg.once("attributes", function(attrs) {
@@ -147,9 +171,10 @@ Imap.prototype.listBox = function(name, start, limit, searchParams) {
         });
         f.once("error", function(err) {
           console.log("Fetch error : " + err);
+          doneIteratingMessages(err);
         })
         f.once("end", function(err) {
-          callback();
+          doneIteratingMessages(err);
         })
       }, function(err){
         if (err) {
@@ -164,7 +189,7 @@ Imap.prototype.listBox = function(name, start, limit, searchParams) {
 /**
  * Creates a box
  *
- * @param {String} name - the name of the box
+ * @returns {Promise} - It success in then(), otherwise, caught error if fails in catch();
  */
 Imap.prototype.createBox = function(name) {
   var self = this;
@@ -182,7 +207,8 @@ Imap.prototype.createBox = function(name) {
 /**
  * Removes a box
  *
- * @param {String} name - the name of the box
+ * @param {String} name - The name of the box
+ * @returns {Promise} - It success in then(), otherwise, caught error if fails in catch();
  */
 Imap.prototype.removeBox = function(name) {
   var self = this;
@@ -200,8 +226,9 @@ Imap.prototype.removeBox = function(name) {
 /**
  * Rename box
  *
- * @param {String} oldName - the old name of the box
- * @param {String} newName - the new name of the box
+ * @param {String} oldName - The old name of the box
+ * @param {String} newName - The new name of the box
+ * @returns {Promise} - It success in then(), otherwise, caught error if fails in catch();
  */
 Imap.prototype.renameBox = function(oldName, newName) {
   var self = this;
@@ -221,7 +248,9 @@ Imap.prototype.renameBox = function(oldName, newName) {
 /**
  * Retrieves an email message
  *
- * @param {String} id - the id of the message
+ * @param {String} boxName - The name of the box
+ * @param {Integer} id - The id of the message
+ * @returns {Promise} - It success in then(), otherwise, caught error if fails in catch();
  */
 Imap.prototype.retrieveMessage = function(boxName, id) {
   var self = this;
@@ -261,7 +290,6 @@ Imap.prototype.retrieveMessage = function(boxName, id) {
               mail.attributes = attrs;
           })
           msg.once("end", function(){
-            /* result.push(mail); */
             resolve(mail);
           })
         });
@@ -277,8 +305,10 @@ Imap.prototype.retrieveMessage = function(boxName, id) {
 /**
  * Moves an email message to another box
  *
- * @param {String} id - the id of the message
- * @param {String} newBox - the name of the box
+ * @param {Integer} id - The id of the message
+ * @param {String} oldBox - The name of the old box
+ * @param {String} newBox - The name of the new box
+ * @returns {Promise} - It success in then(), otherwise, caught error if fails in catch();
  */
 Imap.prototype.moveMessage = function(id, oldBox, newBox) {
   var self = this;
@@ -304,7 +334,9 @@ Imap.prototype.moveMessage = function(id, oldBox, newBox) {
 /**
  * Removes an email message
  *
- * @param {String} id - the id of the message
+ * @param {Integer} id - The Id of the message
+ * @param {String} boxName - The name of the box which the message is being removed from
+ * @returns {Promise} - It success in then(), otherwise, caught error if fails in catch();
  */
 Imap.prototype.removeMessage = function(id, boxName) {
   var self = this;
@@ -333,7 +365,8 @@ Imap.prototype.removeMessage = function(id, boxName) {
 /**
  * Creates an new email message in the Draft box
  *
- * @param {String} messageData - the id of the message
+ * @param {String} messageData - The id of the message, in string or buffer
+ * @returns {Promise} - It success in then(), otherwise, caught error if fails in catch();
  */
 Imap.prototype.newMessage = function(messageData) {
   var self = this;
