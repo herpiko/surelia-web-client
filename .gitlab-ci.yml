@@ -1,0 +1,16 @@
+image: nodejs
+
+before_script:
+
+stages:
+ - test
+
+trigger:
+  stage: test
+
+  script:
+    - export PATH=$PATH:/home/gitlab-runner/.nvm/v0.10.40/bin
+
+    - npm install
+
+    - npm run test
