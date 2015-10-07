@@ -7,7 +7,7 @@ var hoodiecrow = require("hoodiecrow"),
 var timeout = 500
 
 // Define Hoodiecrow IMAP server
-var server = hoodiecrow({
+var hoodiecrowServer = hoodiecrow({
   plugins: ["SPECIAL-USE"],
   storage: {
     "INBOX": {
@@ -112,12 +112,11 @@ var SMTPConnection = require(__dirname + "/../../../api/surelia").module.SMTP;
 var smtp;
 
 // Connect to the server once it is actually listening
-server.listen(1143, function(){
+hoodiecrowServer.listen(1143, function(){
   
   // Start unit testing
   describe("SMTP", function() {
     describe("SMTP Initial and Auth", function() {
-
       it("Should connect to SMTP server", function(done){
         var options = {
           host : "localhost",
@@ -159,11 +158,13 @@ server.listen(1143, function(){
       })
       it("Should be able to send mail to SMTP server", function(done){
         var sender = "email1@example.com";
-        var recipients = ["email2@example.com"];
+        var recipients = "email2@example.com";
         var newMail = composer({
-          to : sender,
-          from : recipients,
+          to : recipients,
+          from : sender,
           sender : "Sender",
+          subject : "Subject",
+          text : "Messagn content"
         });
         newMail.build(function(err, message){
           if (err) {
@@ -447,6 +448,34 @@ server.listen(1143, function(){
             })
         })
       });
+    });
+    describe("SMTP API Endpoint", function() {
+      it("Should be able to send a message", function(done){
+        var data = {
+          // SMTP Configuration
+          host : "smtp.gmail.com",
+          port : "465",
+          requireTLS : true,
+          secure : true,
+          // Account
+          username : "surelia.web.client@gmail.com",
+          password : "katasandisurelia",
+          // Envelope
+          from : "surelia.web.client@gmail.com",
+          recipients : "surelia.web.client@gmail.com",
+          sender : "Surelia",
+          subject : "Subject of the message",
+          text : "Content of the message"
+        }
+        server.inject({
+          method: "POST",
+          url : "/api/1.0/send",
+          data : data,
+        }, function(response){
+          console.log(response.result);
+          done();
+        })
+      })
     });
   });
 });
