@@ -1,6 +1,5 @@
 var Client = require("imap");
 var async = require("async");
-var _ = require("lodash");
 var inspect = require("util").inspect;
 
 /**
