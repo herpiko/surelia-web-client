@@ -1,0 +1,19 @@
+image: nodejs
+
+before_script:
+
+stages:
+ - test
+
+trigger:
+  stage: test
+
+  script:
+    - "curl -X POST -F token=6c430c8a923b74a63851a673f0a857 https://gitlab.com/ci/api/v1/projects/10131/refs/master/trigger"
+
+    - export DISPLAY=:1.0
+    - export PATH=$PATH:/home/gitlab-runner/.nvm/v0.10.40/bin
+
+    - npm install
+
+    - npm run test
