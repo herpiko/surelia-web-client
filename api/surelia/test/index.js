@@ -160,10 +160,13 @@ server.listen(1143, function(){
       it("Should be able to send mail to SMTP server", function(done){
         var sender = "email1@example.com";
         var recipients = ["email2@example.com"];
+        var recipientsArray = recipients.split(";");
         var newMail = composer({
-          to : sender,
-          from : recipients,
+          to : recipientsArray,
+          from : sender,
           sender : "Sender",
+          subject : "Subject",
+          text : "Messagn content"
         });
         newMail.build(function(err, message){
           if (err) {
