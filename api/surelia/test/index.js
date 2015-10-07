@@ -4,7 +4,8 @@ var should = require("should");
 var composer = require("mailcomposer");
 var hoodiecrow = require("hoodiecrow"),
     inspect = require('util').inspect;
-var timeout = 500
+var timeout = 500;
+var credentials = require("./credentials.json");
 
 // Define Hoodiecrow IMAP server
 var hoodiecrowServer = hoodiecrow({
@@ -92,21 +93,21 @@ var hoodiecrowServer = hoodiecrow({
 
 
 var Imap = require(__dirname + "/../../../api/surelia").module.Imap;
-var credentials = {
-  user : "testuser",
-  password : "testpass",
+var IMAPCredential = {
+  user : credentials.fakeIMAPCredential.username,
+  password : credentials.fakeIMAPCredential.password,
   host : "localhost",
   port : 1143,
   tls : false
 
   // Gmail configuration
-  /* user : "someone@gmail.com", */
-  /* password : "justapassword", */
+  /* user : credentials.realGmailCredential.username, */
+  /* password : credentials.realGmailCredential.password, */
   /* host : "imap.gmail.com", */
   /* port : 993, */
   /* tls : true */
 }
-var mail = new Imap(credentials);
+var mail = new Imap(IMAPCredential);
 
 var SMTPConnection = require(__dirname + "/../../../api/surelia").module.SMTP;
 var smtp;
@@ -143,8 +144,8 @@ hoodiecrowServer.listen(1143, function(){
           })
       })
       it.skip("Should get authenticated to SMTP server", function(done){
-        var username = "someemail@example.com";
-        var password = "justapassword";
+        var username = credentials.fakeSMTPCredential.username;
+        var password = credentials.fakeSMTPCredential.password;
         smtp.auth(username, password)
           .then(function(){
             done();
@@ -157,7 +158,7 @@ hoodiecrowServer.listen(1143, function(){
           })
       })
       it("Should be able to send mail to SMTP server", function(done){
-        var sender = "email1@example.com";
+        var sender = credentials.fakeSMTPCredential.username;
         var recipients = "email2@example.com";
         var newMail = composer({
           to : recipients,
@@ -458,11 +459,11 @@ hoodiecrowServer.listen(1143, function(){
           requireTLS : true,
           secure : true,
           // Account
-          username : "surelia.web.client@gmail.com",
-          password : "katasandisurelia",
+          username : credentials.realGmailCredential.username,
+          password : credentials.realGmailCredential.password,
           // Envelope
-          from : "surelia.web.client@gmail.com",
-          recipients : "surelia.web.client@gmail.com",
+          from : credentials.realGmailCredential.username,
+          recipients : credentials.realGmailCredential.username,
           sender : "Surelia",
           subject : "Subject of the message",
           text : "Content of the message"
@@ -470,9 +471,10 @@ hoodiecrowServer.listen(1143, function(){
         server.inject({
           method: "POST",
           url : "/api/1.0/send",
-          data : data,
+          payload : data,
         }, function(response){
           console.log(response.result);
+          should(response.result.accepted[0]).equal(credentials.realGmailCredential.username);
           done();
         })
       })
