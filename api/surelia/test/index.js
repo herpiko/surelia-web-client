@@ -6,6 +6,11 @@ var hoodiecrow = require("hoodiecrow"),
     inspect = require('util').inspect;
 var timeout = 500
 
+if (!process.env.TEST_SMTP_USERNAME || !process.env.TEST_SMTP_PASSWORD) {
+  console.log("This unit testing needs a real Gmail account, please set the credential to environment variable TEST_SMTP_USERNAME and TEST_SMTP_PASSWORD");
+  process.exit();
+}
+
 // Define Hoodiecrow IMAP server
 var hoodiecrowServer = hoodiecrow({
   plugins: ["SPECIAL-USE"],
@@ -458,11 +463,11 @@ hoodiecrowServer.listen(1143, function(){
           requireTLS : true,
           secure : true,
           // Account
-          username : "surelia.web.client@gmail.com",
-          password : "katasandisurelia",
+          username : process.env.TEST_SMTP_USERNAME,
+          password : process.env.TEST_SMTP_PASSWORD,
           // Envelope
-          from : "surelia.web.client@gmail.com",
-          recipients : "surelia.web.client@gmail.com",
+          from : process.env.TEST_SMTP_USERNAME,
+          recipients : process.env.TEST_SMTP_USERNAME,
           sender : "Surelia",
           subject : "Subject of the message",
           text : "Content of the message"
@@ -470,9 +475,10 @@ hoodiecrowServer.listen(1143, function(){
         server.inject({
           method: "POST",
           url : "/api/1.0/send",
-          data : data,
+          payload : data,
         }, function(response){
           console.log(response.result);
+          should(response.result.accepted[0]).equal(process.env.TEST_SMTP_USERNAME);
           done();
         })
       })
