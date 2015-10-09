@@ -9,7 +9,8 @@ var Pool = function(m) {
   if (m !== magic) throw new Error('Use getInstance to create this object');
 
   this.map = {};
-  this.expiry = 10 * 60 * 1000; // 10 minutes
+  /* this.expiry = 10 * 60 * 1000; // 10 minutes */
+  this.expiry = 10000; // 10 seconds
   this.date = Date;
   this.period = 1000; // 1 seconds
 }
@@ -34,7 +35,7 @@ Pool.getInstance = function() {
  * @param {Function} destroyFunc - the function which destroy the resource
  * @return {Object} the object from the pool
  */
-Pool.prototype.get = function(id, owner, createFunc, destroyFunc) {
+Pool.prototype.create = function(id, owner, createFunc, destroyFunc) {
   var self = this;
   if (self.map[id]) {
     return self.map[id].obj;
@@ -51,6 +52,16 @@ Pool.prototype.get = function(id, owner, createFunc, destroyFunc) {
   self.check();
   return obj;
 }
+
+Pool.prototype.get = function(id) {
+  var self = this;
+  if (self.map[id]) {
+    self.map[id].expire = (self.date.now()).valueOf() + self.expiry;
+    return self.map[id].obj;
+  }
+}
+
+
 
 Pool.prototype.destroy = function() {
   var self = this;

@@ -23,7 +23,7 @@ describe('Pool', function() {
     var destroyFunc = function() {
     }
 
-    var o = pool.get('abc', null, createFunc, destroyFunc);
+    var o = pool.create('abc', null, createFunc, destroyFunc);
     o.should.equal('ok');
     done();
   });
@@ -37,11 +37,11 @@ describe('Pool', function() {
     var destroyFunc = function() {
     }
 
-    var o = pool.get('abc', null, createFunc, destroyFunc);
+    var o = pool.create('abc', null, createFunc, destroyFunc);
     o.should.equal('ok');
     // modify the contents directly to verify that it gets from the pool
     pool.map['abc'].obj = 'ko';
-    var o = pool.get('abc', null, createFunc, destroyFunc);
+    var o = pool.create('abc', null, createFunc, destroyFunc);
     o.should.equal('ko');
     done();
   });
@@ -60,7 +60,7 @@ describe('Pool', function() {
     }
 
     var p = new P();
-    var o = pool.get('abc', p, p.createFunc, p.destroyFunc);
+    var o = pool.create('abc', p, p.createFunc, p.destroyFunc);
     o.should.equal('ok');
     done();
   });
@@ -83,13 +83,13 @@ describe('Pool', function() {
     pool.period = 1; // make iteration fast
     pool.expiry = 10; 
     var p = new P();
-    var o = pool.get('abc', p, p.createFunc, p.destroyFunc);
+    var o = pool.create('abc', p, p.createFunc, p.destroyFunc);
     o.should.equal('ok');
     // modify the contents directly to verify that it gets from the pool
     pool.map['abc'].obj = 'ko';
     setTimeout(function() {
       p.destroyed.should.equal(true);
-      var o = pool.get('abc', p, p.createFunc, p.destroyFunc);
+      var o = pool.create('abc', p, p.createFunc, p.destroyFunc);
       // It should not be ko, as it should be re-created
       o.should.equal('ok');
       done();

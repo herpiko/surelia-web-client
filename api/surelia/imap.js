@@ -31,7 +31,17 @@ Imap.prototype.isConnected = function() {
   return self.connected
 }
 
+/**
+ * Ends IMAP client connection
+ *
+ */
 
+Imap.prototype.end = function() {
+  var self = this;
+  if (self.client) {
+    self.client.destroy();
+  }
+}
 
 /**
  * Connect to IMAP server. Returns in then() if success.
@@ -39,10 +49,9 @@ Imap.prototype.isConnected = function() {
  * @returns {Promise}
  */
 
-Imap.prototype.connect = function() {
+Imap.prototype.connect = function(callback) {
   var self = this;
   return new Promise(function(resolve, reject){
-    self.client.connect();
     self.client.once("ready", function(){
       console.log("Connection ready");
       self.connected = true;
@@ -57,6 +66,7 @@ Imap.prototype.connect = function() {
       self.connected = false;
       console.log("Connection ended");
     })
+    self.client.connect();
   })
 }
 
@@ -92,7 +102,7 @@ Imap.prototype.getSpecialBoxes = function() {
               doneIteratingCildrens(err);
             })
           } else {
-            if (mboxes[index].special_use_attribs == "\\" + special || mboxes[index].attribs.indexOf("\\" + special)) {
+            if (mboxes[index].special_use_attribs == "\\" + special || mboxes[index].attribs.indexOf("\\" + special) == 0) {
               specials[special] = {
                 path : index
               }
@@ -161,10 +171,14 @@ Imap.prototype.listBox = function(name, start, limit, searchParams) {
       }
       async.each(seqArray, function iterator(seq, doneIteratingMessages) {
         var mail = {}
-        var f = self.client.seq.fetch(seq, {
-          bodies : bodies,
-          struct : true
-        });
+        try {
+          var f = self.client.seq.fetch(seq, {
+            bodies : bodies,
+            struct : true
+          });
+        } catch (err) {
+          return reject(err);
+        }
         f.on("message", function(msg, seqno){
           var prefix = "(#" + seqno + ")";
     
@@ -267,7 +281,7 @@ Imap.prototype.renameBox = function(oldName, newName) {
  * @param {Integer} id - The id of the message
  * @returns {Promise}
  */
-Imap.prototype.retrieveMessage = function(boxName, id) {
+Imap.prototype.retrieveMessage = function(id, boxName) {
   var self = this;
   return new Promise(function(resolve, reject){
     var result = [];
@@ -332,10 +346,7 @@ Imap.prototype.moveMessage = function(id, oldBox, newBox) {
       if (err) {
         return reject(err);
       }
-      /* resolve(); */
-      console.log(1);
       self.client.move([id.toString()], newBox, function(err){
-        console.log(2);
         if (err) {
           return reject(err);
         }
@@ -356,21 +367,28 @@ Imap.prototype.moveMessage = function(id, oldBox, newBox) {
 Imap.prototype.removeMessage = function(id, boxName) {
   var self = this;
   return new Promise(function(resolve, reject){
-    self.client.openBox(boxName, true, function(err){
+    self.client.openBox(boxName, false, function(err){
       if (err) {
         return reject(err);
       }
       self.client.search([id.toString()], function(err, result){
         self.client.seq.addFlags([id.toString()], "\\Deleted", function(err){
           if (err) {
+            console.log(err);
             return reject(err);
           }
-          self.client.seq.move([id.toString()], self.specials.Trash.path, function(err, code){
-            if (err) {
+          self.getSpecialBoxes()
+            .then(function(specials){
+              self.client.seq.move([id.toString()], specials.Trash.path, function(err, code){
+                if (err) {
+                  return reject(err);
+                }
+                resolve();
+              });
+            })
+            .catch(function(){
               return reject(err);
-            }
-            resolve();
-          });
+            })
         })
       });
     })
@@ -386,13 +404,19 @@ Imap.prototype.removeMessage = function(id, boxName) {
 Imap.prototype.newMessage = function(messageData) {
   var self = this;
   return new Promise(function(resolve, reject){
-    self.client.append(messageData, { mailbox : self.specials.Drafts.path, flags : "\\Seen"}, function(err){
-      if (err) {
-        return reject(err);
-      }
-      resolve();
-    })
+    self.getSpecialBoxes()
+      .then(function(specials){
+        self.client.append(messageData, { mailbox : self.specials.Drafts.path, flags : "\\Seen"}, function(err){
+          if (err) {
+            return reject(err);
+          }
+          resolve();
+        })
+      })
+      .catch(function(err){
+        reject(err)
+      })
   })
 }
 
-exports.module = Imap;
+module.exports = Imap;

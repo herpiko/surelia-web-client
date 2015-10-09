@@ -85,4 +85,4 @@ SMTP.prototype.send = function(sender, recipients, data) {
   })
 }
 
-exports.module = SMTP;
+module.exports = SMTP;
