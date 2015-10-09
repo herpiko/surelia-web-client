@@ -1,5 +1,6 @@
 var Imap = require("./imap").module;
 var SMTP = require("./smtp").module;
+var Pool = require("./pool").module;
 var composer = require("mailcomposer");
 
 var ImapAPI = function(server, options, next) {
@@ -15,6 +16,83 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/send",
     handler : function(request, reply){
       self.send(request, reply);
+    }
+  })
+  self.server.route({
+    method : "POST",
+    path : "/api/1.0/connect",
+    handler : function(request, reply){
+      self.connect(request, reply);
+    }
+  })
+  self.server.route({
+    method : "POST",
+    path : "/api/1.0/auth",
+    handler : function(request, reply){
+      self.auth(request, reply);
+    }
+  })
+  self.server.route({
+    method : "GET",
+    path : "/api/1.0/special-boxes",
+    handler : function(request, reply){
+      self.specialBoxes(request, reply);
+    }
+  })
+  self.server.route({
+    method : "GET",
+    path : "/api/1.0/list-box",
+    handler : function(request, reply){
+      self.listBox(request, reply);
+    }
+  })
+  self.server.route({
+    method : "POST",
+    path : "/api/1.0/add-box",
+    handler : function(request, reply){
+      self.addBox(request, reply);
+    }
+  })
+  self.server.route({
+    method : "POST",
+    path : "/api/1.0/rename-box",
+    handler : function(request, reply){
+      self.renameBox(request, reply);
+    }
+  })
+  self.server.route({
+    method : "DELETE",
+    path : "/api/1.0/delete-box",
+    handler : function(request, reply){
+      self.renameBox(request, reply);
+    }
+  })
+  self.server.route({
+    method : "GET",
+    path : "/api/1.0/retrieve",
+    handler : function(request, reply){
+      self.renameBox(request, reply);
+    }
+  })
+  self.server.route({
+    method : "POST",
+    path : "/api/1.0/move",
+    handler : function(request, reply){
+      self.renameBox(request, reply);
+    }
+  })
+  self.server.route({
+    method : "POST",
+    path : "/api/1.0/remove",
+    handler : function(request, reply){
+      self.renameBox(request, reply);
+    }
+  })
+  self.server.route({
+    method : "POST",
+    path : "/api/1.0/new-draft",
+    handler : function(request, reply){
+      self.renameBox(request, reply);
     }
   })
 }
@@ -81,6 +159,17 @@ ImapAPI.prototype.send = function(request, reply) {
     .catch(function(err){
       reply({success : false, error : err});
     })
+}
+
+ImapAPI.prototype.connect = function(request, reply) {
+  var credentials = {
+    user : request.payload.user,
+    password : request.payload.password,
+    host : request.payload.host,
+    port : request.payload.port,
+    tls : request.payload.tls
+  }
+  var imap = new Imap(credentials);
 }
 
 exports.register = function(server, options, next) {
