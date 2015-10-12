@@ -9,7 +9,8 @@ var Pool = function(m) {
   if (m !== magic) throw new Error('Use getInstance to create this object');
 
   this.map = {};
-  this.expiry = 10 * 60 * 1000; // 10 minutes
+  /* this.expiry = 10 * 60 * 1000; // 10 minutes */
+  this.expiry = 10000; // 10 seconds
   this.date = Date;
   this.period = 1000; // 1 seconds
 }

@@ -120,7 +120,7 @@ var smtp;
 hoodiecrowServer.listen(1143, function(){
   
   // Start unit testing
-  describe("SMTP", function() {
+  describe.skip("SMTP", function() {
     describe("SMTP Initial and Auth", function() {
       it("Should connect to SMTP server", function(done){
         var options = {
@@ -191,7 +191,7 @@ hoodiecrowServer.listen(1143, function(){
       })
     });
   });
-  describe("IMAP", function() {
+  describe.skip("IMAP", function() {
     before(function(done){
       should(mail.isConnected()).equal(false);
       mail.connect()
@@ -336,7 +336,7 @@ hoodiecrowServer.listen(1143, function(){
           })
       });
       it("should be able to fetch a mail by UID", function(done) {
-        mail.retrieveMessage("INBOX", 1)
+        mail.retrieveMessage(1, "INBOX")
           .then(function(mail){
             console.log(mail);
             should(mail.attributes.uid).equal(1);
@@ -350,7 +350,7 @@ hoodiecrowServer.listen(1143, function(){
           })
       });
       it("should be fail to fetch unexisting UID", function(done) {
-        mail.retrieveMessage("INBOX", 1)
+        mail.retrieveMessage(1, "INBOX")
           .then(function(mail){
             should(1).equal(2);
           })
@@ -366,7 +366,7 @@ hoodiecrowServer.listen(1143, function(){
           .then(function(){
             mail.moveMessage(1, "INBOX", "SOMEBOX")
               .then(function(){
-                mail.retrieveMessage("SOMEBOX", 1)
+                mail.retrieveMessage(1, "SOMEBOX")
                   .then(function(mail){
                     console.log(mail);
                     should(mail.attributes.uid).equal(1);
@@ -454,35 +454,57 @@ hoodiecrowServer.listen(1143, function(){
         })
       });
     });
-    describe("SMTP API Endpoint", function() {
-      it("Should be able to send a message", function(done){
-        var data = {
-          // SMTP Configuration
-          host : "smtp.gmail.com",
-          port : "465",
-          requireTLS : true,
-          secure : true,
-          // Account
-          username : process.env.TEST_SMTP_USERNAME,
-          password : process.env.TEST_SMTP_PASSWORD,
-          // Envelope
-          from : process.env.TEST_SMTP_USERNAME,
-          recipients : process.env.TEST_SMTP_USERNAME,
-          sender : "Surelia",
-          subject : "Subject of the message",
-          text : "Content of the message"
-        }
-        server.inject({
-          method: "POST",
-          url : "/api/1.0/send",
-          payload : data,
-        }, function(response){
-          console.log(response.result);
-          should(response.result.accepted[0]).equal(process.env.TEST_SMTP_USERNAME);
-          done();
-        })
+  });
+  describe.skip("SMTP API Endpoint", function() {
+    it("Should be able to send a message", function(done){
+      var data = {
+        // SMTP Configuration
+        host : "smtp.gmail.com",
+        port : "465",
+        requireTLS : true,
+        secure : true,
+        // Account
+        username : process.env.TEST_SMTP_USERNAME,
+        password : process.env.TEST_SMTP_PASSWORD,
+        // Envelope
+        from : process.env.TEST_SMTP_USERNAME,
+        recipients : process.env.TEST_SMTP_USERNAME,
+        sender : "Surelia",
+        subject : "Subject of the message",
+        text : "Content of the message"
+      }
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/send",
+        payload : data,
+      }, function(response){
+        console.log(response.result);
+        should(response.result.accepted[0]).equal(process.env.TEST_SMTP_USERNAME);
+        done();
       })
-    });
+    })
+  });
+  describe("IMAP API Endpoint", function() {
+    it("Should be able to connect", function(done){
+      var data = {
+        host : "imap.gmail.com",
+        port : "993",
+        requireTLS : true,
+        secure : true,
+        username : process.env.TEST_SMTP_USERNAME,
+        password : process.env.TEST_SMTP_PASSWORD,
+      }
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/connect",
+        payload : data,
+      }, function(response){
+        console.log("arst");
+        console.log(response.result);
+        should(response.result.accepted[0]).equal(process.env.TEST_SMTP_USERNAME);
+        done();
+      })
+    })
   });
 });
 

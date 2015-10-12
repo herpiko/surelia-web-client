@@ -31,7 +31,17 @@ Imap.prototype.isConnected = function() {
   return self.connected
 }
 
+/**
+ * Ends IMAP client connection
+ *
+ */
 
+Imap.prototype.end = function() {
+  var self = this;
+  if (self.client) {
+    self.client.destroy();
+  }
+}
 
 /**
  * Connect to IMAP server. Returns in then() if success.
@@ -42,7 +52,6 @@ Imap.prototype.isConnected = function() {
 Imap.prototype.connect = function() {
   var self = this;
   return new Promise(function(resolve, reject){
-    self.client.connect();
     self.client.once("ready", function(){
       console.log("Connection ready");
       self.connected = true;
@@ -57,6 +66,7 @@ Imap.prototype.connect = function() {
       self.connected = false;
       console.log("Connection ended");
     })
+    self.client.connect();
   })
 }
 
@@ -267,7 +277,7 @@ Imap.prototype.renameBox = function(oldName, newName) {
  * @param {Integer} id - The id of the message
  * @returns {Promise}
  */
-Imap.prototype.retrieveMessage = function(boxName, id) {
+Imap.prototype.retrieveMessage = function(id, boxName) {
   var self = this;
   return new Promise(function(resolve, reject){
     var result = [];
@@ -332,10 +342,7 @@ Imap.prototype.moveMessage = function(id, oldBox, newBox) {
       if (err) {
         return reject(err);
       }
-      /* resolve(); */
-      console.log(1);
       self.client.move([id.toString()], newBox, function(err){
-        console.log(2);
         if (err) {
           return reject(err);
         }
@@ -395,4 +402,4 @@ Imap.prototype.newMessage = function(messageData) {
   })
 }
 
-exports.module = Imap;
+module.exports = Imap;
