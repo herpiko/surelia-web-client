@@ -229,6 +229,7 @@ var realConnect = function(request, reply) {
       console.log(result);
       credential = {
         user : result.username,
+        password : result.password,
         host : result.host,
         port : result.port,
         tls : result.tls
