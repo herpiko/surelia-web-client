@@ -16,7 +16,7 @@
     "tests"
   ],
   "dependencies": {
-    "angular": "~1.2.21",
+    "angular": "~1.4.7",
     "lodash": "~2.4.1",
     "angular-ui-router": "~0.2.10",
     "angular-translate": "~2.2.0",
@@ -25,6 +25,10 @@
     "angular-bootstrap": "~0.12.1",
     "fontawesome": "~4.3.0",
     "bootstrap": "~3.3.4",
-    "ng-file-upload": "~3.2.4"
+    "ng-file-upload": "~3.2.4",
+    "angular-local-storage": "~0.2.3"
+  },
+  "resolutions": {
+    "angular": "1.2.29"
   }
 }
