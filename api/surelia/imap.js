@@ -295,12 +295,12 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
         if (err) {
           return reject(err);
         }
-        if (result.length == 0 || !result) {
+        if ((result && result.length == 0) || !result) {
           var err = new Error("Message sequence not found");
           return reject(err);
         }
         var mail = {}
-        var f = self.client.seq.fetch(result[0], {
+        var f = self.client.seq.fetch(result, {
           bodies : "",
           struct : true
         });

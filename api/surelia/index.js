@@ -1,5 +1,5 @@
 var mongoose = require("mongoose");
-var Imap = require("./imap");
+var IMAP = require("./imap");
 var SMTP = require("./smtp");
 var Pool = require("./pool");
 var composer = require("mailcomposer");
@@ -225,7 +225,7 @@ var createPool = function(request, reply, credential, callback){
   var pool = Pool.getInstance();
   var id = credential.user;
   var createFunc = function(){
-    var imap = new Imap(credential);
+    var imap = new IMAP(credential);
     return imap;
   }
   var destroyFunc = function(){
@@ -328,7 +328,7 @@ var checkPool = function(request, reply, realFunc) {
         || !request.payload.smtpTLS
         || !request.payload.smtpSecure
         ) {
-          return reply(new Error("Token needed"));
+          return reply(new Error("Credential and IMAP/SMTP configuration needed"));
         }
         var credential = {
           user : request.payload.username,
@@ -687,6 +687,6 @@ exports.register.attributes = {
 };
 
 exports.module = {
-  Imap : Imap,
+  IMAP : IMAP,
   SMTP : SMTP
 };

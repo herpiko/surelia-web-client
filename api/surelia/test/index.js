@@ -96,7 +96,7 @@ var hoodiecrowServer = hoodiecrow({
 });
 
 
-var Imap = require(__dirname + "/../../../api/surelia").module.Imap;
+var Imap = require(__dirname + "/../../../api/surelia").module.IMAP;
 var credentials = {
   user : "testuser",
   password : "testpass",
@@ -456,17 +456,32 @@ hoodiecrowServer.listen(1143, function(){
       });
     });
   });
+  describe("IMAP API Endpoint", function() {
+    it("Should be able to connect and get token", function(done){
+      var data = {
+        imapHost : "imap.gmail.com",
+        imapPort : "993",
+        imapTLS : true,
+        smtpHost : "smtp.gmail.com",
+        smtpPort : "465",
+        smtpTLS : true,
+        smtpSecure : true,
+        username : process.env.TEST_SMTP_USERNAME,
+        password : process.env.TEST_SMTP_PASSWORD,
+      }
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/auth",
+        payload : data,
+      }, function(response){
+        token = response.result;
+        done();
+      })
+    })
+  });
   describe("SMTP API Endpoint", function() {
     it("Should be able to send a message", function(done){
       var data = {
-        // SMTP Configuration
-        host : "smtp.gmail.com",
-        port : "465",
-        requireTLS : true,
-        secure : true,
-        // Account
-        username : process.env.TEST_SMTP_USERNAME,
-        password : process.env.TEST_SMTP_PASSWORD,
         // Envelope
         from : process.env.TEST_SMTP_USERNAME,
         recipients : process.env.TEST_SMTP_USERNAME,
@@ -478,32 +493,15 @@ hoodiecrowServer.listen(1143, function(){
         method: "POST",
         url : "/api/1.0/send",
         payload : data,
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
       }, function(response){
         console.log(response.result);
         should(response.result.accepted[0]).equal(process.env.TEST_SMTP_USERNAME);
         done();
       })
-    })
-  });
-  describe("IMAP API Endpoint", function() {
-    it("Should be able to connect and get token", function(done){
-      var data = {
-        host : "imap.gmail.com",
-        port : "993",
-        tls : true,
-        username : process.env.TEST_SMTP_USERNAME,
-        password : process.env.TEST_SMTP_PASSWORD,
-      }
-      server.inject({
-        method: "POST",
-        url : "/api/1.0/connect",
-        payload : data,
-      }, function(response){
-        token = response;
-        done();
-      })
-    })
-    it("Should be able to get list of box", function(done){
     })
   });
 });
