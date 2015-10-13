@@ -3,8 +3,7 @@ var Imap = require("./imap");
 var SMTP = require("./smtp");
 var Pool = require("./pool");
 var composer = require("mailcomposer");
-var simpleId = require("simple-unique-id");
-var bcrypt = require("bcrypt-nodejs");
+var forge = require("node-forge");
 
 
 var ImapAPI = function(server, options, next) {
@@ -203,100 +202,183 @@ While using pool, use this pattern :
     }
 
 */
-
-var realConnect = function(request, reply) {
-  var credential = {};
-  var createPool = function(){
-    var pool = Pool.getInstance();
-    console.log(credential);
-    var imap = new Imap(credential);
-    var createFunc = function(){
-      return imap.connect();
-    }
-    var id = request.payload.username || request.headers.username
+var createPool = function(request, reply, credential, callback){
+  var pool = Pool.getInstance();
+  console.log("credential to initiate new Imap instance");
+  console.log(credential);
+  /* console.log("========================================"); */
+  /* console.log(imap); */
+  var createFunc = function(){
+    return imap.connect;
+  }
+  var id = request.payload.username || request.headers.username;
+  try {
     var client = pool.get(id, null, createFunc, imap.end);
-    pool.map[id].obj = imap;
-    return client;
-  }
-  if (request.headers.token && request.headers.username) {
-    model().findOne({username : request.headers.username}, function(err, result){
-      if (err) {
-        return reply(err);
-      }
-      if (!result) {
-        return reply("No credential stored in backend").code(401);
-      }
-      console.log(result);
-      credential = {
-        user : result.username,
-        password : result.password,
-        host : result.host,
-        port : result.port,
-        tls : result.tls
-      }
-      return createPool();
-    }) 
-  } else {
-    credential = {
-      user : request.payload.username,
-      password : request.payload.password,
-      host : request.payload.host,
-      port : request.payload.port,
-      tls : request.payload.tls
+  } catch (err) {
+    if (err) {
+      return reply(err);
     }
-    return createPool();
   }
+  pool.map[id].obj = new Imap(credential);
+  callback(imap);
 }
 
-var checkPool = function(request, reply) {
+var checkPool = function(request, reply, realFunc) {
   return new Promise(function(resolve, reject){
     var pool = Pool.getInstance();
+    console.log("pool map");
+    console.log(Object.keys(pool.map));
     var id = request.payload.username || request.headers.username;
     if (pool.map[id]) {
       console.log("pool already exist");
-      resolve(pool.map[id].obj);
+      console.log("print current pool");
+      console.log(pool.map[id].obj);
+      /* resolve(pool.map[id].obj); */
+      realFunc(pool.map[id].obj, request, reply);
+      /* createPool(request, reply, credential, function(){ */
+      /* }); */
     } else {
       console.log("initiate new pool");
-      try {
-        realConnect(request, reply);
-      } catch(err) {
-        if (err) {
-          return reject(err);
-        }
-      }
-      // Successfully connected to IMAP server, save the credentials
 
-      // Generate salt, use it as token
-      var token = bcrypt.genSaltSync();
-      console.log("salt : " + token);
-      /* bcrypt.hash(request.payload.password, token, null, function(err, hash){ */
-      /*   if (err) { */
-      /*     return reject(err); */
-      /*   } */
-        /* request.payload.password = hash; */
-        model().create(request.payload, function(err, result){
-          console.log(err);
-          console.log(result);
+      if (request.headers.token) {
+        console.log("client has token");
+        console.log(request.headers.token);
+        /* var publicKey = forge.util.encode64(forge.pem.decode(request.headers.token)[0].body); */
+        /* console.log(publicKey); */
+        /* keyModel().findOne({publicKey : request.headers.token}).lean().exec(function(err, keyPair){ */
+        keyModel().findOne({publicKey : request.headers.token}).select().lean().exec(function(err, keyPair){
           if (err) {
-            return reject(err);
+            return reply(err);
+          } else if (!keyPair) {
+            return reply("No credential stored in backend").code(401);
+          } else {
+            var privateKey = forge.pki.privateKeyFromPem(keyPair.privateKey);
+            model().findOne({publicKey : request.headers.token}).select().lean().exec(function(err, result) {
+              /* console.log(result); */
+              if (err) {
+                return reply(err);
+              } else if (!keyPair) {
+                return reply("No credential stored in backend").code(401);
+              } else {
+                var credential = {
+                  user : result.username,
+                  host : result.host,
+                  port : result.port,
+                  tls : result.tls
+                }
+                console.log("decrypt password");
+                credential.password = privateKey.decrypt(result.password);
+  
+                createPool(request, reply, credential, function(client){
+                  /* realFunc(pool.map[id].obj, request, reply); */
+                  /* console.log(pool.map[id]); */
+                  realFunc(pool.map[id].obj, request, reply);
+                });
+              }
+            })
           }
-          pool.map[id].obj.token = token;
-          resolve(pool.map[id].obj);
         })
-      /* }) */
-
+      } else {
+        console.log("client does not have token");
+        var credential = {
+          user : request.payload.username,
+          password : request.payload.password,
+          host : request.payload.host,
+          port : request.payload.port,
+          tls : request.payload.tls
+        }
+        /* try { */
+        /*   createPool(request, reply, credential); */
+        /* } catch(err) { */
+        /*   console.log("catch error in real connect"); */
+        /*   if (err) { */
+        /*     return reject(err); */
+        /*   } */
+        /* } */
+        createPool(request, reply, credential, function(client){
+          console.log("Successfully connect");
+          // Successfully connected to IMAP server, save the credentials
+    
+          // create key pair to encrypt password
+          console.log("generating key pair");
+          var keys = forge.pki.rsa.generateKeyPair({bits:1024});
+          var publicKey = keys.publicKey;
+    
+          // Save key pair to db
+          var keyPair = {}
+          var publicKeyPem = forge.pki.publicKeyToPem(keys.publicKey);
+          keyPair.publicKey = forge.util.encode64(forge.pem.decode(publicKeyPem)[0].body);
+          keyPair.privateKey = forge.pki.privateKeyToPem(keys.privateKey);
+          console.log("Save key pair to db");
+          keyModel().create(keyPair, function(err, result){
+            if (err) {
+              console.log("Fails to save key pair to db");
+              return reject(err);
+            }
+            console.log("encrypt password");
+            request.payload.password = publicKey.encrypt(request.payload.password);
+            console.log("save to payload");
+            request.payload.publicKey = keyPair.publicKey;
+            console.log("save credential to db");
+            model().create(request.payload, function(err, result){
+              console.log(err);
+              console.log(result);
+              if (err) {
+                console.log("fail to save credential to db");
+                return reject(err);
+              }
+              pool.map[id].obj.publicKey = keyPair.publicKey;
+              realFunc(pool.map[id].obj, request, reply);
+            })
+          })
+        });
+      }
     }
   })
 }
 
+/* ImapAPI.prototype.getKey = function(request, reply) { */
+/*   var keyPair = forge.pki.rsa.generateKeyPair({bits:1024}); */
+/* } */
+
 ImapAPI.prototype.connect = function(request, reply) {
-  checkPool(request, reply)
-    .then(function(client){
-      reply(client.token);
-    })
-    .catch(function(err){
-      return reply(err);
-    })
+  var realFunc = function(client, request, reply) {
+    try {
+      client.connect()
+    } catch(err) {
+      if (err) {
+        return reply(err);
+      }
+    }
+    reply(client.publicKey);
+  }
+  checkPool(request, reply, realFunc)
+}
+
+ImapAPI.prototype.listBox = function(request, reply) {
+
+  var realFunc = function(client, request, reply) {
+    console.log("list box real function 2");
+    console.log(request.payload);
+    /* console.log(client); */
+    client.listBox(request.payload.boxName)
+      .then(function(result){
+        reply(result);
+      })
+      .catch(function(err){
+        reply(err);
+      })
+  }
+
+  return checkPool(request, reply, realFunc);
+  /* checkPool(request, reply) */
+  /*   .then(function(client){ */
+  /*     console.log("list box real function 1"); */
+  /*     realFunc(client, request, reply); */
+  /*   }) */
+  /*   .catch(function(err){ */
+  /*     return reply(err); */
+  /*   }) */
 }
 
 ImapAPI.prototype.getSpecialBoxes = function(request, reply) {
@@ -348,26 +430,6 @@ ImapAPI.prototype.getBoxes = function(request, reply) {
   
 }
 
-ImapAPI.prototype.listBox = function(request, reply) {
-
-  var realFunc = function(client, request, reply) {
-    client.listBox(request.payload.boxName)
-      .then(function(result){
-        reply(result);
-      })
-      .catch(function(err){
-        reply(err);
-      })
-  }
-
-  checkPool(request, reply)
-    .then(function(client){
-      realFunc(client, request, reply);
-    })
-    .catch(function(err){
-      return reply(err);
-    })
-}
 
 ImapAPI.prototype.addBox = function(request, reply) {
   var realFunc = function(client, request, reply) {
@@ -528,10 +590,31 @@ var model = function() {
     port : Number,
     username: String,
     password: String,
-    tls : Boolean
+    tls : Boolean,
+    publicKey : String
   }
   var s = new mongoose.Schema(schema);
   m = mongoose.model("Auth", s);
+  return m;
+
+}
+
+var keyModel = function() {
+  var registered = false;
+  var m;
+  try {
+    m = mongoose.model("KeyPair");
+    registered = true;
+  } catch(e) {
+  }
+
+  if (registered) return m;
+  var schema = {
+    publicKey : String,
+    privateKey : String,
+  }
+  var s = new mongoose.Schema(schema);
+  m = mongoose.model("KeyPair", s);
   return m;
 
 }
