@@ -171,43 +171,11 @@ ImapAPI.prototype.send = function(request, reply) {
     })
 }
 
-/* 
-While using pool, use this pattern :
-
-    someFunc = function(request, reply){
-
-    
-      // Get pool instance
-      var pool = Pool.getInstance();
-      
-      var realFunc = function(request, reply){
-        pool.map[id].someMethod()
-        ...
-      }
-    
-      // Check if there existing pool
-      if (pool.map[id]) {
-        realFunc(request, reply);
-      } else {
-    
-      // Otherwise, create new one
-       realConnect(request)
-        .then(function(result){
-          realFunc(request, reply);
-        })
-        .catch(function(){
-          reply(err); 
-        })
-      }
-    }
-
-*/
 var createPool = function(request, reply, credential, callback){
   var pool = Pool.getInstance();
   console.log("credential to initiate new Imap instance");
   console.log(credential);
-  /* console.log("========================================"); */
-  /* console.log(imap); */
+  var imap = new Imap(credential);
   var createFunc = function(){
     return imap.connect;
   }
@@ -219,7 +187,7 @@ var createPool = function(request, reply, credential, callback){
       return reply(err);
     }
   }
-  pool.map[id].obj = new Imap(credential);
+  pool.map[id].obj = imap;
   callback(imap);
 }
 
@@ -233,19 +201,13 @@ var checkPool = function(request, reply, realFunc) {
       console.log("pool already exist");
       console.log("print current pool");
       console.log(pool.map[id].obj);
-      /* resolve(pool.map[id].obj); */
       realFunc(pool.map[id].obj, request, reply);
-      /* createPool(request, reply, credential, function(){ */
-      /* }); */
     } else {
       console.log("initiate new pool");
 
       if (request.headers.token) {
         console.log("client has token");
         console.log(request.headers.token);
-        /* var publicKey = forge.util.encode64(forge.pem.decode(request.headers.token)[0].body); */
-        /* console.log(publicKey); */
-        /* keyModel().findOne({publicKey : request.headers.token}).lean().exec(function(err, keyPair){ */
         keyModel().findOne({publicKey : request.headers.token}).select().lean().exec(function(err, keyPair){
           if (err) {
             return reply(err);
@@ -254,7 +216,6 @@ var checkPool = function(request, reply, realFunc) {
           } else {
             var privateKey = forge.pki.privateKeyFromPem(keyPair.privateKey);
             model().findOne({publicKey : request.headers.token}).select().lean().exec(function(err, result) {
-              /* console.log(result); */
               if (err) {
                 return reply(err);
               } else if (!keyPair) {
@@ -270,8 +231,7 @@ var checkPool = function(request, reply, realFunc) {
                 credential.password = privateKey.decrypt(result.password);
   
                 createPool(request, reply, credential, function(client){
-                  /* realFunc(pool.map[id].obj, request, reply); */
-                  /* console.log(pool.map[id]); */
+                  console.log("Successfully connect");
                   realFunc(pool.map[id].obj, request, reply);
                 });
               }
@@ -287,14 +247,6 @@ var checkPool = function(request, reply, realFunc) {
           port : request.payload.port,
           tls : request.payload.tls
         }
-        /* try { */
-        /*   createPool(request, reply, credential); */
-        /* } catch(err) { */
-        /*   console.log("catch error in real connect"); */
-        /*   if (err) { */
-        /*     return reject(err); */
-        /*   } */
-        /* } */
         createPool(request, reply, credential, function(client){
           console.log("Successfully connect");
           // Successfully connected to IMAP server, save the credentials
@@ -337,9 +289,6 @@ var checkPool = function(request, reply, realFunc) {
   })
 }
 
-/* ImapAPI.prototype.getKey = function(request, reply) { */
-/*   var keyPair = forge.pki.rsa.generateKeyPair({bits:1024}); */
-/* } */
 
 ImapAPI.prototype.connect = function(request, reply) {
   var realFunc = function(client, request, reply) {
@@ -356,11 +305,9 @@ ImapAPI.prototype.connect = function(request, reply) {
 }
 
 ImapAPI.prototype.listBox = function(request, reply) {
-
   var realFunc = function(client, request, reply) {
     console.log("list box real function 2");
     console.log(request.payload);
-    /* console.log(client); */
     client.listBox(request.payload.boxName)
       .then(function(result){
         reply(result);
@@ -369,210 +316,201 @@ ImapAPI.prototype.listBox = function(request, reply) {
         reply(err);
       })
   }
-
-  return checkPool(request, reply, realFunc);
-  /* checkPool(request, reply) */
-  /*   .then(function(client){ */
-  /*     console.log("list box real function 1"); */
-  /*     realFunc(client, request, reply); */
-  /*   }) */
-  /*   .catch(function(err){ */
-  /*     return reply(err); */
-  /*   }) */
+  checkPool(request, reply, realFunc);
 }
 
-ImapAPI.prototype.getSpecialBoxes = function(request, reply) {
+/* ImapAPI.prototype.getSpecialBoxes = function(request, reply) { */
 
-  var realFunc = function(client, request, reply) {
-    client.getSpecialBoxes()
-      .then(function(specials){
-        reply(specials);
-      })
-      .catch(function(err){
-        return reply(err);
-      })
-  }
+/*   var realFunc = function(client, request, reply) { */
+/*     client.getSpecialBoxes() */
+/*       .then(function(specials){ */
+/*         reply(specials); */
+/*       }) */
+/*       .catch(function(err){ */
+/*         return reply(err); */
+/*       }) */
+/*   } */
 
-  checkPool(request, reply)
-    .then(function(client){
-      realFunc(client, request, reply);
-    })
-    .catch(function(err){
-      return reply(err);
-    })
+/*   checkPool(request, reply) */
+/*     .then(function(client){ */
+/*       realFunc(client, request, reply); */
+/*     }) */
+/*     .catch(function(err){ */
+/*       return reply(err); */
+/*     }) */
   
-}
+/* } */
 
-ImapAPI.prototype.getBoxes = function(request, reply) {
+/* ImapAPI.prototype.getBoxes = function(request, reply) { */
   
-  var realFunc = function(client, request, reply) {
-    client.getBoxes()
-      .then(function(boxes){
-        console.log(3);
-        console.log(boxes);
-        // Circular object, should be simplified
-        reply("ok");
-      })
-      .catch(function(err){
-        console.log(4);
-        console.log(err);
-        reply(err);
-      })
-  }
+/*   var realFunc = function(client, request, reply) { */
+/*     client.getBoxes() */
+/*       .then(function(boxes){ */
+/*         console.log(3); */
+/*         console.log(boxes); */
+/*         // Circular object, should be simplified */
+/*         reply("ok"); */
+/*       }) */
+/*       .catch(function(err){ */
+/*         console.log(4); */
+/*         console.log(err); */
+/*         reply(err); */
+/*       }) */
+/*   } */
 
-  checkPool(request, reply)
-    .then(function(client){
-      realFunc(client, request, reply);
-    })
-    .catch(function(err){
-      reply(err);
-    })
+/*   checkPool(request, reply) */
+/*     .then(function(client){ */
+/*       realFunc(client, request, reply); */
+/*     }) */
+/*     .catch(function(err){ */
+/*       reply(err); */
+/*     }) */
   
-}
+/* } */
 
 
-ImapAPI.prototype.addBox = function(request, reply) {
-  var realFunc = function(client, request, reply) {
-    console.log(request.payload.boxName);
-    client.createBox(request.payload.boxName)
-      .then(function(){
-        reply("success");
-      })
-      .catch(function(err){
-        reply(err);
-      })
-  }
+/* ImapAPI.prototype.addBox = function(request, reply) { */
+/*   var realFunc = function(client, request, reply) { */
+/*     console.log(request.payload.boxName); */
+/*     client.createBox(request.payload.boxName) */
+/*       .then(function(){ */
+/*         reply("success"); */
+/*       }) */
+/*       .catch(function(err){ */
+/*         reply(err); */
+/*       }) */
+/*   } */
   
-  checkPool(request, reply)
-    .then(function(client){
-      realFunc(client, request, reply);
-    })
-    .catch(function(err){
-      return reply(err);
-    })
-}
+/*   checkPool(request, reply) */
+/*     .then(function(client){ */
+/*       realFunc(client, request, reply); */
+/*     }) */
+/*     .catch(function(err){ */
+/*       return reply(err); */
+/*     }) */
+/* } */
 
-ImapAPI.prototype.removeBox = function(request, reply) {
-  var realFunc = function(client, request, reply) {
-    console.log(request.payload.boxName);
-    client.removeBox(request.payload.boxName)
-      .then(function(){
-        reply("success");
-      })
-      .catch(function(err){
-        reply(err);
-      })
-  }
+/* ImapAPI.prototype.removeBox = function(request, reply) { */
+/*   var realFunc = function(client, request, reply) { */
+/*     console.log(request.payload.boxName); */
+/*     client.removeBox(request.payload.boxName) */
+/*       .then(function(){ */
+/*         reply("success"); */
+/*       }) */
+/*       .catch(function(err){ */
+/*         reply(err); */
+/*       }) */
+/*   } */
   
-  checkPool(request, reply)
-    .then(function(client){
-      realFunc(client, request, reply);
-    })
-    .catch(function(err){
-      return reply(err);
-    })
-}
+/*   checkPool(request, reply) */
+/*     .then(function(client){ */
+/*       realFunc(client, request, reply); */
+/*     }) */
+/*     .catch(function(err){ */
+/*       return reply(err); */
+/*     }) */
+/* } */
 
-ImapAPI.prototype.renameBox = function(request, reply) {
-  var realFunc = function(client, request, reply) {
-    console.log(request.payload.boxName);
-    client.renameBox(request.payload.boxName, request.payload.newBoxName)
-      .then(function(){
-        reply("success");
-      })
-      .catch(function(err){
-        reply(err);
-      })
-  }
+/* ImapAPI.prototype.renameBox = function(request, reply) { */
+/*   var realFunc = function(client, request, reply) { */
+/*     console.log(request.payload.boxName); */
+/*     client.renameBox(request.payload.boxName, request.payload.newBoxName) */
+/*       .then(function(){ */
+/*         reply("success"); */
+/*       }) */
+/*       .catch(function(err){ */
+/*         reply(err); */
+/*       }) */
+/*   } */
   
-  checkPool(request, reply)
-    .then(function(client){
-      realFunc(client, request, reply);
-    })
-    .catch(function(err){
-      return reply(err);
-    })
-}
+/*   checkPool(request, reply) */
+/*     .then(function(client){ */
+/*       realFunc(client, request, reply); */
+/*     }) */
+/*     .catch(function(err){ */
+/*       return reply(err); */
+/*     }) */
+/* } */
 
-ImapAPI.prototype.retrieveMessage = function(request, reply) {
-  var realFunc = function(client, request, reply) {
-    client.retrieveMessage(request.payload.messageId, request.payload.boxName)
-      .then(function(){
-        reply("success");
-      })
-      .catch(function(err){
-        return reply(err);
-      })
-  }
+/* ImapAPI.prototype.retrieveMessage = function(request, reply) { */
+/*   var realFunc = function(client, request, reply) { */
+/*     client.retrieveMessage(request.payload.messageId, request.payload.boxName) */
+/*       .then(function(){ */
+/*         reply("success"); */
+/*       }) */
+/*       .catch(function(err){ */
+/*         return reply(err); */
+/*       }) */
+/*   } */
   
-  checkPool(request, reply)
-    .then(function(client){
-      realFunc(client, request, reply);
-    })
-    .catch(function(err){
-      return reply(err);
-    })
-}
+/*   checkPool(request, reply) */
+/*     .then(function(client){ */
+/*       realFunc(client, request, reply); */
+/*     }) */
+/*     .catch(function(err){ */
+/*       return reply(err); */
+/*     }) */
+/* } */
 
-ImapAPI.prototype.moveMessage = function(request, reply) {
-  var realFunc = function(client, request, reply) {
-    client.retrieveMessage(request.payload.messageId, request.payload.boxName, request.payload.newBoxName)
-      .then(function(){
-        reply("success");
-      })
-      .catch(function(err){
-        return reply(err);
-      })
-  }
+/* ImapAPI.prototype.moveMessage = function(request, reply) { */
+/*   var realFunc = function(client, request, reply) { */
+/*     client.retrieveMessage(request.payload.messageId, request.payload.boxName, request.payload.newBoxName) */
+/*       .then(function(){ */
+/*         reply("success"); */
+/*       }) */
+/*       .catch(function(err){ */
+/*         return reply(err); */
+/*       }) */
+/*   } */
   
-  checkPool(request, reply)
-    .then(function(client){
-      realFunc(client, request, reply);
-    })
-    .catch(function(err){
-      return reply(err);
-    })
-}
+/*   checkPool(request, reply) */
+/*     .then(function(client){ */
+/*       realFunc(client, request, reply); */
+/*     }) */
+/*     .catch(function(err){ */
+/*       return reply(err); */
+/*     }) */
+/* } */
 
-ImapAPI.prototype.removeMessage = function(request, reply) {
-  var realFunc = function(client, request, reply) {
-    client.removeMessage(request.payload.messageId, request.payload.boxName)
-      .then(function(){
-        reply("success");
-      })
-      .catch(function(err){
-        return reply(err);
-      })
-  }
+/* ImapAPI.prototype.removeMessage = function(request, reply) { */
+/*   var realFunc = function(client, request, reply) { */
+/*     client.removeMessage(request.payload.messageId, request.payload.boxName) */
+/*       .then(function(){ */
+/*         reply("success"); */
+/*       }) */
+/*       .catch(function(err){ */
+/*         return reply(err); */
+/*       }) */
+/*   } */
   
-  checkPool(request, reply)
-    .then(function(client){
-      realFunc(client, request, reply);
-    })
-    .catch(function(err){
-      return reply(err);
-    })
-}
+/*   checkPool(request, reply) */
+/*     .then(function(client){ */
+/*       realFunc(client, request, reply); */
+/*     }) */
+/*     .catch(function(err){ */
+/*       return reply(err); */
+/*     }) */
+/* } */
 
-ImapAPI.prototype.newMessage = function(request, reply) {
-  var realFunc = function(client, request, reply) {
-    client.newMessage(request.payload.messageData)
-      .then(function(){
-        reply("success");
-      })
-      .catch(function(err){
-        return reply(err);
-      })
-  }
+/* ImapAPI.prototype.newMessage = function(request, reply) { */
+/*   var realFunc = function(client, request, reply) { */
+/*     client.newMessage(request.payload.messageData) */
+/*       .then(function(){ */
+/*         reply("success"); */
+/*       }) */
+/*       .catch(function(err){ */
+/*         return reply(err); */
+/*       }) */
+/*   } */
   
-  checkPool(request, reply)
-    .then(function(client){
-      realFunc(client, request, reply);
-    })
-    .catch(function(err){
-      return reply(err);
-    })
-}
+/*   checkPool(request, reply) */
+/*     .then(function(client){ */
+/*       realFunc(client, request, reply); */
+/*     }) */
+/*     .catch(function(err){ */
+/*       return reply(err); */
+/*     }) */
+/* } */
 
 // Model
 var model = function() {
