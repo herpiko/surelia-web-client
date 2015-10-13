@@ -1,1 +1,106 @@
-start
+<div ng-controller="StartCtrl as start">
+
+  <h4>Auth</h4>
+  <input ng-model="credential.username" placeholder="username"></input>
+  <br><input ng-model="credential.password" placeholder="password"></input>
+  <br><input ng-model="credential.host" placeholder="host"></input>
+  <br><input ng-model="credential.port" placeholder="port"></input>
+  <br><input ng-model="credential.tls" placeholder="tls"></input>
+  <br><button ng-click="start.auth(credential)">Auth</button>
+  
+  <br><hr><br>
+  
+  <h4>Get boxes</h4>
+  <button ng-click="start.getBoxes()">Get boxes</button>
+  
+  <br><hr><br>
+  
+  <h4>Special boxes</h4>
+  <button ng-click="start.getSpecialBoxes()">Get special boxes</button>
+  
+  <br><hr><br>
+  
+  
+  <h4>List the content of boxes</h4>
+  <input ng-model="listBoxName" placeholder="box name"></input><br>
+  <button ng-click="start.listBox(listBoxName)">List box</button>
+  
+  <br><hr><br>
+  
+  <h4>Create box</h4>
+  <input ng-model="createBoxName" placeholder="box name"></input><br>
+  <button ng-click="start.addBox(createBoxName)">Create box</button>
+  
+  <br><hr><br>
+  
+  <h4>Rename box</h4>
+  <input ng-model="renameBoxName" placeholder="box name"></input><br>
+  <input ng-model="renameBoxNewName" placeholder="new box name"></input><br>
+  <button ng-click="start.renameBox(renameBoxName, renameBoxNewName)">Rename box</button>
+  
+  <br><hr><br>
+  
+  <h4>Remove box</h4>
+  <input ng-model="deleteBoxName" placeholder="box name"></input><br>
+  <button ng-click="start.deleteBox(deleteBoxName)">Remove box</button>
+  
+  <br><hr><br>
+  
+  <h4>Retrieve message</h4>
+  <input ng-model="retrieveMessageId" placeholder="messageId"></input><br>
+  <input ng-model="retrieveMessageBoxName" placeholder="box name"></input><br>
+  <button ng-click="start.retrieveMessage(retrieveMessageId, retrieveMessageBoxName)">Retrieve message</button>
+  
+  <br><hr><br>
+  
+  <h4>Move message</h4>
+  <input ng-model="moveMessageId" placeholder="messageId"></input><br>
+  <input ng-model="moveMessageBoxName" placeholder="box name"></input><br>
+  <input ng-model="moveMessageBoxNewName" placeholder="new box name"></input><br>
+  <button ng-click="start.moveMessage(moveMessageId, moveMessageBoxName, moveMessageBoxNewName)">Move message</button>
+  
+  <br><hr><br>
+  
+  <h4>Remove message</h4>
+  <input ng-model="deleteMessageId" placeholder="messageId"></input><br>
+  <input ng-model="deleteMessageBoxName" placeholder="box name"></input><br>
+  <button ng-click="start.deleteMessage(deleteMessageId, deleteMessageBoxName)">Delete message</button>
+  
+  <br><hr><br>
+  
+  <h4>Create draft</h4>
+  <input ng-model="newMessage.from" placeholder="from"></input><br>
+  <input ng-model="newMessage.recipients" placeholder="recipients"></input><br>
+  <input ng-model="newMessage.sender" placeholder="sender"></input><br>
+  <input ng-model="newMessage.subject" placeholder="subject"></input><br>
+  <input ng-model="newMessage.text" placeholder="text"></input><br>
+  <button ng-click="start.newMessage(newMessage)">Create draft</button>
+  
+  <br><hr><br>
+  
+  <h4>Logout</h4>
+  <button ng-click="start.logout()">Logout</button>
+  
+  <br><hr><br>
+  
+  <h4>Send message</h4>
+  IMAP configuration<br>
+  <input ng-model="messageToSend.host" placeholder="host"></input><br>
+  <input ng-model="messageToSend.port" placeholder="port"></input><br>
+  <input ng-model="messageToSend.tls" placeholder="tls"></input><br>
+  <input ng-model="messageToSend.secure" placeholder="tls"></input><br>
+  Credential<br>
+  <input ng-model="messageToSend.username" placeholder="username"></input><br>
+  <input ng-model="messageToSend.password" placeholder="password"></input><br>
+
+  Message<br>
+  <input ng-model="messageToSend.from" placeholder="from"></input><br>
+  <input ng-model="messageToSend.recipients" placeholder="recipients"></input><br>
+  <input ng-model="messageToSend.sender" placeholder="sender"></input><br>
+  <input ng-model="messageToSend.subject" placeholder="subject"></input><br>
+  <input ng-model="messageToSend.text" placeholder="text"></input><br>
+  <button ng-click="start.sendMessage(messageToSend)">Send</button>
+  
+  
+
+</div>
