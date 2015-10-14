@@ -341,13 +341,16 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
  * @returns {Promise}
  */
 Imap.prototype.moveMessage = function(id, oldBox, newBox) {
+  console.log(id, oldBox, newBox);
   var self = this;
   return new Promise(function(resolve, reject){
     self.client.openBox(oldBox, true, function(err){
+      console.log(err);
       if (err) {
         return reject(err);
       }
       self.client.move([id.toString()], newBox, function(err){
+        console.log(err);
         if (err) {
           return reject(err);
         }

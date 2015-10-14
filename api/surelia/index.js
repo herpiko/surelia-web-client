@@ -258,7 +258,6 @@ var checkPool = function(request, reply, realFunc) {
     if (pool.map[id]) {
       console.log("pool already exist");
       console.log("print current pool");
-      console.log(pool.map[id].obj);
       // Execute real function
       realFunc(pool.map[id].obj, request, reply);
     } else {
@@ -403,12 +402,14 @@ ImapAPI.prototype.logout = function(request, reply) {
   }
   var pool = Pool.getInstance();
   if (pool.map[request.headers.username]) {
-    var p = pool.get(request.headers.username);
-    p.destroy()
+    pool.map[request.headers.username].expire = (new Date()).valueOf() - 10000;
+    pool.destroy();
   }
-  model().remove({publicKey : request.headers.token}).lean().exec();
-  keyModel().remove({publicKey : request.headers.token}).lean().exec();
-  reply({success:true});
+  model().remove({publicKey : request.headers.token}).lean().exec(function(){
+    keyModel().remove({publicKey : request.headers.token}).lean().exec(function(){
+      reply({success:true});
+    });
+  });
 }
 
 /**
@@ -605,13 +606,14 @@ ImapAPI.prototype.removeMessage = function(request, reply) {
 ImapAPI.prototype.newMessage = function(request, reply) {
   var realFunc = function(client, request, reply) {
     var recipients = request.payload.recipients.split(";");
-    var newMessage = composer({
+    var msg = {
       from : request.payload.from,
       to : recipients,
       sender : request.payload.sender,
       subject : request.payload.subject,
       text : request.payload.text
-    })
+    }
+    var newMessage = composer(msg);
     newMessage.build(function(err, message){
       client.newMessage(message)
         .then(function(){
