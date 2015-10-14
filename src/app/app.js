@@ -1,27 +1,26 @@
 'use strict';
-angular.module("App", [
+
+var app = angular.module("App", [
   "ui.router", 
   "ui.bootstrap",
   "ngAnimate",
-  "test",
   "html",
-  "angularFileUpload",
-  "start",
-  "imapService",
-  "LocalStorageModule"
+  "LocalStorageModule",
 ])
-.config(function($stateProvider) {
+app.config(function($stateProvider) {
   $stateProvider
   .state("start", {
       url: "/start",
+      controller : require('./start/start.js'),
       templateProvider: function($templateCache) {
         return $templateCache.get("start/start.html");
       }
     }
   )
 })
+.factory("ImapService", require("./imapService.js"))
+.controller("StartCtrl", require("./start/start.js"))
 .controller("AppCtrl", function($scope, $state) {
-    $state.go("start");
 })
 .run([ "$rootScope", "$state", "$stateParams", 
   function ($rootScope, $state, $stateParams) {

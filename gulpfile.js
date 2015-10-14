@@ -6,6 +6,7 @@ var files   = require("./files.json");
 var runSequence = require('run-sequence');
 var ngHtml2Js = require("gulp-ng-html2js");
 var minifyHtml = require("gulp-minify-html");
+var browserify = require("gulp-browserify");
 
 var lr;
 var bootMode = "normal";
@@ -25,11 +26,6 @@ gulp.task("maps", function() {
   .pipe(gulp.dest("./public"))
 });
 
-gulp.task("libs", ["maps"], function() {
-  gulp.src(files.libs)
-  .pipe(concat("libs.js"))
-  .pipe(gulp.dest("./public/"))
-});
 
 gulp.task("fa", function() {
   gulp.src(files.fa)
@@ -70,7 +66,26 @@ gulp.task("html", function() {
   .pipe(gulp.dest("./public"))
 });
 
-gulp.task("src", ["html", "images"], function() {
+/* gulp.task("src", ["html", "images"], function() { */
+
+/*   if (bootMode == "normal") { */
+/*     files.src.push("boot/prod/boot.js"); */
+/*   } else { */
+/*     files.src.push("boot/dev/boot.js"); */
+/*   } */
+
+/*   gulp.src(files.src) */
+/*   .pipe(concat("src.js")) */
+/*   .pipe(gulp.dest("./public")) */
+/* }); */
+
+gulp.task("browserify", ["html", "images"], function() {
+
+/*   if (bootMode == "normal") { */
+/*     files.src.push("boot/prod/boot.js"); */
+/*   } else { */
+/*     files.src.push("boot/dev/boot.js"); */
+/*   } */
 
   if (bootMode == "normal") {
     files.src.push("boot/prod/boot.js");
@@ -78,8 +93,21 @@ gulp.task("src", ["html", "images"], function() {
     files.src.push("boot/dev/boot.js");
   }
 
-  gulp.src(files.src)
+  gulp.src(files.browserify)
+  .pipe(browserify({
+    insertGlobals : true,
+    debug : true
+  }))
   .pipe(concat("src.js"))
+  .pipe(gulp.dest("./public"))
+});
+gulp.task("libs", function() {
+  gulp.src(files.libs)
+  .pipe(browserify({
+    insertGlobals : true,
+    debug : true
+  }))
+  .pipe(concat("libs.js"))
   .pipe(gulp.dest("./public"))
 });
 
@@ -89,6 +117,6 @@ gulp.task("watch", function(){
   gulp.watch(["src/**", "src/**/**"], notifyLivereload);
 });
 
-var tasks = ["clean", "styles", "libs", "src", "fonts"];
+var tasks = ["clean", "styles", "libs", "browserify", "fonts"];
 
 gulp.task("default", tasks);

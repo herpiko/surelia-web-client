@@ -4,15 +4,7 @@
     "bower_components/angular-file-upload/angular-file-upload.min.map"
   ],
   "libs": [
-    "bower_components/angular/angular.min.js",
-    "bower_components/angular-animate/angular-animate.js",
-    "bower_components/angular-ui-router/release/angular-ui-router.min.js",
-    "bower_components/angular-bootstrap/ui-bootstrap.min.js",
-    "bower_components/angular-bootstrap/ui-bootstrap-tpls.min.js",
-    "bower_components/ng-file-upload/angular-file-upload-all.min.js",
-    "bower_components/lodash/dist/lodash.min.js",
-    "bower_components/angular-local-storage/dist/angular-local-storage.min.js",
-    "libs/*.js"
+    "src/app/libs.js"
   ],
   "styles": [
     "bower_components/animate.css/animate.css",
@@ -25,6 +17,9 @@
   "src": [
     "src/app/*/*.js",
     "src/*/*.js"
+  ],
+  "browserify": [
+    "src/app/app.js"
   ],
   "images": [
     "src/images/*"
