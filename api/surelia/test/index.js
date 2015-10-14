@@ -234,6 +234,15 @@ hoodiecrowServer.listen(1143, function(){
             }
           })
       });
+      it("should be fail to list the contents of main box that does not exist ", function(done) {
+        mail.listBox("SOMETHINGTHATDOESNTEXIST")
+          .then(function(result){
+            should(1).equal(2);
+          })
+          .catch(function(err){
+            done();
+          })
+      });
       it("should be able to list the contents of main box with more parameter ", function(done) {
         mail.listBox("INBOX", 1, 2)
           .then(function(result){
@@ -518,6 +527,34 @@ hoodiecrowServer.listen(1143, function(){
         done();
       })
     })
+    it("Should be able to get list of a mail box", function(done){
+      server.inject({
+        method: "GET",
+        url : "/api/1.0/list-box?boxName=INBOX",
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.length).greaterThan(0);
+        done();
+      })
+    })
+    it("Should be fail to get list of a mail box that does not exist", function(done){
+      server.inject({
+        method: "GET",
+        url : "/api/1.0/list-box?boxName=SOMETHINGTHATDOESNTEXIST",
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.err.substr(0, 15)).equal("Unknown Mailbox");
+        done();
+      })
+    })
     it("Should be able to create new mail box", function(done){
       newMailBox = randomString();
       server.inject({
@@ -541,6 +578,20 @@ hoodiecrowServer.listen(1143, function(){
           should(response.result.indexOf(newMailBox)).greaterThan(-1);
           done();
         })
+      })
+    })
+    it("Should be fail to create new mail box with existing mail box name", function(done){
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/box?boxName=" + newMailBox,
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.err.substr(0, 21)).equal("Duplicate folder name");
+        done();
       })
     })
     it("Should be able to rename existing mail box", function(done){
@@ -567,6 +618,34 @@ hoodiecrowServer.listen(1143, function(){
           should(response.result.indexOf(newMailBox2)).greaterThan(-1);
           done();
         })
+      })
+    })
+    it("Should be fail to rename unexisting mail box", function(done){
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/rename-box?boxName=SOMETHINGTHATDOESNTEXIST&newBoxName=" + newMailBox2,
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.err.substr(0, 21)).equal("Unknown source folder");
+        done();
+      })
+    })
+    it("Should be fail to rename mail box to other existing mail box name", function(done){
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/rename-box?boxName=" + newMailBox2+ "&newBoxName=INBOX",
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.err.substr(0, 21)).equal("Duplicate folder name");
+        done();
       })
     })
     it("Should be able to create new message as draft", function(done){
@@ -653,6 +732,62 @@ hoodiecrowServer.listen(1143, function(){
           should(response.result.indexOf(newMailBox2)).equal(-1);
           done();
         })
+      })
+    })
+    it("Should be fail to remove unexisting mail box", function(done){
+      server.inject({
+        method: "DELETE",
+        url : "/api/1.0/box?boxName=SOMETHINGTHATDOESNTEXIST",
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.err.substr(0, 14)).equal("Unknown folder");
+        done();
+      })
+    })
+    it("Should be able to fetch a message from INBOX (sequence no 1)", function(done){
+      server.inject({
+        method: "GET",
+        url : "/api/1.0/message?boxName=INBOX&id=1",
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should.exist(response.result.buffer);
+        should.exist(response.result.attributes);
+        done();
+      })
+    })
+    it("Should be fail to fetch a message from unexisting mail box", function(done){
+      server.inject({
+        method: "GET",
+        url : "/api/1.0/message?boxName=SOMETHINGTHATDOESNOTEXIST&id=1",
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.err.substr(0, 15)).equal("Unknown Mailbox");
+        done();
+      })
+    })
+    it.skip("Should be fail to fetch a message from INBOX with wrong seq number", function(done){
+      server.inject({
+        method: "GET",
+        url : "/api/1.0/message?boxName=INBOX&id=99999",
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        done();
       })
     })
   });

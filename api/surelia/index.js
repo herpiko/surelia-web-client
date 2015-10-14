@@ -429,13 +429,16 @@ ImapAPI.prototype.auth = function(request, reply) {
  */
 ImapAPI.prototype.listBox = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    console.log(request.query);
+    console.log(request.query.boxName);
+    if (!request.query.boxName || request.query.boxName == undefined) {
+      return reply(new Error("Missing query parameter : boxName"));
+    }
     client.listBox(request.query.boxName)
       .then(function(result){
         reply(result);
       })
       .catch(function(err){
-        reply(err);
+        reply({err : err.message});
       })
   }
   checkPool(request, reply, realFunc);
@@ -497,7 +500,8 @@ ImapAPI.prototype.addBox = function(request, reply) {
         reply({success:true});
       })
       .catch(function(err){
-        reply(err);
+        console.log(err.message);
+        reply({err : err.message});
       })
   }
   
@@ -516,7 +520,8 @@ ImapAPI.prototype.removeBox = function(request, reply) {
         reply({success:true});
       })
       .catch(function(err){
-        reply(err);
+        console.log(err.message);
+        reply({err : err.message});
       })
   }
   
@@ -535,7 +540,8 @@ ImapAPI.prototype.renameBox = function(request, reply) {
         reply({success:true});
       })
       .catch(function(err){
-        reply(err);
+        console.log(err.message);
+        reply({err : err.message});
       })
   }
   
@@ -554,7 +560,8 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
         reply(message);
       })
       .catch(function(err){
-        return reply(err);
+        console.log(err.message);
+        reply({err : err.message});
       })
   }
   
@@ -572,7 +579,8 @@ ImapAPI.prototype.moveMessage = function(request, reply) {
         reply({success:true});
       })
       .catch(function(err){
-        return reply(err);
+        console.log(err.message);
+        reply({err : err.message});
       })
   }
   
@@ -592,7 +600,8 @@ ImapAPI.prototype.removeMessage = function(request, reply) {
         reply({success:true});
       })
       .catch(function(err){
-        return reply(err);
+        console.log(err.message);
+        reply({err : err.message});
       })
   }
   
@@ -620,7 +629,8 @@ ImapAPI.prototype.newMessage = function(request, reply) {
           reply({success:true});
         })
         .catch(function(err){
-          return reply(err);
+          console.log(err.message);
+          reply({err : err.message});
         })
     })
   }

@@ -177,7 +177,7 @@ Imap.prototype.listBox = function(name, start, limit, searchParams) {
             struct : true
           });
         } catch (err) {
-          return reject(err);
+          reject(err);
         }
         f.on("message", function(msg, seqno){
           var prefix = "(#" + seqno + ")";
@@ -291,43 +291,31 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
         return reject(err);
       }
       var mail = {}
-      self.client.search([id.toString()], function(err, result){
-        if (err) {
-          return reject(err);
-        }
-        if ((result && result.length == 0) || !result) {
-          var err = new Error("Message sequence not found");
-          return reject(err);
-        }
-        var mail = {}
-        var f = self.client.seq.fetch(result, {
-          bodies : "",
-          struct : true
-        });
-        f.on("message", function(msg, seqno){
-          var prefix = "(#" + seqno + ")";
-    
-          msg.on("body", function(stream, info) {
-            var buffer = "";
-            stream.on("data", function(chunk) {
-              buffer += chunk.toString("utf8");
-            });
-            stream.once("end", function(attrs){
-              mail.buffer = buffer;
-            });
-          })
-          msg.once("attributes", function(attrs) {
-              mail.attributes = attrs;
-          })
-          msg.once("end", function(){
-            resolve(mail);
-          })
-        });
-        f.once("error", function(err) {
-          console.log("Fetch error : " + err);
-          reject(err);
+      var f = self.client.seq.fetch(id.toString() + ":*", {
+        bodies : "",
+        struct : true
+      });
+      f.on("message", function(msg, seqno){
+        var prefix = "(#" + seqno + ")";
+        msg.on("body", function(stream, info) {
+          var buffer = "";
+          stream.on("data", function(chunk) {
+            buffer += chunk.toString("utf8");
+          });
+          stream.once("end", function(attrs){
+            mail.buffer = buffer;
+          });
+        })
+        msg.once("attributes", function(attrs) {
+            mail.attributes = attrs;
+        })
+        msg.once("end", function(){
+          resolve(mail);
         })
       });
+      f.once("error", function(err) {
+        reject(err);
+      })
     })
   })
 }
