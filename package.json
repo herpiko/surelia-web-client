@@ -17,6 +17,7 @@
   "license": "GNU AGPLv3",
   "dependencies": {
     "async": "^1.4.2",
+    "browserify": "^11.2.0",
     "hapi": "^8.6.0",
     "hapi-mongoose-db-connector": "^2.0.1",
     "hapi-swagger": "^0.7.3",
