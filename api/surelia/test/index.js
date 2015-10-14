@@ -11,6 +11,10 @@ if (!process.env.TEST_SMTP_USERNAME || !process.env.TEST_SMTP_PASSWORD) {
   process.exit();
 }
 
+var randomString = function(){
+  return Math.random().toString(36).substring(7);
+}
+
 // Define Hoodiecrow IMAP server
 var hoodiecrowServer = hoodiecrow({
   plugins: ["SPECIAL-USE"],
@@ -114,8 +118,11 @@ var credentials = {
 var mail = new Imap(credentials);
 
 var SMTPConnection = require(__dirname + "/../../../api/surelia").module.SMTP;
-var smtp;
-var token;
+var smtp, 
+  token, 
+  newMailBox, 
+  newMailBox2, 
+  draftsPath;
 
 // Connect to the server once it is actually listening
 hoodiecrowServer.listen(1143, function(){
@@ -478,6 +485,176 @@ hoodiecrowServer.listen(1143, function(){
         done();
       })
     })
+    it("Should be able to get mail boxes", function(done){
+      server.inject({
+        method: "GET",
+        url : "/api/1.0/boxes",
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.indexOf("[Gmail]")).greaterThan(-1);
+        done();
+      })
+    })
+    it("Should be able to get special boxes", function(done){
+      server.inject({
+        method: "GET",
+        url : "/api/1.0/special-boxes",
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.All.path).equal("[Gmail]/All Mail");
+        should(response.result.Drafts.path).equal("[Gmail]/Drafts");
+        should(response.result.Sent.path).equal("[Gmail]/Sent Mail");
+        should(response.result.Junk.path).equal("[Gmail]/Spam");
+        should(response.result.Trash.path).equal("[Gmail]/Trash");
+        draftsPath = response.result.Drafts.path;
+        done();
+      })
+    })
+    it("Should be able to create new mail box", function(done){
+      newMailBox = randomString();
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/box?boxName=" + newMailBox,
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        should(response.result.success).equal(true);
+        server.inject({
+          method: "GET",
+          url : "/api/1.0/boxes",
+          headers : {
+            token : token,
+            username : process.env.TEST_SMTP_USERNAME
+          }
+        }, function(response){
+          console.log(response.result);
+          should(response.result.indexOf(newMailBox)).greaterThan(-1);
+          done();
+        })
+      })
+    })
+    it("Should be able to rename existing mail box", function(done){
+      newMailBox2 = randomString();
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/rename-box?boxName=" + newMailBox + "&newBoxName=" + newMailBox2,
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        should(response.result.success).equal(true);
+        server.inject({
+          method: "GET",
+          url : "/api/1.0/boxes",
+          headers : {
+            token : token,
+            username : process.env.TEST_SMTP_USERNAME
+          }
+        }, function(response){
+          console.log(response.result);
+          should(response.result.indexOf(newMailBox)).equal(-1);
+          should(response.result.indexOf(newMailBox2)).greaterThan(-1);
+          done();
+        })
+      })
+    })
+    it("Should be able to create new message as draft", function(done){
+      var msg = {
+        from : process.env.TEST_SMTP_USERNAME,
+        recipients : process.env.TEST_SMTP_USERNAME,
+        sender : "Surelia",
+        subject : randomString(),
+        text : randomString()
+      }
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/message",
+        payload : msg,
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.success).equal(true);
+        done();
+      })
+    })
+    it("Should be able to move message to another box", function(done){
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/move-message?id=1&boxName=INBOX&newBoxName=" + newMailBox2,
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.success).equal(true);
+        // Move it back
+        server.inject({
+          method: "POST",
+          url : "/api/1.0/move-message?id=1&boxName=" + newMailBox2 + "&newBoxName=INBOX",
+          headers : {
+            token : token,
+            username : process.env.TEST_SMTP_USERNAME
+          }
+        }, function(response){
+          console.log(response.result);
+          should(response.result.success).equal(true);
+          done();
+        })
+      })
+    })
+    it("Should be able to remove a message", function(done){
+      server.inject({
+        method: "DELETE",
+        url : "/api/1.0/message?id=1&boxName=" + draftsPath,
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.success).equal(true);
+        done();
+      })
+    })
+    it("Should be able to remove existing mail box", function(done){
+      server.inject({
+        method: "DELETE",
+        url : "/api/1.0/box?boxName=" + newMailBox2,
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        should(response.result.success).equal(true);
+        server.inject({
+          method: "GET",
+          url : "/api/1.0/boxes",
+          headers : {
+            token : token,
+            username : process.env.TEST_SMTP_USERNAME
+          }
+        }, function(response){
+          console.log(response.result);
+          should(response.result.indexOf(newMailBox2)).equal(-1);
+          done();
+        })
+      })
+    })
   });
   describe("SMTP API Endpoint", function() {
     it("Should be able to send a message", function(done){
@@ -499,8 +676,33 @@ hoodiecrowServer.listen(1143, function(){
         }
       }, function(response){
         console.log(response.result);
-        should(response.result.accepted[0]).equal(process.env.TEST_SMTP_USERNAME);
         done();
+      })
+    })
+  });
+  describe("Logout", function() {
+    it("Should logout and lost access", function(done){
+      server.inject({
+        method: "GET",
+        url : "/api/1.0/logout",
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.success).equal(true);
+        server.inject({
+          method: "GET",
+          url : "/api/1.0/boxes",
+          headers : {
+            token : token,
+            username : process.env.TEST_SMTP_USERNAME
+          }
+        }, function(response){
+          should(response.statusCode).equal(401);
+          done();
+        })
       })
     })
   });
