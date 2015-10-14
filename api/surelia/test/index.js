@@ -6,6 +6,11 @@ var hoodiecrow = require("hoodiecrow"),
     inspect = require('util').inspect;
 var timeout = 500
 
+if (!process.env.TEST_SMTP_USERNAME || !process.env.TEST_SMTP_PASSWORD) {
+  console.log("This unit testing needs a real Gmail account, please set the credential to environment variable TEST_SMTP_USERNAME and TEST_SMTP_PASSWORD");
+  process.exit();
+}
+
 // Define Hoodiecrow IMAP server
 var hoodiecrowServer = hoodiecrow({
   plugins: ["SPECIAL-USE"],
@@ -91,7 +96,7 @@ var hoodiecrowServer = hoodiecrow({
 });
 
 
-var Imap = require(__dirname + "/../../../api/surelia").module.Imap;
+var Imap = require(__dirname + "/../../../api/surelia").module.IMAP;
 var credentials = {
   user : "testuser",
   password : "testpass",
@@ -110,6 +115,7 @@ var mail = new Imap(credentials);
 
 var SMTPConnection = require(__dirname + "/../../../api/surelia").module.SMTP;
 var smtp;
+var token;
 
 // Connect to the server once it is actually listening
 hoodiecrowServer.listen(1143, function(){
@@ -331,7 +337,7 @@ hoodiecrowServer.listen(1143, function(){
           })
       });
       it("should be able to fetch a mail by UID", function(done) {
-        mail.retrieveMessage("INBOX", 1)
+        mail.retrieveMessage(1, "INBOX")
           .then(function(mail){
             console.log(mail);
             should(mail.attributes.uid).equal(1);
@@ -345,7 +351,7 @@ hoodiecrowServer.listen(1143, function(){
           })
       });
       it("should be fail to fetch unexisting UID", function(done) {
-        mail.retrieveMessage("INBOX", 1)
+        mail.retrieveMessage(1, "INBOX")
           .then(function(mail){
             should(1).equal(2);
           })
@@ -361,7 +367,7 @@ hoodiecrowServer.listen(1143, function(){
           .then(function(){
             mail.moveMessage(1, "INBOX", "SOMEBOX")
               .then(function(){
-                mail.retrieveMessage("SOMEBOX", 1)
+                mail.retrieveMessage(1, "SOMEBOX")
                   .then(function(mail){
                     console.log(mail);
                     should(mail.attributes.uid).equal(1);
@@ -449,34 +455,54 @@ hoodiecrowServer.listen(1143, function(){
         })
       });
     });
-    describe("SMTP API Endpoint", function() {
-      it("Should be able to send a message", function(done){
-        var data = {
-          // SMTP Configuration
-          host : "smtp.gmail.com",
-          port : "465",
-          requireTLS : true,
-          secure : true,
-          // Account
-          username : "surelia.web.client@gmail.com",
-          password : "katasandisurelia",
-          // Envelope
-          from : "surelia.web.client@gmail.com",
-          recipients : "surelia.web.client@gmail.com",
-          sender : "Surelia",
-          subject : "Subject of the message",
-          text : "Content of the message"
-        }
-        server.inject({
-          method: "POST",
-          url : "/api/1.0/send",
-          data : data,
-        }, function(response){
-          console.log(response.result);
-          done();
-        })
+  });
+  describe("IMAP API Endpoint", function() {
+    it("Should be able to connect and get token", function(done){
+      var data = {
+        imapHost : "imap.gmail.com",
+        imapPort : "993",
+        imapTLS : true,
+        smtpHost : "smtp.gmail.com",
+        smtpPort : "465",
+        smtpTLS : true,
+        smtpSecure : true,
+        username : process.env.TEST_SMTP_USERNAME,
+        password : process.env.TEST_SMTP_PASSWORD,
+      }
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/auth",
+        payload : data,
+      }, function(response){
+        token = response.result;
+        done();
       })
-    });
+    })
+  });
+  describe("SMTP API Endpoint", function() {
+    it("Should be able to send a message", function(done){
+      var data = {
+        // Envelope
+        from : process.env.TEST_SMTP_USERNAME,
+        recipients : process.env.TEST_SMTP_USERNAME,
+        sender : "Surelia",
+        subject : "Subject of the message",
+        text : "Content of the message"
+      }
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/send",
+        payload : data,
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.accepted[0]).equal(process.env.TEST_SMTP_USERNAME);
+        done();
+      })
+    })
   });
 });
 

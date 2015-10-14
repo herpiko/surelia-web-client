@@ -22,7 +22,8 @@
     "hapi-swagger": "^0.7.3",
     "idup": "^0.0.1",
     "imap": "^0.8.15",
-    "mailcomposer": "^1.2.0"
+    "mailcomposer": "^1.2.0",
+    "node-forge": "^0.6.35"
   },
   "devDependencies": {
     "bower": "^1.4.1",

@@ -34,7 +34,7 @@ SMTP.prototype.connect = function() {
   var self = this;
   return new Promise(function(resolve, reject){
     self.connection.connect(function(){
-    self.connected = true;
+      self.connected = true;
       resolve();
     })
   })
@@ -85,4 +85,4 @@ SMTP.prototype.send = function(sender, recipients, data) {
   })
 }
 
-exports.module = SMTP;
+module.exports = SMTP;
