@@ -124,6 +124,13 @@ var smtp,
   newMailBox2, 
   draftsPath;
 
+var Mailback = require('mailback');
+var onMessage = function() {
+  console.log(arguments);
+}
+
+var smtp = new Mailback.Server({ onMessage: onMessage, port: 2525 });
+smtp.start(function() {
 // Connect to the server once it is actually listening
 hoodiecrowServer.listen(1143, function(){
   
@@ -133,13 +140,7 @@ hoodiecrowServer.listen(1143, function(){
       it("Should connect to SMTP server", function(done){
         var options = {
           host : "localhost",
-          port : 2525,
-
-          // Gmail configuration
-          /* host : "smtp.gmail.com", */
-          /* port : 465, */
-          /* requireTLS : true, */
-          /* secure : true */
+          port : smtp.port,
         }
         smtp = new SMTPConnection(options);
         should(smtp.isConnected()).equal(false);
@@ -843,3 +844,4 @@ hoodiecrowServer.listen(1143, function(){
   });
 });
 
+});
