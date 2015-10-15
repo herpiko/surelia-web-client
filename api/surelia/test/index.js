@@ -137,10 +137,11 @@ hoodiecrowServer.listen(1143, function(){
   // Start unit testing
   describe("SMTP", function() {
     describe("SMTP Initial and Auth", function() {
-      it("Should connect to SMTP server", function(done){
+      it("Should connect to SMTP server @port " + smtpServer.info.port, function(done){
         var options = {
-          host : smtpServer.host,
-          port : smtpServer.port,
+          host : smtpServer.info.host,
+          port : smtpServer.info.port,
+          tls: {rejectUnauthorized: false} 
         }
         smtp = new SMTPConnection(options);
         should(smtp.isConnected()).equal(false);
