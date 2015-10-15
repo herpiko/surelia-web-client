@@ -1,5 +1,4 @@
 'use strict';
-var ImapService = require('../imapService.js');
 var StartCtrl = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService){
   this.$scope = $scope;
   this.$rootScope = $rootScope;

@@ -7,6 +7,7 @@ var runSequence = require('run-sequence');
 var ngHtml2Js = require("gulp-ng-html2js");
 var minifyHtml = require("gulp-minify-html");
 var browserify = require("gulp-browserify");
+var bulkify = require("bulkify");
 
 var lr;
 var bootMode = "normal";
@@ -96,7 +97,8 @@ gulp.task("browserify", ["html", "images"], function() {
   gulp.src(files.browserify)
   .pipe(browserify({
     insertGlobals : true,
-    debug : true
+    debug : true,
+    transform: [bulkify]
   }))
   .pipe(concat("src.js"))
   .pipe(gulp.dest("./public"))
@@ -105,7 +107,8 @@ gulp.task("libs", function() {
   gulp.src(files.libs)
   .pipe(browserify({
     insertGlobals : true,
-    debug : true
+    debug : true,
+    transform: [bulkify]
   }))
   .pipe(concat("libs.js"))
   .pipe(gulp.dest("./public"))

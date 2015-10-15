@@ -25,6 +25,8 @@
     "async": "^1.4.2",
     "bootstrapp": "0.0.0",
     "browserify": "^11.2.0",
+    "bulk-require": "^0.2.1",
+    "bulkify": "^1.1.1",
     "gulp-browserify": "^0.5.1",
     "hapi": "^8.6.0",
     "hapi-mongoose-db-connector": "^2.0.1",

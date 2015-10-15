@@ -222,4 +222,9 @@ ImapService.prototype.sendMessage = function(msg) {
 
 ImapService.inject = ["$http", "localStorageService", "$rootScope", "$state", "$q"];
 
-module.exports = ImapService;
+/* angular.module('imapService', []) */
+/* .service("ImapService", ImapService) */
+
+var module = require("./index");
+module.service("ImapService", ImapService);
+
