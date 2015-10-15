@@ -187,7 +187,7 @@ ImapAPI.prototype.send = function(request, reply) {
                   var newMessage = composer(msg)
                   newMessage.build(function(err, message){
                     if (err) {
-                      return reply({success : false, error : err});
+                      return reply({success : false, error : err.message});
                     }
                     console.log(message);
                     smtp.send(payload.sender, payload.recipients, message)
@@ -195,16 +195,16 @@ ImapAPI.prototype.send = function(request, reply) {
                         reply(info).type("application/json");
                       })
                       .catch(function(err){
-                        reply({success : false, error : err});
+                        reply({success : false, error : err.message});
                       })
                   })
                 })
                 .catch(function(err){
-                  reply({success : false, error : err});
+                  reply({success : false, error : err.message});
                 })
             })
             .catch(function(err){
-              reply({success : false, error : err});
+              reply({success : false, error : err.message});
             })
         }
       })
@@ -258,6 +258,8 @@ var checkPool = function(request, reply, realFunc) {
     if (pool.map[id]) {
       console.log("pool already exist");
       console.log("print current pool");
+      console.log("=====================================================");
+      console.log(pool.map[id]);
       // Execute real function
       realFunc(pool.map[id].obj, request, reply);
     } else {
@@ -433,6 +435,8 @@ ImapAPI.prototype.listBox = function(request, reply) {
     if (!request.query.boxName || request.query.boxName == undefined) {
       return reply(new Error("Missing query parameter : boxName"));
     }
+    console.log("----------------------------------");
+    console.log(client);
     client.listBox(request.query.boxName)
       .then(function(result){
         reply(result);
