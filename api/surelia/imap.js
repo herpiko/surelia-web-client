@@ -16,6 +16,9 @@ var inspect = require("util").inspect;
  */
 
 var Imap = function(credentials) {
+  // Increase timeout
+  credentials.connTimeout = 60000;
+  credentials.authTimeout = 60000;
   this.client = new Client(credentials);
   this.connected = false;
 }
@@ -52,17 +55,17 @@ Imap.prototype.end = function() {
 Imap.prototype.connect = function() {
   var self = this;
   return new Promise(function(resolve, reject){
-    self.client.on("ready", function(){
+    self.client.once("ready", function(){
       console.log("Connection ready");
       self.connected = true;
       resolve();
     })
-    self.client.on("error", function(err) {
+    self.client.once("error", function(err) {
       console.log(err);
       self.connected = false;
       reject(err);
     })
-    self.client.on("end", function() {
+    self.client.once("end", function() {
       self.connected = false;
       console.log("Connection ended");
     })
