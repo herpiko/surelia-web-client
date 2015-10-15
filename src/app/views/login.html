@@ -1,4 +1,4 @@
-<div ng-controller="StartCtrl as start">
+<div ng-controller="LoginCtrl as login">
   <h4>Login</h4>
   <input ng-model="credential.username" placeholder="username"></input>
   <br><input ng-model="credential.password" placeholder="password"></input>
@@ -11,5 +11,5 @@
   <input ng-model="credential.smtpPort" placeholder="port"></input><br>
   <input ng-model="credential.smtpTLS" placeholder="tls"></input><br>
   <input ng-model="credential.smtpSecure" placeholder="secure"></input><br-->
-  <br><button ng-click="start.auth(credential)">Login</button>
+  <br><button ng-click="login.auth(credential)">Login</button>
 </div>

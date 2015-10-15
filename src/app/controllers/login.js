@@ -1,5 +1,5 @@
 'use strict';
-var Start = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService){
+var Login = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -10,7 +10,7 @@ var Start = function ($scope, $rootScope, $state, $window, $stateParams, localSt
   var self = this;
 
   if (self.$rootScope.isLoggedIn || self.localStorageService.get("token")) {
-    self.$state.go("main");
+    self.$state.go("Message");
   }
   self.$scope.credential = {
     username : "surelia.web.client@gmail.com",
@@ -25,13 +25,13 @@ var Start = function ($scope, $rootScope, $state, $window, $stateParams, localSt
   }
 }
 
-Start.prototype.auth = function(credential){
+Login.prototype.auth = function(credential){
   var self = this;
   console.log("auth");
   self.ImapService.auth(credential)
     .then(function(data){
       console.log(data);
-      self.$state.go("main");
+      self.$state.go("Message");
     })
     .catch(function(data, status){
       console.log(data, status);
@@ -40,6 +40,7 @@ Start.prototype.auth = function(credential){
 }
 
 
-Start.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService"];
+Login.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService"];
 
-module.exports = Start;
+var module = require("./index");
+module.controller("LoginCtrl", Login);

@@ -1,21 +1,21 @@
-<div ng-controller="MainCtrl as main">
+<div ng-controller="MessageCtrl as msg">
   <div style="width:100%;background:#ECECEC;padding:10px">
-    <button ng-click="main.compose()">compose</button>
-    <button ng-click="main.logout()">logout</button>
+    <button ng-click="msg.compose()">compose</button>
+    <button ng-click="msg.logout()">logout</button>
   </div>
   <div>
     <!--Sidebar-->
     <div style="width:300px;display:inline-block;vertical-align:top;padding:10px;background:#ECECEC;margin-right:5px;">
       <ul>
-        <li ng-repeat="box in boxes" ng-click="main.listBox(box)" style="cursor:pointer">{{box}}</li>
-        <li ng-repeat="special in specialBoxes" ng-click="main.listBox(special.path)" style="cursor:pointer">{{special.path}}</li>
+        <li ng-repeat="box in boxes" ng-click="msg.listBox(box)" style="cursor:pointer">{{box}}</li>
+        <li ng-repeat="special in specialBoxes" ng-click="msg.listBox(special.path)" style="cursor:pointer">{{special.path}}</li>
       </ul> 
     </div>
     
     
     <!--List view-->
     <div ng-show="view=='list'" style="width:60%;display:inline-block;vertical-align:top;">
-      <div ng-repeat="message in currentList" ng-click="main.retrieveMessage(message.seq, message.boxName)"i style="cursor:pointer;margin-top:3px;background:#ECECEC">
+      <div ng-repeat="message in currentList" ng-click="msg.retrieveMessage(message.seq, message.boxName)"i style="cursor:pointer;margin-top:3px;background:#ECECEC">
         <span ng-repeat="text in message.header.from">{{text}}</span> -
         <span ng-repeat="text in message.header.subject">{{text}}</span> -
         <span>{{message.attributes.date}}</span>
@@ -34,8 +34,8 @@
       <input ng-model="newMessage.recipients" placeholder="to"></input><br>
       <input ng-model="newMessage.subject" placeholder="subject"></input><br>
       <textarea ng-model="newMessage.text" placeholder="text"></textarea><br>
-      <button ng-click="main.newMessage(newMessage)">Save as draft</button> 
-      <button ng-click="main.sendMessage(newMessage)">Send</button>
+      <button ng-click="msg.newMessage(newMessage)">Save as draft</button> 
+      <button ng-click="msg.sendMessage(newMessage)">Send</button>
     </div>
   </div>
 </div>

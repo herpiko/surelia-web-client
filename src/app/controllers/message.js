@@ -1,5 +1,5 @@
 'use strict';
-var Main = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService){
+var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -15,7 +15,7 @@ var Main = function ($scope, $rootScope, $state, $window, $stateParams, localSto
   self.getSpecialBoxes();
 }
 
-Main.prototype.getBoxes = function(){
+Message.prototype.getBoxes = function(){
   var self = this;
   console.log("boxes");
   self.ImapService.getBoxes()
@@ -30,7 +30,7 @@ Main.prototype.getBoxes = function(){
       self.ErrorHandlerService.parse(data, status);
     })
 }
-Main.prototype.getSpecialBoxes = function(){
+Message.prototype.getSpecialBoxes = function(){
   var self = this;
   console.log("special boxes");
   self.ImapService.getSpecialBoxes()
@@ -43,7 +43,7 @@ Main.prototype.getSpecialBoxes = function(){
     })
 }
 
-Main.prototype.listBox = function(boxName){
+Message.prototype.listBox = function(boxName){
   var self = this;
   self.$scope.view = "list";
   console.log("list box content");
@@ -58,7 +58,7 @@ Main.prototype.listBox = function(boxName){
     })
 }
 
-Main.prototype.addBox = function(boxName){
+Message.prototype.addBox = function(boxName){
   var self = this;
   console.log("add box");
   self.ImapService.addBox(boxName)
@@ -72,7 +72,7 @@ Main.prototype.addBox = function(boxName){
     })
 }
 
-Main.prototype.renameBox = function(boxName, newBoxName){
+Message.prototype.renameBox = function(boxName, newBoxName){
   var self = this;
   console.log("rename box");
   self.ImapService.renameBox(boxName, newBoxName)
@@ -86,7 +86,7 @@ Main.prototype.renameBox = function(boxName, newBoxName){
     })
 }
 
-Main.prototype.deleteBox = function(boxName){
+Message.prototype.deleteBox = function(boxName){
   var self = this;
   console.log("delete box");
   self.ImapService.deleteBox(boxName)
@@ -100,7 +100,7 @@ Main.prototype.deleteBox = function(boxName){
     })
 }
 
-Main.prototype.retrieveMessage = function(id, boxName){
+Message.prototype.retrieveMessage = function(id, boxName){
   var self = this;
   console.log("retrieve message");
   self.ImapService.retrieveMessage(id, boxName)
@@ -115,7 +115,7 @@ Main.prototype.retrieveMessage = function(id, boxName){
     })
 }
 
-Main.prototype.moveMessage = function(id, boxName, newBoxName){
+Message.prototype.moveMessage = function(id, boxName, newBoxName){
   var self = this;
   console.log("move message");
   self.ImapService.moveMessage(id, boxName, newBoxName)
@@ -129,7 +129,7 @@ Main.prototype.moveMessage = function(id, boxName, newBoxName){
     })
 }
 
-Main.prototype.deleteMessage = function(id, boxName){
+Message.prototype.deleteMessage = function(id, boxName){
   var self = this;
   console.log("delete message");
   self.ImapService.deleteMessage(id, boxName)
@@ -142,7 +142,7 @@ Main.prototype.deleteMessage = function(id, boxName){
       alert(data);
     })
 }
-Main.prototype.newMessage = function(newMessage){
+Message.prototype.newMessage = function(newMessage){
   var self = this;
   console.log("new message");
   self.ImapService.newMessage(newMessage)
@@ -157,7 +157,7 @@ Main.prototype.newMessage = function(newMessage){
     })
 }
 
-Main.prototype.logout = function(){
+Message.prototype.logout = function(){
   var self = this;
   console.log("logout");
   self.ImapService.logout()
@@ -174,7 +174,7 @@ Main.prototype.logout = function(){
     })
 }
 
-Main.prototype.sendMessage = function(msg){
+Message.prototype.sendMessage = function(msg){
   var self = this;
   console.log("send message");
   self.ImapService.sendMessage(msg)
@@ -189,7 +189,7 @@ Main.prototype.sendMessage = function(msg){
     })
 }
 
-Main.prototype.compose = function(){
+Message.prototype.compose = function(){
   var self = this;
   self.$scope.view = "compose";
   self.$scope.newMessage = {
@@ -199,6 +199,7 @@ Main.prototype.compose = function(){
   console.log("compose message");
 }
 
-Main.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService"];
+Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService"];
 
-module.exports = Main;
+var module = require("./index");
+module.controller("MessageCtrl", Message);

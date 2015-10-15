@@ -1,38 +1,48 @@
 'use strict';
 
-// Load service
+var angular = require('angular');
+
+require("angular-ui-router");
+require("angular-animate");
+require("angular-bootstrap");
+require("angular-local-storage");
+require("angular-file-upload");
+
+
+// Load service and controllers
 require("./service/index");
+require("./controllers/index");
+require("./js/templates");
 
 var app = angular.module("App", [
   "ui.router", 
   "ui.bootstrap",
   "ngAnimate",
-  "html",
+  "templates",
   "LocalStorageModule",
-  "app.services"
+  "app.services",
+  "app.controllers"
 ])
 .config(function($stateProvider) {
   $stateProvider
-  .state("start", {
-      url: "/start",
+  .state("Login", {
+      url: "/login",
       templateProvider: function($templateCache) {
-        return $templateCache.get("start/start.html");
+        return $templateCache.get("login.html");
       }
     }
   )
-  .state("main", {
-      url: "/main",
+  .state("Message", {
+      url: "/message",
       templateProvider: function($templateCache) {
-        return $templateCache.get("main/main.html");
+        return $templateCache.get("message.html");
       }
     }
   )
 })
 // Register controller
-.controller("StartCtrl", require("./start/start"))
-.controller("MainCtrl", require("./main/main"))
 .controller("AppCtrl", function($scope, $state) {
-  $state.go("start");
+  $state.go("Login");
 })
 .run([ "$rootScope", "$state", "$stateParams", 
   function ($rootScope, $state, $stateParams) {
