@@ -1,5 +1,5 @@
 'use strict';
-var StartCtrl = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService){
+var Start = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -10,7 +10,7 @@ var StartCtrl = function ($scope, $rootScope, $state, $window, $stateParams, loc
   var self = this;
 }
 
-StartCtrl.prototype.auth = function(credential){
+Start.prototype.auth = function(credential){
   var self = this;
   console.log("auth");
   self.ImapService.auth(credential)
@@ -24,7 +24,7 @@ StartCtrl.prototype.auth = function(credential){
     })
 }
 
-StartCtrl.prototype.getBoxes = function(){
+Start.prototype.getBoxes = function(){
   var self = this;
   console.log("boxes");
   self.ImapService.getBoxes()
@@ -37,7 +37,7 @@ StartCtrl.prototype.getBoxes = function(){
       alert(data);
     })
 }
-StartCtrl.prototype.getSpecialBoxes = function(){
+Start.prototype.getSpecialBoxes = function(){
   var self = this;
   console.log("special boxes");
   self.ImapService.getSpecialBoxes()
@@ -51,7 +51,7 @@ StartCtrl.prototype.getSpecialBoxes = function(){
     })
 }
 
-StartCtrl.prototype.listBox = function(boxName){
+Start.prototype.listBox = function(boxName){
   var self = this;
   console.log("list box content");
   self.ImapService.listBox(boxName)
@@ -65,7 +65,7 @@ StartCtrl.prototype.listBox = function(boxName){
     })
 }
 
-StartCtrl.prototype.addBox = function(boxName){
+Start.prototype.addBox = function(boxName){
   var self = this;
   console.log("add box");
   self.ImapService.addBox(boxName)
@@ -79,7 +79,7 @@ StartCtrl.prototype.addBox = function(boxName){
     })
 }
 
-StartCtrl.prototype.renameBox = function(boxName, newBoxName){
+Start.prototype.renameBox = function(boxName, newBoxName){
   var self = this;
   console.log("rename box");
   self.ImapService.renameBox(boxName, newBoxName)
@@ -93,7 +93,7 @@ StartCtrl.prototype.renameBox = function(boxName, newBoxName){
     })
 }
 
-StartCtrl.prototype.deleteBox = function(boxName){
+Start.prototype.deleteBox = function(boxName){
   var self = this;
   console.log("delete box");
   self.ImapService.deleteBox(boxName)
@@ -107,7 +107,7 @@ StartCtrl.prototype.deleteBox = function(boxName){
     })
 }
 
-StartCtrl.prototype.retrieveMessage = function(id, boxName){
+Start.prototype.retrieveMessage = function(id, boxName){
   var self = this;
   console.log("retrieve message");
   self.ImapService.retrieveMessage(id, boxName)
@@ -121,7 +121,7 @@ StartCtrl.prototype.retrieveMessage = function(id, boxName){
     })
 }
 
-StartCtrl.prototype.moveMessage = function(id, boxName, newBoxName){
+Start.prototype.moveMessage = function(id, boxName, newBoxName){
   var self = this;
   console.log("move message");
   self.ImapService.moveMessage(id, boxName, newBoxName)
@@ -135,7 +135,7 @@ StartCtrl.prototype.moveMessage = function(id, boxName, newBoxName){
     })
 }
 
-StartCtrl.prototype.deleteMessage = function(id, boxName){
+Start.prototype.deleteMessage = function(id, boxName){
   var self = this;
   console.log("delete message");
   self.ImapService.deleteMessage(id, boxName)
@@ -148,7 +148,7 @@ StartCtrl.prototype.deleteMessage = function(id, boxName){
       alert(data);
     })
 }
-StartCtrl.prototype.newMessage = function(newMessage){
+Start.prototype.newMessage = function(newMessage){
   var self = this;
   console.log("new message");
   // Append random string for testing purpose
@@ -165,7 +165,7 @@ StartCtrl.prototype.newMessage = function(newMessage){
     })
 }
 
-StartCtrl.prototype.logout = function(){
+Start.prototype.logout = function(){
   var self = this;
   console.log("logout");
   self.ImapService.logout()
@@ -179,7 +179,7 @@ StartCtrl.prototype.logout = function(){
     })
 }
 
-StartCtrl.prototype.sendMessage = function(msg){
+Start.prototype.sendMessage = function(msg){
   var self = this;
   console.log("send message");
   // Append random string for testing purpose
@@ -196,11 +196,6 @@ StartCtrl.prototype.sendMessage = function(msg){
     })
 }
 
-StartCtrl.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService"];
+Start.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService"];
 
-/* angular.module('start', []) */
-/* .service("StartCtrl", StartCtrl) */
-
-
-
-module.exports = StartCtrl;
+module.exports = Start;
