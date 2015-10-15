@@ -16,6 +16,8 @@ var inspect = require("util").inspect;
  */
 
 var Imap = function(credentials) {
+  /* credentials.connTimeout = 100000 */
+  /* credentials.authTimeout = 100000 */
   this.client = new Client(credentials);
   this.connected = false;
 }
@@ -49,20 +51,20 @@ Imap.prototype.end = function() {
  * @returns {Promise}
  */
 
-Imap.prototype.connect = function(callback) {
+Imap.prototype.connect = function() {
   var self = this;
   return new Promise(function(resolve, reject){
-    self.client.once("ready", function(){
+    self.client.on("ready", function(){
       console.log("Connection ready");
       self.connected = true;
       resolve();
     })
-    self.client.once("error", function(err) {
+    self.client.on("error", function(err) {
       console.log(err);
       self.connected = false;
       reject(err);
     })
-    self.client.once("end", function() {
+    self.client.on("end", function() {
       self.connected = false;
       console.log("Connection ended");
     })
@@ -194,6 +196,7 @@ Imap.prototype.listBox = function(name, start, limit, searchParams) {
           msg.once("attributes", function(attrs) {
               mail.attributes = attrs;
               mail.seq = seq;
+              mail.boxName = name;
           })
           msg.once("end", function(){
             result.push(mail);
