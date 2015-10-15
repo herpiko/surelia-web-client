@@ -129,8 +129,8 @@ var onMessage = function(err, message) {
   console.log(arguments, '------------------');
 }
 
-var smtp = new Mailback.Server({ onMessage: onMessage, port: 25255, host: 'localhost' });
-smtp.start(function() {
+var smtpServer = new Mailback.Server({ onMessage: onMessage, port: 25255, host: 'localhost' });
+smtpServer.start(function() {
 // Connect to the server once it is actually listening
 hoodiecrowServer.listen(1143, function(){
   
@@ -139,8 +139,8 @@ hoodiecrowServer.listen(1143, function(){
     describe("SMTP Initial and Auth", function() {
       it("Should connect to SMTP server", function(done){
         var options = {
-          host : smtp.host,
-          port : smtp.port,
+          host : smtpServer.host,
+          port : smtpServer.port,
         }
         smtp = new SMTPConnection(options);
         should(smtp.isConnected()).equal(false);
