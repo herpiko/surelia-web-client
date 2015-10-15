@@ -20,9 +20,17 @@ var app = angular.module("App", [
       }
     }
   )
+  .state("main", {
+      url: "/main",
+      templateProvider: function($templateCache) {
+        return $templateCache.get("main/main.html");
+      }
+    }
+  )
 })
 // Register controller
 .controller("StartCtrl", require("./start/start"))
+.controller("MainCtrl", require("./main/main"))
 .controller("AppCtrl", function($scope, $state) {
   $state.go("start");
 })

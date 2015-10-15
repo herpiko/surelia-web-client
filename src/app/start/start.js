@@ -8,6 +8,21 @@ var Start = function ($scope, $rootScope, $state, $window, $stateParams, localSt
   this.$stateParams = $stateParams;
   this.ImapService = ImapService;
   var self = this;
+
+  if (self.$rootScope.isLoggedIn || self.localStorageService.get("token")) {
+    self.$state.go("main");
+  }
+  self.$scope.credential = {
+    username : "surelia.web.client@gmail.com",
+    password : "katasandisurelia",
+    imapHost : "imap.gmail.com",
+    imapPort : "993",
+    imapTLS : true,
+    smtpHost : "smtp.gmail.com",
+    smtpPort : "465",
+    smtpTLS : true,
+    smtpSecure : true
+  }
 }
 
 Start.prototype.auth = function(credential){
@@ -17,6 +32,7 @@ Start.prototype.auth = function(credential){
     .then(function(data){
       console.log(data);
       alert("Token : " + data);
+      self.$state.go("main");
     })
     .catch(function(data, status){
       console.log(data, status);
@@ -24,177 +40,6 @@ Start.prototype.auth = function(credential){
     })
 }
 
-Start.prototype.getBoxes = function(){
-  var self = this;
-  console.log("boxes");
-  self.ImapService.getBoxes()
-    .success(function(data){
-      console.log(data);
-      alert("Boxes : \n" + JSON.stringify(data));
-    })
-    .error(function(data, status){
-      console.log(data, status);
-      alert(data);
-    })
-}
-Start.prototype.getSpecialBoxes = function(){
-  var self = this;
-  console.log("special boxes");
-  self.ImapService.getSpecialBoxes()
-    .success(function(data){
-      console.log(data);
-      alert("Special Boxes : \n" + JSON.stringify(data));
-    })
-    .error(function(data, status){
-      console.log(data, status);
-      alert(data);
-    })
-}
-
-Start.prototype.listBox = function(boxName){
-  var self = this;
-  console.log("list box content");
-  self.ImapService.listBox(boxName)
-    .success(function(data){
-      console.log(data);
-      alert("List of box boxName : \n" + JSON.stringify(data));
-    })
-    .error(function(data, status){
-      console.log(data, status);
-      alert(data);
-    })
-}
-
-Start.prototype.addBox = function(boxName){
-  var self = this;
-  console.log("add box");
-  self.ImapService.addBox(boxName)
-    .success(function(data){
-      console.log(data);
-      alert("Success");
-    })
-    .error(function(data, status){
-      console.log(data, status);
-      alert(data);
-    })
-}
-
-Start.prototype.renameBox = function(boxName, newBoxName){
-  var self = this;
-  console.log("rename box");
-  self.ImapService.renameBox(boxName, newBoxName)
-    .success(function(data){
-      console.log(data);
-      alert("Success");
-    })
-    .error(function(data, status){
-      console.log(data, status);
-      alert(data);
-    })
-}
-
-Start.prototype.deleteBox = function(boxName){
-  var self = this;
-  console.log("delete box");
-  self.ImapService.deleteBox(boxName)
-    .success(function(data){
-      console.log(data);
-      alert("Success");
-    })
-    .error(function(data, status){
-      console.log(data, status);
-      alert(data);
-    })
-}
-
-Start.prototype.retrieveMessage = function(id, boxName){
-  var self = this;
-  console.log("retrieve message");
-  self.ImapService.retrieveMessage(id, boxName)
-    .success(function(data){
-      console.log(data);
-      alert(JSON.stringify(data));
-    })
-    .error(function(data, status){
-      console.log(data, status);
-      alert(data);
-    })
-}
-
-Start.prototype.moveMessage = function(id, boxName, newBoxName){
-  var self = this;
-  console.log("move message");
-  self.ImapService.moveMessage(id, boxName, newBoxName)
-    .success(function(data){
-      console.log(data);
-      alert(JSON.stringify(data));
-    })
-    .error(function(data, status){
-      console.log(data, status);
-      alert(data);
-    })
-}
-
-Start.prototype.deleteMessage = function(id, boxName){
-  var self = this;
-  console.log("delete message");
-  self.ImapService.deleteMessage(id, boxName)
-    .success(function(data){
-      console.log(data);
-      alert(JSON.stringify(data));
-    })
-    .error(function(data, status){
-      console.log(data, status);
-      alert(data);
-    })
-}
-Start.prototype.newMessage = function(newMessage){
-  var self = this;
-  console.log("new message");
-  // Append random string for testing purpose
-  newMessage.subject += " " + Math.random().toString(36).substr(2, 5);
-  newMessage.text += " " + Math.random().toString(36).substr(2, 5);
-  self.ImapService.newMessage(newMessage)
-    .success(function(data){
-      console.log(data);
-      alert(JSON.stringify(data));
-    })
-    .error(function(data, status){
-      console.log(data, status);
-      alert(data);
-    })
-}
-
-Start.prototype.logout = function(){
-  var self = this;
-  console.log("logout");
-  self.ImapService.logout()
-    .success(function(data){
-      console.log(data);
-      alert(JSON.stringify(data));
-    })
-    .error(function(data, status){
-      console.log(data, status);
-      alert(data);
-    })
-}
-
-Start.prototype.sendMessage = function(msg){
-  var self = this;
-  console.log("send message");
-  // Append random string for testing purpose
-  msg.subject += " " + Math.random().toString(36).substr(2, 5);
-  msg.text += " " + Math.random().toString(36).substr(2, 5);
-  self.ImapService.sendMessage(msg)
-    .success(function(data){
-      console.log(data);
-      alert(JSON.stringify(data));
-    })
-    .error(function(data, status){
-      console.log(data, status);
-      alert(data);
-    })
-}
 
 Start.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService"];
 

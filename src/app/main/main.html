@@ -1,0 +1,116 @@
+<div ng-controller="MainCtrl as main">
+  <div>
+    <div style="width:30%;display:inline-block;vertical-align:top">
+      <ul>
+        <li ng-repeat="box in boxes" ng-click="main.listBox(box)" style="cursor:pointer">{{box}}</li>
+        <li ng-repeat="special in specialBoxes" style="cursor:pointer">{{special}}</li>
+      </ul> 
+    </div>
+    <div style="width:65%;display:inline-block;vertical-align:top;">
+      <div ng-repeat="message in currentList">
+        <span ng-repeat="text in message.header.from">{{text}}</span> -
+        <span ng-repeat="text in message.header.subject">{{text}}</span>
+      </div>
+    </div>
+  </div>
+  <!--h4>Auth</h4>
+  <input ng-model="credential.username" placeholder="username"></input>
+  <br><input ng-model="credential.password" placeholder="password"></input>
+  <br>IMAP configuration<br>
+  <br><input ng-model="credential.imapHost" placeholder="host"></input>
+  <br><input ng-model="credential.imapPort" placeholder="port"></input>
+  <br><input ng-model="credential.imapTLS" placeholder="tls"></input>
+  <br>SMTP configuration<br>
+  <input ng-model="credential.smtpHost" placeholder="host"></input><br>
+  <input ng-model="credential.smtpPort" placeholder="port"></input><br>
+  <input ng-model="credential.smtpTLS" placeholder="tls"></input><br>
+  <input ng-model="credential.smtpSecure" placeholder="tls"></input><br>
+  <br><button ng-click="main.auth(credential)">Auth</button>
+  
+  <br><hr><br>
+  
+  <h4>Get boxes</h4>
+  <button ng-click="main.getBoxes()">Get boxes</button>
+  
+  <br><hr><br>
+  
+  <h4>Special boxes</h4>
+  <button ng-click="main.getSpecialBoxes()">Get special boxes</button>
+  
+  <br><hr><br>
+  
+  
+  <h4>List the content of boxes</h4>
+  <input ng-model="listBoxName" placeholder="box name"></input><br>
+  <button ng-click="main.listBox(listBoxName)">List box</button>
+  
+  <br><hr><br>
+  
+  <h4>Create box</h4>
+  <input ng-model="createBoxName" placeholder="box name"></input><br>
+  <button ng-click="main.addBox(createBoxName)">Create box</button>
+  
+  <br><hr><br>
+  
+  <h4>Rename box</h4>
+  <input ng-model="renameBoxName" placeholder="box name"></input><br>
+  <input ng-model="renameBoxNewName" placeholder="new box name"></input><br>
+  <button ng-click="main.renameBox(renameBoxName, renameBoxNewName)">Rename box</button>
+  
+  <br><hr><br>
+  
+  <h4>Remove box</h4>
+  <input ng-model="deleteBoxName" placeholder="box name"></input><br>
+  <button ng-click="main.deleteBox(deleteBoxName)">Remove box</button>
+  
+  <br><hr><br>
+  
+  <h4>Retrieve message</h4>
+  <input ng-model="retrieveMessageId" placeholder="messageId"></input><br>
+  <input ng-model="retrieveMessageBoxName" placeholder="box name"></input><br>
+  <button ng-click="main.retrieveMessage(retrieveMessageId, retrieveMessageBoxName)">Retrieve message</button>
+  
+  <br><hr><br>
+  
+  <h4>Move message</h4>
+  <input ng-model="moveMessageId" placeholder="messageId"></input><br>
+  <input ng-model="moveMessageBoxName" placeholder="box name"></input><br>
+  <input ng-model="moveMessageBoxNewName" placeholder="new box name"></input><br>
+  <button ng-click="main.moveMessage(moveMessageId, moveMessageBoxName, moveMessageBoxNewName)">Move message</button>
+  
+  <br><hr><br>
+  
+  <h4>Remove message</h4>
+  <input ng-model="deleteMessageId" placeholder="messageId"></input><br>
+  <input ng-model="deleteMessageBoxName" placeholder="box name"></input><br>
+  <button ng-click="main.deleteMessage(deleteMessageId, deleteMessageBoxName)">Delete message</button>
+  
+  <br><hr><br>
+  
+  <h4>Create draft</h4>
+  <input ng-model="newMessage.from" placeholder="from"></input><br>
+  <input ng-model="newMessage.recipients" placeholder="recipients"></input><br>
+  <input ng-model="newMessage.sender" placeholder="sender"></input><br>
+  <input ng-model="newMessage.subject" placeholder="subject"></input><br>
+  <input ng-model="newMessage.text" placeholder="text"></input><br>
+  <button ng-click="main.newMessage(newMessage)">Create draft</button>
+  
+  <br><hr><br>
+  
+  <h4>Logout</h4>
+  <button ng-click="main.logout()">Logout</button>
+  
+  <br><hr><br>
+  
+  <h4>Send message</h4>
+  Message<br>
+  <input ng-model="messageToSend.from" placeholder="from"></input><br>
+  <input ng-model="messageToSend.recipients" placeholder="recipients"></input><br>
+  <input ng-model="messageToSend.sender" placeholder="sender"></input><br>
+  <input ng-model="messageToSend.subject" placeholder="subject"></input><br>
+  <input ng-model="messageToSend.text" placeholder="text"></input><br>
+  <button ng-click="main.sendMessage(messageToSend)">Send</button-->
+  
+  
+
+</div>
