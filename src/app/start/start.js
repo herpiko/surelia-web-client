@@ -1,3 +1,4 @@
+'use strict';
 var Start = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
@@ -197,6 +198,4 @@ Start.prototype.sendMessage = function(msg){
 
 Start.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService"];
 
-angular.module("start",[])
-.controller("StartCtrl", Start);
-
+module.exports = Start;

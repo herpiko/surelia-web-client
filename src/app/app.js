@@ -1,14 +1,15 @@
 'use strict';
-angular.module("App", [
+
+// Load service
+require("./service/index");
+
+var app = angular.module("App", [
   "ui.router", 
   "ui.bootstrap",
   "ngAnimate",
-  "test",
   "html",
-  "angularFileUpload",
-  "start",
-  "imapService",
-  "LocalStorageModule"
+  "LocalStorageModule",
+  "app.services"
 ])
 .config(function($stateProvider) {
   $stateProvider
@@ -20,13 +21,16 @@ angular.module("App", [
     }
   )
 })
+// Register controller
+.controller("StartCtrl", require("./start/start"))
 .controller("AppCtrl", function($scope, $state) {
-    $state.go("start");
+  $state.go("start");
 })
 .run([ "$rootScope", "$state", "$stateParams", 
   function ($rootScope, $state, $stateParams) {
     
   }
 ])
+
 
 

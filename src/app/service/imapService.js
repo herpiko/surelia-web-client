@@ -5,7 +5,6 @@ var ImapService = function($http, localStorageService, $rootScope, $state, $q) {
   this.$rootScope = $rootScope;
   this.$state = $state;
   this.$q = $q;
-  var self = this; 
 }
 
 ImapService.prototype.auth = function(credential) {
@@ -223,6 +222,6 @@ ImapService.prototype.sendMessage = function(msg) {
 
 ImapService.inject = ["$http", "localStorageService", "$rootScope", "$state", "$q"];
 
-angular.module('imapService', [])
-.service("ImapService", ImapService)
+var module = require("./index");
+module.service("ImapService", ImapService);
 
