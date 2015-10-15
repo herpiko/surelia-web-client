@@ -20,9 +20,11 @@ ImapService.prototype.auth = function(credential) {
   self.$http(req)
   .success(function(data, status, headers) {
     promise.resolve(data);
+    self.$rootScope.isLoggedIn = true;
     self.localStorageService.set("token", data); 
   })
   .error(function(data, status, headers) {
+    self.$rootScope.isLoggedIn = false;
     promise.reject(data, status);
   });
   return promise.promise;
