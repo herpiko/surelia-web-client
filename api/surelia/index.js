@@ -4,6 +4,7 @@ var SMTP = require("./smtp");
 var Pool = require("./pool");
 var composer = require("mailcomposer");
 var forge = require("node-forge");
+var config = require('../../conf/prod/surelia');
 
 
 var ImapAPI = function(server, options, next) {
@@ -343,6 +344,23 @@ var checkPool = function(request, reply, realFunc) {
         ) {
           return reply(new Error("Credential and IMAP/SMTP configuration needed"));
         }
+
+        if (config.imap.host) {
+            request.payload.imapHost = config.imap.host;
+        }
+
+        if (config.imap.port) {
+            request.payload.imapPort = config.imap.port;
+        }
+
+        if (config.smtp.host) {
+            request.payload.smtpHost = config.smtp.host;
+        }
+
+        if (config.smtp.port) {
+            request.payload.smtpPort = config.smtp.port;
+        }
+
         var credential = {
           user : request.payload.username,
           password : request.payload.password,
