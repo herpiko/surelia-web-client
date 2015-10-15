@@ -187,7 +187,7 @@ ImapAPI.prototype.send = function(request, reply) {
                   var newMessage = composer(msg)
                   newMessage.build(function(err, message){
                     if (err) {
-                      return reply({success : false, error : err});
+                      return reply({success : false, error : err.message});
                     }
                     console.log(message);
                     smtp.send(payload.sender, payload.recipients, message)
@@ -195,16 +195,16 @@ ImapAPI.prototype.send = function(request, reply) {
                         reply(info).type("application/json");
                       })
                       .catch(function(err){
-                        reply({success : false, error : err});
+                        reply({success : false, error : err.message});
                       })
                   })
                 })
                 .catch(function(err){
-                  reply({success : false, error : err});
+                  reply({success : false, error : err.message});
                 })
             })
             .catch(function(err){
-              reply({success : false, error : err});
+              reply({success : false, error : err.message});
             })
         }
       })
@@ -258,8 +258,22 @@ var checkPool = function(request, reply, realFunc) {
     if (pool.map[id]) {
       console.log("pool already exist");
       console.log("print current pool");
-      // Execute real function
-      realFunc(pool.map[id].obj, request, reply);
+      if (pool.map[id].obj.client.state == "disconnected") {
+        var client = pool.get(id);
+        console.log("connecting");
+        client.connect()
+          .then(function(){
+            realFunc(client, request, reply);
+          })
+          .catch(function(err){
+            if (err) {
+              return reply(err);
+            }
+          })
+      } else {
+        // Execute real function
+        realFunc(pool.map[id].obj, request, reply);
+      }
     } else {
       console.log("initiate new pool");
       if (request.headers.token) {
