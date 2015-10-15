@@ -8,7 +8,6 @@ require("angular-bootstrap");
 require("angular-local-storage");
 require("angular-file-upload");
 
-
 // Load service and controllers
 require("./service/index");
 require("./controllers/index");
@@ -21,7 +20,8 @@ var app = angular.module("App", [
   "templates",
   "LocalStorageModule",
   "app.services",
-  "app.controllers"
+  "app.controllers",
+  "ngProgress"
 ])
 .config(function($stateProvider) {
   $stateProvider
