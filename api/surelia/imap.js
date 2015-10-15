@@ -296,7 +296,7 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
       }
       var mail = {}
       var f = self.client.seq.fetch(id.toString() + ":*", {
-        bodies : "",
+        bodies : 'HEADER.FIELDS (FROM TO SUBJECT DATE)',
         struct : true
       });
       f.on("message", function(msg, seqno){
