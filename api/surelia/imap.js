@@ -308,6 +308,7 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
           });
           stream.once("end", function(attrs){
             mail.buffer = buffer;
+            mail.header = Client.parseHeader(buffer, true);
           });
         })
         msg.once("attributes", function(attrs) {
