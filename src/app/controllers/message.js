@@ -64,16 +64,15 @@ Message.prototype.listBox = function(boxName){
   self.loading.start();
   self.$scope.view = "list";
   console.log("list box content");
-  self.ImapService.listBox(boxName)
-    .success(function(data){
+  self.ImapService.listBox(boxName, true)
+    .then(function(data){
       self.loading.complete();
       console.log(data);
       self.$rootScope.currentList = data;
     })
-    .error(function(data, status){
+    .catch(function(data, status){
       self.loading.complete();
       console.log(data, status);
-      alert(data);
     })
 }
 
@@ -90,7 +89,6 @@ Message.prototype.addBox = function(boxName){
     .error(function(data, status){
       self.loading.complete();
       console.log(data, status);
-      alert(data);
     })
 }
 
@@ -107,7 +105,6 @@ Message.prototype.renameBox = function(boxName, newBoxName){
     .error(function(data, status){
       self.loading.complete();
       console.log(data, status);
-      alert(data);
     })
 }
 
@@ -124,7 +121,6 @@ Message.prototype.deleteBox = function(boxName){
     .error(function(data, status){
       self.loading.complete();
       console.log(data, status);
-      alert(data);
     })
 }
 
@@ -132,17 +128,16 @@ Message.prototype.retrieveMessage = function(id, boxName){
   var self = this;
   self.loading.start();
   console.log("retrieve message");
-  self.ImapService.retrieveMessage(id, boxName)
-    .success(function(data){
+  self.ImapService.retrieveMessage(id, boxName, true)
+    .then(function(data){
       self.loading.complete();
       console.log(data);
       self.$scope.view = "message";
       self.$scope.currentMessage = data;
     })
-    .error(function(data, status){
+    .catch(function(data, status){
       self.loading.complete();
       console.log(data, status);
-      alert(data);
     })
 }
 
@@ -159,7 +154,6 @@ Message.prototype.moveMessage = function(id, boxName, newBoxName){
     .error(function(data, status){
       self.loading.complete();
       console.log(data, status);
-      alert(data);
     })
 }
 
@@ -176,7 +170,6 @@ Message.prototype.deleteMessage = function(id, boxName){
     .error(function(data, status){
       self.loading.complete();
       console.log(data, status);
-      alert(data);
     })
 }
 Message.prototype.newMessage = function(newMessage){
@@ -193,7 +186,6 @@ Message.prototype.newMessage = function(newMessage){
     .error(function(data, status){
       self.loading.complete();
       console.log(data, status);
-      alert(data);
     })
 }
 
@@ -213,7 +205,6 @@ Message.prototype.logout = function(){
     .error(function(data, status){
       self.loading.complete();
       console.log(data, status);
-      alert(data);
     })
 }
 
@@ -231,13 +222,11 @@ Message.prototype.sendMessage = function(msg){
     .error(function(data, status){
       self.loading.complete();
       console.log(data, status);
-      alert(data);
     })
 }
 
 Message.prototype.compose = function(){
   var self = this;
-  self.loading.start();
   self.$scope.view = "compose";
   self.$scope.newMessage = {
     from : self.localStorageService.get("username"),
