@@ -9,7 +9,6 @@ var ImapService = function($http, localStorageService, $rootScope, $state, $q) {
 
 ImapService.prototype.auth = function(credential) {
   var self = this;
-  self.localStorageService.set("username", credential.username); 
   var promise = self.$q.defer();
   var path = "/api/1.0/auth";
   var req = {
@@ -22,6 +21,8 @@ ImapService.prototype.auth = function(credential) {
     promise.resolve(data);
     self.$rootScope.isLoggedIn = true;
     self.localStorageService.set("token", data); 
+    self.localStorageService.set("username", credential.username);
+    self.$rootScope.currentUsername = credential.username;
   })
   .error(function(data, status, headers) {
     self.$rootScope.isLoggedIn = false;
