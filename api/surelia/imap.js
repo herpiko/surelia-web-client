@@ -98,7 +98,8 @@ Imap.prototype.getSpecialBoxes = function() {
               var currentSpecialUse = mboxes[index].children[child].special_use_attrib; 
               if (currentSpecialUse == "\\" + special) {
                 specials[special] = {
-                  path : index + mboxes[index].delimiter + child
+                  path : index + mboxes[index].delimiter + child,
+                  specialName : special
                 }
               }
             }, function(err) {
