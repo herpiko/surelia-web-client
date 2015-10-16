@@ -13,8 +13,20 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.loading = self.ngProgressFactory.createInstance();
 
   // Load basic information
-  self.getBoxes();
-  self.getSpecialBoxes();
+  self.loading.set(20);
+  self.ImapService.getBoxes()
+    .success(function(data, status){
+  self.loading.set(30);
+      self.listBox("INBOX");
+      self.getSpecialBoxes();
+      self.ErrorHandlerService.parse(data, status);
+      self.$rootScope.boxes = data;
+    })
+    .error(function(data, status){
+      self.loading.complete();
+      console.log(data, status);
+      self.ErrorHandlerService.parse(data, status);
+    })
 }
 
 Message.prototype.getBoxes = function(){
@@ -27,7 +39,6 @@ Message.prototype.getBoxes = function(){
       console.log(data);
       self.ErrorHandlerService.parse(data, status);
       self.$rootScope.boxes = data;
-      /* self.listBox("INBOX"); */
     })
     .error(function(data, status){
       self.loading.complete();
@@ -37,16 +48,13 @@ Message.prototype.getBoxes = function(){
 }
 Message.prototype.getSpecialBoxes = function(){
   var self = this;
-  self.loading.start();
   console.log("special boxes");
   self.ImapService.getSpecialBoxes()
     .success(function(data){
-      self.loading.complete();
       console.log(data);
       self.$rootScope.specialBoxes = data;
     })
     .error(function(data, status){
-      self.loading.complete();
       console.log(data, status);
     })
 }
@@ -200,7 +208,7 @@ Message.prototype.logout = function(){
       self.localStorageService.remove("username"); 
       self.localStorageService.remove("token"); 
       self.isLoggedIn = false;
-      self.$state.go("start");
+      self.$state.go("Login");
     })
     .error(function(data, status){
       self.loading.complete();

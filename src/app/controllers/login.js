@@ -1,5 +1,5 @@
 'use strict';
-var Login = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService){
+var Login = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ngProgressFactory){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -7,14 +7,14 @@ var Login = function ($scope, $rootScope, $state, $window, $stateParams, localSt
   this.localStorageService = localStorageService;
   this.$stateParams = $stateParams;
   this.ImapService = ImapService;
+  this.ngProgressFactory = ngProgressFactory;
   var self = this;
+  self.loading = self.ngProgressFactory.createInstance();
 
   if (self.$rootScope.isLoggedIn || self.localStorageService.get("token")) {
     self.$state.go("Message");
   }
   self.$scope.credential = {
-    username : "surelia.web.client@gmail.com",
-    password : "katasandisurelia",
     imapHost : "imap.gmail.com",
     imapPort : "993",
     imapTLS : true,
@@ -27,13 +27,16 @@ var Login = function ($scope, $rootScope, $state, $window, $stateParams, localSt
 
 Login.prototype.auth = function(credential){
   var self = this;
+  self.loading.start();
   console.log("auth");
   self.ImapService.auth(credential)
     .then(function(data){
+      self.loading.complete();
       console.log(data);
       self.$state.go("Message");
     })
     .catch(function(data, status){
+      self.loading.complete();
       console.log(data, status);
       alert(data);
     })
