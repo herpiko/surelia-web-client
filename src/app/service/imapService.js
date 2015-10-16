@@ -60,8 +60,13 @@ ImapService.prototype.getSpecialBoxes = function() {
   return self.$http(req)
 }
 
-ImapService.prototype.listBox = function(boxName) {
+ImapService.prototype.listBox = function(boxName, canceler) {
   var self = this;
+  var promise = self.$q.defer();
+  if (self.$rootScope.listBoxCanceler) {
+    self.$rootScope.listBoxCanceler.resolve();
+  }
+  self.$rootScope.listBoxCanceler = self.$q.defer();
   var path = "/api/1.0/list-box?boxName=" + boxName;
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
@@ -73,7 +78,17 @@ ImapService.prototype.listBox = function(boxName) {
       username : username
     }
   }
-  return self.$http(req)
+  if (canceler) {
+    req.timeout = self.$rootScope.listBoxCanceler.promise;
+  }
+  self.$http(req)
+  .success(function(data, status, headers) {
+    promise.resolve(data, status); 
+  })
+  .error(function(data, status, headers) {
+    promise.reject(data, status);
+  });
+  return promise.promise;
 }
 
 ImapService.prototype.addBox = function(boxName) {
@@ -124,8 +139,13 @@ ImapService.prototype.deleteBox = function(boxName) {
   return self.$http(req)
 }
 
-ImapService.prototype.retrieveMessage = function(id, boxName) {
+ImapService.prototype.retrieveMessage = function(id, boxName, canceler) {
   var self = this;
+  var promise = self.$q.defer();
+  if (self.$rootScope.retrieveMessageCanceler) {
+    self.$rootScope.retrieveMessageCanceler.resolve();
+  }
+  self.$rootScope.retrieveMessageCanceler = self.$q.defer();
   var path = "/api/1.0/message?id=" + id + "&boxName=" + boxName;
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
@@ -137,7 +157,17 @@ ImapService.prototype.retrieveMessage = function(id, boxName) {
       username : username
     }
   }
-  return self.$http(req)
+  if (canceler) {
+    req.timeout = self.$rootScope.retrieveMessageCanceler.promise;
+  }
+  self.$http(req)
+  .success(function(data, status, headers) {
+    promise.resolve(data, status); 
+  })
+  .error(function(data, status, headers) {
+    promise.reject(data, status);
+  });
+  return promise.promise;
 }
 
 ImapService.prototype.moveMessage = function(id, boxName, newBoxName) {
