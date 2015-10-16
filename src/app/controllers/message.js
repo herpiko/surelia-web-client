@@ -11,6 +11,10 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.ngProgressFactory = ngProgressFactory;
   var self = this;
   self.loading = self.ngProgressFactory.createInstance();
+  
+  if (self.localStorageService.get("username")) {
+    self.$rootScope.currentUsername = self.localStorageService.get("username");
+  }
 
   // Load basic information
   self.loading.set(20);
