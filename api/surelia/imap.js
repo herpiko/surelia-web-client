@@ -1,6 +1,8 @@
 var Client = require("imap");
 var async = require("async");
 var inspect = require("util").inspect;
+var MailParser = require("mailparser").MailParser;
+var monowrap = require("monowrap");
 
 /**
  * @typedef Promise
@@ -19,6 +21,7 @@ var Imap = function(credentials) {
   // Increase timeout
   credentials.connTimeout = 60000;
   credentials.authTimeout = 60000;
+  console.log(credentials);
   this.client = new Client(credentials);
   this.connected = false;
 }
@@ -196,6 +199,17 @@ Imap.prototype.listBox = function(name, start, limit, searchParams) {
             });
           })
           msg.once("attributes", function(attrs) {
+              mail.hasAttachment = false;
+              for (var i = 0; i < attrs.struct.length; i++) {
+                if (attrs.struct[i]
+                  && attrs.struct[i][0]
+                  && attrs.struct[i][0].disposition
+                  && attrs.struct[i][0].disposition.type == "ATTACHMENT"
+                ) {
+                  mail.hasAttachment = true;
+                  break;
+                }
+              }
               mail.attributes = attrs;
               mail.seq = seq;
               mail.boxName = name;
@@ -215,6 +229,7 @@ Imap.prototype.listBox = function(name, start, limit, searchParams) {
         if (err) {
           return reject(err);
         }
+        result.reverse();
         resolve(result);
       })
     })
@@ -296,7 +311,7 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
         return reject(err);
       }
       var mail = {}
-      var f = self.client.seq.fetch(id.toString() + ":*", {
+      var f = self.client.seq.fetch(id.toString() + ":1", {
         bodies : "",
         struct : true
       });
@@ -308,15 +323,33 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
             buffer += chunk.toString("utf8");
           });
           stream.once("end", function(attrs){
-            mail.buffer = buffer;
-            mail.header = Client.parseHeader(buffer, true);
+            mail.original = monowrap(buffer, 76);
           });
         })
         msg.once("attributes", function(attrs) {
+            mail.hasAttachment = false;
+            for (var i = 0; i < attrs.struct.length; i++) {
+              if (attrs.struct[i]
+                && attrs.struct[i][0]
+                && attrs.struct[i][0].disposition
+                && attrs.struct[i][0].disposition.type == "ATTACHMENT"
+              ) {
+                mail.hasAttachment = true;
+                break;
+              }
+            }
             mail.attributes = attrs;
         })
         msg.once("end", function(){
-          resolve(mail);
+          var mailparser = new MailParser();
+          mailparser.on("end", function(mailObject){
+            console.log(mailObject);
+            mail.parsed = mailObject;
+            mail.boxName = boxName;
+            resolve(mail);
+          })
+          mailparser.write(mail.original);
+          mailparser.end();
         })
       });
       f.once("error", function(err) {
