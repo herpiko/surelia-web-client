@@ -1,5 +1,5 @@
 'use strict';
-var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory){
+var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -9,6 +9,7 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.ImapService = ImapService;
   this.ErrorHandlerService = ErrorHandlerService;
   this.ngProgressFactory = ngProgressFactory;
+  this.$compile = $compile;
   var self = this;
   self.loading = self.ngProgressFactory.createInstance();
   
@@ -24,7 +25,7 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
       self.listBox("INBOX");
       self.getSpecialBoxes();
       self.ErrorHandlerService.parse(data, status);
-      self.$rootScope.boxes = data;
+      self.boxes = data;
     })
     .error(function(data, status){
       self.loading.complete();
@@ -42,7 +43,7 @@ Message.prototype.getBoxes = function(){
       self.loading.complete();
       console.log(data);
       self.ErrorHandlerService.parse(data, status);
-      self.$rootScope.boxes = data;
+      self.boxes = data;
     })
     .error(function(data, status){
       self.loading.complete();
@@ -56,7 +57,7 @@ Message.prototype.getSpecialBoxes = function(){
   self.ImapService.getSpecialBoxes()
     .success(function(data){
       console.log(data);
-      self.$rootScope.specialBoxes = data;
+      self.specialBoxes = data;
     })
     .error(function(data, status){
       console.log(data, status);
@@ -66,13 +67,13 @@ Message.prototype.getSpecialBoxes = function(){
 Message.prototype.listBox = function(boxName){
   var self = this;
   self.loading.start();
-  self.$scope.view = "list";
+  self.view = "list";
   console.log("list box content");
   self.ImapService.listBox(boxName, true)
     .then(function(data){
       self.loading.complete();
       console.log(data);
-      self.$rootScope.currentList = data;
+      self.currentList = data;
     })
     .catch(function(data, status){
       self.loading.complete();
@@ -136,8 +137,21 @@ Message.prototype.retrieveMessage = function(id, boxName){
     .then(function(data){
       self.loading.complete();
       console.log(data);
-      self.$scope.view = "message";
-      self.$scope.currentMessage = data;
+      self.view = "message";
+      self.currentMessage = data;
+      var e = angular.element(document.querySelector("#messageContent"));
+      e.empty();
+      var html = "";
+      if (self.currentMessage.parsed.html) {
+        console.log("html");
+        html = self.currentMessage.parsed.html;
+      } else {
+        console.log("text");
+        html = "<pre>" + self.currentMessage.parsed.text + "</pre>";
+      }
+      var linkFn = self.$compile(html);
+      var content = linkFn(self.$scope);
+      e.append(content);
     })
     .catch(function(data, status){
       self.loading.complete();
@@ -185,7 +199,7 @@ Message.prototype.newMessage = function(newMessage){
       self.loading.complete();
       console.log(data);
       alert("Saved as draft.\n" + JSON.stringify(data));
-      self.$scope.view = "list";
+      self.view = "list";
     })
     .error(function(data, status){
       self.loading.complete();
@@ -221,7 +235,7 @@ Message.prototype.sendMessage = function(msg){
       self.loading.complete();
       console.log(data);
       alert("Message was sent successfully.\n" + JSON.stringify(data));
-      self.$scope.view = "list";
+      self.view = "list";
     })
     .error(function(data, status){
       self.loading.complete();
@@ -231,8 +245,8 @@ Message.prototype.sendMessage = function(msg){
 
 Message.prototype.compose = function(){
   var self = this;
-  self.$scope.view = "compose";
-  self.$scope.newMessage = {
+  self.view = "compose";
+  self.newMessage = {
     from : self.localStorageService.get("username"),
     sender : self.localStorageService.get("username"),
   };
