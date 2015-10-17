@@ -2,40 +2,50 @@
   <div style="width:100%;background:#ECECEC;padding:10px">
     <button ng-click="msg.compose()">compose</button>
     <button ng-click="msg.logout()">logout</button>
+    <br>
   </div>
   <div>
     <!--Sidebar-->
-    <div style="width:300px;display:inline-block;vertical-align:top;padding:10px;background:#ECECEC;margin-right:5px;">
+    <div style="width:300px;display:inline-block;vertical-align:top;padding:10px;background:#ECECEC;">
       <ul>
-        <li ng-repeat="box in boxes" ng-click="msg.listBox(box)" style="cursor:pointer">{{box}}</li>
-        <li ng-repeat="special in specialBoxes" ng-click="msg.listBox(special.path)" style="cursor:pointer">{{special.path}}</li>
+        <li ng-repeat="box in msg.boxes" ng-click="msg.listBox(box)" style="cursor:pointer">{{box}}</li>
+        <li ng-repeat="special in msg.specialBoxes" ng-click="msg.listBox(special.path)" style="cursor:pointer">{{special.specialName}}</li>
       </ul> 
     </div>
     
     
     <!--List view-->
-    <div ng-show="view=='list'" style="width:60%;display:inline-block;vertical-align:top;">
-      <div ng-repeat="message in currentList" ng-click="msg.retrieveMessage(message.seq, message.boxName)"i style="cursor:pointer;margin-top:3px;background:#ECECEC">
-        <span ng-repeat="text in message.header.from">{{text}}</span> -
-        <span ng-repeat="text in message.header.subject">{{text}}</span> -
-        <span>{{message.attributes.date}}</span>
+    {{msg.coba}}
+    <div ng-show="msg.view=='list'" style="width:60%;display:inline-block;vertical-align:top;">
+      <div ng-repeat="message in msg.currentList" ng-click="msg.retrieveMessage(message.seq, message.boxName)"i style="cursor:pointer;margin-top:3px;background:#ECECEC">
+        <span>{{message.seq}}</span> -
+        <span>{{message.header.from[0]}}</span> -
+        <span>{{message.header.subject[0]}}</span> -
+        <span>{{message.header.date[0]}}</span> -
+        <span ng-show="message.hasAttachment">[attachment]</span>
       </div>
     </div>
     
     <!--Message view-->
-    <div ng-show="view=='message'" style="width:60%;display:inline-block;vertical-align:top;margin:5px;background:#ECECEC">
-      {{currentMessage.buffer}}
+    <div ng-show="msg.view=='message'" style="width:60%;display:inline-block;vertical-align:top;background:#ECECEC">
+            <div><b>{{msg.currentMessage.parsed.subject}}</b></div>
+            <div>{{msg.currentMessage.parsed.from[0].address}}</div>
+            <div>{{msg.currentMessage.parsed.date}}</div>
+            <hr>
+            <div id="messageContent"></div>
+            <hr>
+            <span ng-show="msg.currentMessage.hasAttachment">[attachment]</span>
     </div>
     
     <!--Compose view-->
-    <div ng-show="view=='compose'" style="width:60%;display:inline-block;vertical-align:top;">
+    <div ng-show="msg.view=='compose'" style="width:60%;display:inline-block;vertical-align:top;">
       <h4>Compose</h4>
-      <input ng-model="newMessage.from" placeholder="from"></input><br>
-      <input ng-model="newMessage.recipients" placeholder="to"></input><br>
-      <input ng-model="newMessage.subject" placeholder="subject"></input><br>
-      <textarea ng-model="newMessage.text" placeholder="text"></textarea><br>
-      <button ng-click="msg.newMessage(newMessage)">Save as draft</button> 
-      <button ng-click="msg.sendMessage(newMessage)">Send</button>
+      <input ng-model="msg.newMessage.from" placeholder="from"></input><br>
+      <input ng-model="msg.newMessage.recipients" placeholder="to"></input><br>
+      <input ng-model="msg.newMessage.subject" placeholder="subject"></input><br>
+      <textarea ng-model="msg.newMessage.text" placeholder="text"></textarea><br>
+      <button ng-click="msg.newMessage(msg.newMessage)">Save as draft</button> 
+      <button ng-click="msg.sendMessage(msg.newMessage)">Send</button>
     </div>
   </div>
 </div>
