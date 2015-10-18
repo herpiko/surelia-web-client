@@ -209,7 +209,8 @@ Imap.prototype.listBox = function(name, start, limit, searchParams) {
                 if (attrs.struct[i]
                   && attrs.struct[i][0]
                   && attrs.struct[i][0].disposition
-                  && attrs.struct[i][0].disposition.type == "ATTACHMENT"
+                  && (attrs.struct[i][0].disposition.type == "ATTACHMENT"
+                  || attrs.struct[i][0].disposition.type == "attachment")
                 ) {
                   mail.hasAttachments = true;
                   break;
@@ -337,7 +338,8 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
               if (attrs.struct[i]
                 && attrs.struct[i][0]
                 && attrs.struct[i][0].disposition
-                && attrs.struct[i][0].disposition.type == "ATTACHMENT"
+                && (attrs.struct[i][0].disposition.type == "ATTACHMENT"
+                || attrs.struct[i][0].disposition.type == "attachment")
               ) {
                 mail.hasAttachments = true;
                 break;
