@@ -7,6 +7,7 @@ require("angular-animate");
 require("angular-bootstrap");
 require("angular-local-storage");
 require("angular-file-upload");
+require("ngprogress-npm");
 
 // Load service and controllers
 require("./service/index");
