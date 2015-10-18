@@ -204,14 +204,14 @@ Imap.prototype.listBox = function(name, start, limit, searchParams) {
             });
           })
           msg.once("attributes", function(attrs) {
-              mail.hasAttachment = false;
+              mail.hasAttachments = false;
               for (var i = 0; i < attrs.struct.length; i++) {
                 if (attrs.struct[i]
                   && attrs.struct[i][0]
                   && attrs.struct[i][0].disposition
                   && attrs.struct[i][0].disposition.type == "ATTACHMENT"
                 ) {
-                  mail.hasAttachment = true;
+                  mail.hasAttachments = true;
                   break;
                 }
               }
@@ -332,14 +332,14 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
           });
         })
         msg.once("attributes", function(attrs) {
-            mail.hasAttachment = false;
+            mail.hasAttachments = false;
             for (var i = 0; i < attrs.struct.length; i++) {
               if (attrs.struct[i]
                 && attrs.struct[i][0]
                 && attrs.struct[i][0].disposition
                 && attrs.struct[i][0].disposition.type == "ATTACHMENT"
               ) {
-                mail.hasAttachment = true;
+                mail.hasAttachments = true;
                 break;
               }
             }

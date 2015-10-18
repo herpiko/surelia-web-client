@@ -32,6 +32,12 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
       console.log(data, status);
       self.ErrorHandlerService.parse(data, status);
     })
+  self.formatBytes = function(bytes) {
+      if(bytes < 1024) return bytes + " Bytes";
+      else if(bytes < 1048576) return(bytes / 1024).toFixed(3) + " KB";
+      else if(bytes < 1073741824) return(bytes / 1048576).toFixed(3) + " MB";
+      else return(bytes / 1073741824).toFixed(3) + " GB";
+  };
 }
 
 Message.prototype.getBoxes = function(){
@@ -152,6 +158,14 @@ Message.prototype.retrieveMessage = function(id, boxName){
       var linkFn = self.$compile(html);
       var content = linkFn(self.$scope);
       e.append(content);
+      self.currentMessage.parsed.attachments[0].size = self.formatBytes(self.currentMessage.parsed.attachments[0].length);
+      /* if (self.currentMessage.parsed && */
+      /* self.currentMessage.parsed.attachment && */
+      /* self.currentMessage.parsed.attachments.length > 0) { */
+      /*   for (var i = 0; i < self.currentMessage.parsed.attachments.length; i++) { */
+      /*     self.currentMessage.parsed.attachments[i].size = self.formatBytes(self.currentMessage.parsed.attachments[i].length); */
+      /*   } */
+      /* } */
     })
     .catch(function(data, status){
       self.loading.complete();

@@ -22,7 +22,7 @@
         <span>{{message.header.from}}</span> -
         <span>{{message.header.subject}}</span> -
         <span>{{message.header.date}}</span> -
-        <span ng-show="message.hasAttachment">[attachment]</span>
+        <span ng-show="message.hasAttachments">[attachment]</span>
       </div>
     </div>
     
@@ -34,7 +34,14 @@
             <hr>
             <div id="messageContent"></div>
             <hr>
-            <span ng-show="msg.currentMessage.hasAttachment">[attachment]</span>
+            <span ng-show="msg.currentMessage.hasAttachments">[attachment]</span>
+            <div>
+              <ul>
+                <li ng-repeat="attachment in msg.currentMessage.parsed.attachments">
+                  {{attachment.fileName}} - {{attachment.size}}
+                </li>
+              </ul>
+            </div>
     </div>
     
     <!--Compose view-->
