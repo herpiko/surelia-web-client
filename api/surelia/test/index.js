@@ -477,6 +477,50 @@ hoodiecrowServer.listen(1143, function(){
     });
   });
   describe("IMAP API Endpoint", function() {
+    it("Should be fail to login because of wrong password", function(done){
+      var data = {
+        imapHost : "imap.gmail.com",
+        imapPort : "993",
+        imapTLS : true,
+        smtpHost : "smtp.gmail.com",
+        smtpPort : "465",
+        smtpTLS : true,
+        smtpSecure : true,
+        username : process.env.TEST_SMTP_USERNAME,
+        password : "wrongpassword",
+      }
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/auth",
+        payload : data,
+      }, function(response){
+        should(response.statusCode).equal(401);
+        should(response.result.err).equal("Invalid credentials (Failure)");
+        done();
+      })
+    })
+    it("Should be fail to login because of wrong credentials : the username is not an email address", function(done){
+      var data = {
+        imapHost : "imap.gmail.com",
+        imapPort : "993",
+        imapTLS : true,
+        smtpHost : "smtp.gmail.com",
+        smtpPort : "465",
+        smtpTLS : true,
+        smtpSecure : true,
+        username : "wrongusernamestring",
+        password : "wrongpassword",
+      }
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/auth",
+        payload : data,
+      }, function(response){
+        should(response.statusCode).equal(500);
+        should(response.result.err.substr(0, 13)).equal("Lookup failed");
+        done();
+      })
+    })
     it("Should be able to connect and get token", function(done){
       var data = {
         imapHost : "imap.gmail.com",
