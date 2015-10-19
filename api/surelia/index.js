@@ -268,7 +268,7 @@ var checkPool = function(request, reply, realFunc) {
           })
           .catch(function(err){
             if (err) {
-              return reply(err);
+              return reply({success : false, err : err.message});
             }
           })
       } else {
@@ -317,7 +317,7 @@ var checkPool = function(request, reply, realFunc) {
                     })
                     .catch(function(err){
                       if (err) {
-                        return reply(err);
+                        return reply({success : false, err : err.message});
                       } else {
                         return reply(new Error("Fail to connect"));
                       }
@@ -412,7 +412,10 @@ var checkPool = function(request, reply, realFunc) {
             })
             .catch(function(err){
               if (err) {
-                return reply(err);
+                if (err.message == "Invalid credentials (Failure)") {
+                  return reply({success : false, err : err.message}).code(401);
+                }
+                return reply({success : false, err : err.message});
               } else {
                 return reply(new Error("Fail to connect"));
               }
@@ -450,7 +453,7 @@ ImapAPI.prototype.logout = function(request, reply) {
  */
 ImapAPI.prototype.auth = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    reply(client.publicKey);
+    reply({ success: true, token: client.publicKey });
   }
   checkPool(request, reply, realFunc)
 }
@@ -491,7 +494,6 @@ ImapAPI.prototype.getBoxes = function(request, reply) {
         reply(boxes);
       })
       .catch(function(err){
-        console.log(4);
         console.log(err);
         reply(err);
       })
