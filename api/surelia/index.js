@@ -414,6 +414,8 @@ var checkPool = function(request, reply, realFunc) {
               })
             })
             .catch(function(err){
+              pool.map[credential.user].expire = (new Date()).valueOf() - 10000;
+              pool.destroy();
               if (err) {
                 if (err.message == "Invalid credentials (Failure)") {
                   return reply({err : err.message}).code(401);
