@@ -34,9 +34,6 @@ Login.prototype.auth = function(credential){
     .then(function(data){
       self.loading.complete();
       console.log(data);
-      if (!data.success) {
-        return self.ToastrService.parse(data);
-      }
       self.$state.go("Message");
     })
     .catch(function(data, status){
