@@ -20,7 +20,7 @@ ImapService.prototype.auth = function(credential) {
   .success(function(data, status, headers) {
     promise.resolve(data);
     self.$rootScope.isLoggedIn = true;
-    self.localStorageService.set("token", data); 
+    self.localStorageService.set("token", data.token); 
     self.localStorageService.set("username", credential.username);
     self.$rootScope.currentUsername = credential.username;
   })
@@ -220,11 +220,9 @@ ImapService.prototype.newMessage = function(newMessage) {
   return self.$http(req)
 }
 
-ImapService.prototype.logout = function() {
+ImapService.prototype.logout = function(username, token) {
   var self = this;
   var path = "/api/1.0/logout";
-  var token = self.localStorageService.get("token"); 
-  var username = self.localStorageService.get("username"); 
   var req = {
     method: "GET",
     url : path,

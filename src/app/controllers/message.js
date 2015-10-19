@@ -1,5 +1,5 @@
 'use strict';
-var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile){
+var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -10,6 +10,7 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.ErrorHandlerService = ErrorHandlerService;
   this.ngProgressFactory = ngProgressFactory;
   this.$compile = $compile;
+  this.$timeout = $timeout;
   var self = this;
   self.loading = self.ngProgressFactory.createInstance();
   
@@ -224,20 +225,17 @@ Message.prototype.newMessage = function(newMessage){
 Message.prototype.logout = function(){
   var self = this;
   self.loading.start();
+  var username = self.localStorageService.get("username"); 
+  var token = self.localStorageService.get("token"); 
   console.log("logout");
-  self.ImapService.logout()
-    .success(function(data){
-      self.loading.complete();
-      console.log(data);
-      self.localStorageService.remove("username"); 
-      self.localStorageService.remove("token"); 
-      self.isLoggedIn = false;
-      self.$state.go("Login");
-    })
-    .error(function(data, status){
-      self.loading.complete();
-      console.log(data, status);
-    })
+  self.$rootScope.isLoggedIn = false;
+  self.localStorageService.remove("username"); 
+  self.localStorageService.remove("token"); 
+  self.ImapService.logout(username, token)
+  self.$timeout(function(){
+    self.$state.go("Login");
+    self.loading.complete();
+  }, 500)
 }
 
 Message.prototype.sendMessage = function(msg){
@@ -267,7 +265,7 @@ Message.prototype.compose = function(){
   console.log("compose message");
 }
 
-Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService"];
+Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout"];
 
 var module = require("./index");
 module.controller("MessageCtrl", Message);

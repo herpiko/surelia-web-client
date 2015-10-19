@@ -1,5 +1,5 @@
 'use strict';
-var Login = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ngProgressFactory){
+var Login = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ngProgressFactory, ToastrService){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -8,6 +8,7 @@ var Login = function ($scope, $rootScope, $state, $window, $stateParams, localSt
   this.$stateParams = $stateParams;
   this.ImapService = ImapService;
   this.ngProgressFactory = ngProgressFactory;
+  this.ToastrService = ToastrService;
   var self = this;
   self.loading = self.ngProgressFactory.createInstance();
 
@@ -33,12 +34,15 @@ Login.prototype.auth = function(credential){
     .then(function(data){
       self.loading.complete();
       console.log(data);
+      if (!data.success) {
+        return self.ToastrService.parse(data);
+      }
       self.$state.go("Message");
     })
     .catch(function(data, status){
       self.loading.complete();
       console.log(data, status);
-      alert(data);
+      self.ToastrService.parse(data);
     })
 }
 
