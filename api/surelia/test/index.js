@@ -569,7 +569,7 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        should(response.result.success).equal(true);
+        should(response.statusCode).equal(200);
         server.inject({
           method: "GET",
           url : "/api/1.0/boxes",
@@ -608,7 +608,7 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        should(response.result.success).equal(true);
+        should(response.statusCode).equal(200);
         server.inject({
           method: "GET",
           url : "/api/1.0/boxes",
@@ -670,7 +670,7 @@ hoodiecrowServer.listen(1143, function(){
         }
       }, function(response){
         console.log(response.result);
-        should(response.result.success).equal(true);
+        should(response.statusCode).equal(200);
         done();
       })
     })
@@ -684,7 +684,7 @@ hoodiecrowServer.listen(1143, function(){
         }
       }, function(response){
         console.log(response.result);
-        should(response.result.success).equal(true);
+        should(response.statusCode).equal(200);
         // Move it back
         server.inject({
           method: "POST",
@@ -695,7 +695,7 @@ hoodiecrowServer.listen(1143, function(){
           }
         }, function(response){
           console.log(response.result);
-          should(response.result.success).equal(true);
+          should(response.statusCode).equal(200);
           done();
         })
       })
@@ -710,7 +710,7 @@ hoodiecrowServer.listen(1143, function(){
         }
       }, function(response){
         console.log(response.result);
-        should(response.result.success).equal(true);
+        should(response.statusCode).equal(200);
         done();
       })
     })
@@ -723,7 +723,7 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        should(response.result.success).equal(true);
+        should(response.statusCode).equal(200);
         server.inject({
           method: "GET",
           url : "/api/1.0/boxes",
@@ -830,7 +830,7 @@ hoodiecrowServer.listen(1143, function(){
         }
       }, function(response){
         console.log(response.result);
-        should(response.result.success).equal(true);
+        should(response.statusCode).equal(200);
         server.inject({
           method: "GET",
           url : "/api/1.0/boxes",

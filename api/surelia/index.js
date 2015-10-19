@@ -132,7 +132,8 @@ ImapAPI.prototype.registerEndPoints = function(){
 ImapAPI.prototype.send = function(request, reply) {
 
   if (!request.headers.token && !request.headers.username) {
-    return reply(new Error("Token needed"));
+    var err = new Error("Token needed");
+    return reply({err : err.message}).code(500);
   }
   console.log(request.headers.token);
   // This token is a public key that encrypt credential password which has been stored in db
@@ -188,7 +189,7 @@ ImapAPI.prototype.send = function(request, reply) {
                   var newMessage = composer(msg)
                   newMessage.build(function(err, message){
                     if (err) {
-                      return reply({success : false, error : err.message});
+                      return reply({error : err.message}).code(500);
                     }
                     console.log(message);
                     smtp.send(payload.sender, payload.recipients, message)
@@ -196,16 +197,16 @@ ImapAPI.prototype.send = function(request, reply) {
                         reply(info).type("application/json");
                       })
                       .catch(function(err){
-                        reply({success : false, error : err.message});
+                        reply({error : err.message}).code(500);
                       })
                   })
                 })
                 .catch(function(err){
-                  reply({success : false, error : err.message});
+                  reply({error : err.message}).code(500);
                 })
             })
             .catch(function(err){
-              reply({success : false, error : err.message});
+              reply({error : err.message}).code(500);
             })
         }
       })
@@ -268,7 +269,7 @@ var checkPool = function(request, reply, realFunc) {
           })
           .catch(function(err){
             if (err) {
-              return reply({success : false, err : err.message});
+              return reply({err : err.message}).code(500);
             }
           })
       } else {
@@ -317,9 +318,10 @@ var checkPool = function(request, reply, realFunc) {
                     })
                     .catch(function(err){
                       if (err) {
-                        return reply({success : false, err : err.message});
+                        return reply({err : err.message}).code(500);
                       } else {
-                        return reply(new Error("Fail to connect"));
+                        var err = new Error("Fail to connect");
+                        return reply({err : err.message}).code(500);
                       }
                     })
                 });
@@ -342,7 +344,8 @@ var checkPool = function(request, reply, realFunc) {
         || !request.payload.smtpTLS
         || !request.payload.smtpSecure
         ) {
-          return reply(new Error("Credential and IMAP/SMTP configuration needed"));
+          var err = new Error("Credential and IMAP/SMTP configuration needed");
+          return reply({err : err.message}).code(500);
         }
 
         if (config.imap.host) {
@@ -413,11 +416,12 @@ var checkPool = function(request, reply, realFunc) {
             .catch(function(err){
               if (err) {
                 if (err.message == "Invalid credentials (Failure)") {
-                  return reply({success : false, err : err.message}).code(401);
+                  return reply({err : err.message}).code(401);
                 }
-                return reply({success : false, err : err.message});
+                return reply({err : err.message}).code(500);
               } else {
-                return reply(new Error("Fail to connect"));
+                var err = new Error("Fail to connect");
+                return reply({err : err.message}).code(500);
               }
             })
         });
@@ -433,7 +437,8 @@ var checkPool = function(request, reply, realFunc) {
 
 ImapAPI.prototype.logout = function(request, reply) {
   if (!request.headers.token || !request.headers.username) {
-    return reply(new Error("Token needed"));
+    var err = new Error("Token needed");
+    return reply({err : err.message}).code(500);
   }
   var pool = Pool.getInstance();
   if (pool.map[request.headers.username]) {
@@ -442,7 +447,7 @@ ImapAPI.prototype.logout = function(request, reply) {
   }
   model().remove({publicKey : request.headers.token}).lean().exec(function(){
     keyModel().remove({publicKey : request.headers.token}).lean().exec(function(){
-      reply({success:true});
+      reply();
     });
   });
 }
@@ -453,7 +458,7 @@ ImapAPI.prototype.logout = function(request, reply) {
  */
 ImapAPI.prototype.auth = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    reply({ success: true, token: client.publicKey });
+    reply({token: client.publicKey });
   }
   checkPool(request, reply, realFunc)
 }
@@ -466,14 +471,15 @@ ImapAPI.prototype.listBox = function(request, reply) {
   var realFunc = function(client, request, reply) {
     console.log(request.query.boxName);
     if (!request.query.boxName || request.query.boxName == undefined) {
-      return reply(new Error("Missing query parameter : boxName"));
+      var err = new Error("Missing query parameter : boxName");
+      return reply({err : err.message}).code(500);
     }
     client.listBox(request.query.boxName)
       .then(function(result){
         reply(result);
       })
       .catch(function(err){
-        reply({err : err.message});
+        reply({err : err.message}).code(500);
       })
   }
   checkPool(request, reply, realFunc);
@@ -531,11 +537,11 @@ ImapAPI.prototype.addBox = function(request, reply) {
     console.log(request.query.boxName);
     client.createBox(request.query.boxName)
       .then(function(){
-        reply({success:true});
+        reply();
       })
       .catch(function(err){
         console.log(err.message);
-        reply({err : err.message});
+        reply({err : err.message}).code(500);
       })
   }
   
@@ -551,11 +557,11 @@ ImapAPI.prototype.removeBox = function(request, reply) {
     console.log(request.query.boxName);
     client.removeBox(request.query.boxName)
       .then(function(){
-        reply({success:true});
+        reply();
       })
       .catch(function(err){
         console.log(err.message);
-        reply({err : err.message});
+        reply({err : err.message}).code(500);
       })
   }
   
@@ -571,11 +577,11 @@ ImapAPI.prototype.renameBox = function(request, reply) {
     console.log(request.query.boxName);
     client.renameBox(request.query.boxName, request.query.newBoxName)
       .then(function(){
-        reply({success:true});
+        reply();
       })
       .catch(function(err){
         console.log(err.message);
-        reply({err : err.message});
+        reply({err : err.message}).code(500);
       })
   }
   
@@ -595,7 +601,7 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
       })
       .catch(function(err){
         console.log(err.message);
-        reply({err : err.message});
+        reply({err : err.message}).code(500);
       })
   }
   
@@ -610,11 +616,11 @@ ImapAPI.prototype.moveMessage = function(request, reply) {
   var realFunc = function(client, request, reply) {
     client.moveMessage(request.query.id, request.query.boxName, request.query.newBoxName)
       .then(function(){
-        reply({success:true});
+        reply();
       })
       .catch(function(err){
         console.log(err.message);
-        reply({err : err.message});
+        reply({err : err.message}).code(500);
       })
   }
   
@@ -631,11 +637,11 @@ ImapAPI.prototype.removeMessage = function(request, reply) {
     console.log(request.query.boxName);
     client.removeMessage(request.query.id, request.query.boxName)
       .then(function(){
-        reply({success:true});
+        reply();
       })
       .catch(function(err){
         console.log(err.message);
-        reply({err : err.message});
+        reply({err : err.message}).code(500);
       })
   }
   
@@ -660,11 +666,11 @@ ImapAPI.prototype.newMessage = function(request, reply) {
     newMessage.build(function(err, message){
       client.newMessage(message)
         .then(function(){
-          reply({success:true});
+          reply();
         })
         .catch(function(err){
           console.log(err.message);
-          reply({err : err.message});
+          reply({err : err.message}).code(500);
         })
     })
   }
