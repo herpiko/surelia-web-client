@@ -2,6 +2,10 @@
 
 module.exports = {
 
+  'db': {
+    'src' : ['conf/hapi-mongoose-db-connector.settings.json'],
+    'dest': 'api/'
+  },
   'styles': {
     'src' : ['src/app/styles/*.css', 'src/app/styles/**/*.scss'],
     'dest': 'public/css'
