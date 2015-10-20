@@ -160,13 +160,6 @@ Message.prototype.retrieveMessage = function(id, boxName){
       var content = linkFn(self.$scope);
       e.append(content);
       self.currentMessage.parsed.attachments[0].size = self.formatBytes(self.currentMessage.parsed.attachments[0].length);
-      /* if (self.currentMessage.parsed && */
-      /* self.currentMessage.parsed.attachment && */
-      /* self.currentMessage.parsed.attachments.length > 0) { */
-      /*   for (var i = 0; i < self.currentMessage.parsed.attachments.length; i++) { */
-      /*     self.currentMessage.parsed.attachments[i].size = self.formatBytes(self.currentMessage.parsed.attachments[i].length); */
-      /*   } */
-      /* } */
     })
     .catch(function(data, status){
       self.loading.complete();

@@ -363,7 +363,10 @@ var checkPool = function(request, reply, realFunc) {
         if (config.smtp.port) {
             request.payload.smtpPort = config.smtp.port;
         }
-
+        if (pool.map[request.payload.username]) {
+          pool.map[request.payload.username].expire = (new Date()).valueOf() - 10000;
+          pool.destroy();
+        }
         var credential = {
           user : request.payload.username,
           password : request.payload.password,

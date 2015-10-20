@@ -329,7 +329,7 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
             buffer += chunk.toString("utf8");
           });
           stream.once("end", function(attrs){
-            mail.original = monowrap(buffer, 76);
+            mail.original = buffer;
           });
         })
         msg.once("attributes", function(attrs) {
@@ -355,6 +355,7 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
             mail.parsed.date = moment(new Date(mail.parsed.date));
             mail.parsed.receivedDate = moment(new Date(mail.parsed.receivedDate));
             mail.boxName = boxName;
+            mail.original = monowrap(mail.original, 76);
             resolve(mail);
           })
           mailparser.write(mail.original);
