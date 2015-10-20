@@ -37,7 +37,7 @@
             <span ng-show="msg.currentMessage.hasAttachments">[attachment]</span>
             <div>
               <ul>
-                <li ng-repeat="attachment in msg.currentMessage.parsed.attachments">
+                      <li ng-repeat="attachment in msg.currentMessage.parsed.attachments" class="{{attachment.icon}}">
                   {{attachment.fileName}} - {{attachment.size}}
                 </li>
               </ul>

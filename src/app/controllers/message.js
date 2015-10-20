@@ -1,4 +1,87 @@
 'use strict';
+var lodash = require("lodash");
+var mimeTypes = {
+  "word" : {
+    icon : "file-word-o",
+    type : [
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.doument",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
+      "application/rtf",
+    ]
+  }, 
+  "excel" : {
+    icon : "file-excel-o",
+    type : [
+      "application/vnd.ms-excel",
+      "application/vnd.ms-excel.addin.macroEnabled.12",
+      "application/vnd.ms-excel.sheet.binary.macroEnabled.12",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.template"
+    ]
+  },
+  "powerpoint" : {
+    icon : "file-powerpoint-o",
+    type : [
+      "application/vnd.openxmlformats-officedocument.presentationml.slide",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "application/vnd.ms-powerpointtd",
+      "application/vnd.openxmlformats-officedocument.presentationml.slideshow",
+      "application/vnd.openxmlformats-officedocument.presentationml.template",
+    ]
+  },
+  "pdf" : {
+    icon : "file-pdf-o",
+    type : [
+      "application/pdf",
+      "application/postscript",
+    ]
+  },
+  "image" : {
+    icon : "file-image-o",
+    type : [
+      "image/bmp",
+      "image/gif",
+      "image/jpeg",
+      "image/png",
+      "image/svg+xml",
+      "image/tiff"
+    ]
+  },
+  "archive" : {
+    icon : "file-archive-o",
+    type : [
+      "application/x-bzip2",
+      "application/x-gzip",
+      "application/x-tar",
+      "application/zip",
+      "application/x-compressed-zip",
+    ]
+  },
+  "code" : {
+    icon : "file-code-o",
+    type : [
+      "application/x-javascript",
+      "application/x-perl",
+    ]
+  },
+  "text" : {
+    icon : "file-text-o",
+    type : [
+      "text/plain",
+      "text/html",
+      "text/css",
+      "text/tab-separated-values"
+    ]
+  },
+  "other" : {
+    icon : "file-archive-o",
+    type : [
+      "application/xml",
+      "application/octet-stream",
+    ]
+  }
+}
 var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
@@ -159,7 +242,24 @@ Message.prototype.retrieveMessage = function(id, boxName){
       var linkFn = self.$compile(html);
       var content = linkFn(self.$scope);
       e.append(content);
-      self.currentMessage.parsed.attachments[0].size = self.formatBytes(self.currentMessage.parsed.attachments[0].length);
+      // Set size and icon
+      if (self.currentMessage.parsed.attachments.length > 0) {
+        var attachments = self.currentMessage.parsed.attachments;
+        for (var i = 0; i < attachments.length;i++) {
+          self.currentMessage.parsed.attachments[i].size = self.formatBytes(attachments[i].length);
+          lodash.some(mimeTypes, function(mime){
+            var matched = lodash.some(mime.type, function(type){
+              return type === attachments[i].contentType;
+            });
+            if (matched) {
+              console.log(mime.icon);
+              attachments[i].icon = mime.icon;
+              return;
+            }
+          })
+        }
+      }
+
     })
     .catch(function(data, status){
       self.loading.complete();
