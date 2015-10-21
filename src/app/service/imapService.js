@@ -178,6 +178,39 @@ ImapService.prototype.retrieveMessage = function(id, boxName, canceler) {
   return promise.promise;
 }
 
+ImapService.prototype.getAttachment = function(id, index, canceler) {
+  var self = this;
+  var promise = self.$q.defer();
+  if (self.$rootScope.getAttachmentCanceler) {
+    self.$rootScope.getAttachmentCanceler.resolve();
+  }
+  self.$rootScope.getAttachmentCanceler = self.$q.defer();
+  var path = "/api/1.0/attachment?id=" + id + "&index=" + index;
+  var token = self.localStorageService.get("token"); 
+  var username = self.localStorageService.get("username"); 
+  var req = {
+    method: "GET",
+    url : path,
+    headers : {
+      token : token,
+      username : username
+    }
+  }
+  if (canceler) {
+    req.timeout = self.$rootScope.getAttachmentCanceler.promise;
+  }
+  self.$http(req)
+  .success(function(data, status, headers) {
+    promise.resolve(data, status); 
+  })
+  .error(function(data, status, headers) {
+    promise.reject(data, status);
+  });
+  return promise.promise;
+}
+
+
+
 ImapService.prototype.moveMessage = function(id, boxName, newBoxName) {
   var self = this;
   var path = "/api/1.0/move-message?id=" + id + "&boxName=" + boxName + "&newBoxName=" + newBoxName;;
