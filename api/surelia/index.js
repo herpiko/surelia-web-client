@@ -420,8 +420,13 @@ var checkPool = function(request, reply, realFunc) {
               pool.map[credential.user].expire = (new Date()).valueOf() - 10000;
               pool.destroy();
               if (err) {
-                if (err.message == "Invalid credentials (Failure)") {
-                  return reply({err : err.message}).code(401);
+                if ( err.message == "Invalid credentials (Failure)"
+                  || err.message.substr(0, 13) == "Lookup failed"
+                  || err.type.toLowerCase() == "no" 
+                  || err.type.toLowerCase() == "bad" 
+                ) {
+                   var err = new Error("Invalid credentials")
+                   return reply({err : err.message}).code(401);
                 }
                 return reply({err : err.message}).code(500);
               } else {
