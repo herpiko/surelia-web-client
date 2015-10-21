@@ -15,9 +15,7 @@ ToastrService.prototype.invalidCredentials = function(){
 
 ToastrService.prototype.parse = function(data, status) {
   var self = this;
-  if ( data && data.err
-  && ( data.err == "Invalid credentials (Failure)"
-  || data.err.substr(0, 13) == "Lookup failed" )) {
+  if ( data && data.err &&  data.err == "Invalid credentials") {
     self.invalidCredentials();
   }
 }
