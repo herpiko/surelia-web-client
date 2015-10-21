@@ -30,7 +30,7 @@ Login.prototype.auth = function(credential){
   var self = this;
   self.loading.start();
   console.log("auth");
-  self.ImapService.auth(credential)
+  self.ImapService.auth(credential, true)
     .then(function(data){
       self.loading.complete();
       console.log(data);
