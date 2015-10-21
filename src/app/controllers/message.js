@@ -273,12 +273,33 @@ Message.prototype.getAttachment = function(id, index) {
   self.ImapService.getAttachment(id, index)
     .then(function(data){
       self.loading.complete();
-      console.log(data);
-      alert(JSON.stringify(data));
+
+      var binary_string = window.atob(data.content);
+      var len = binary_string.length;
+      var bytes = new Uint8Array(len);
+      for (var i = 0; i < len; i++ ) {
+        bytes[i] = binary_string.charCodeAt(i);
+      }
+      var blob = new Blob([bytes.buffer], { type: data.contentType });
+      if (typeof window.navigator.msSaveBlob !== 'undefined') {
+        window.navigator.msSaveBlob(blob, data.fileName);
+      } else {
+        var URL = window.URL || window.webkitURL;
+        var downloadUrl = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        if (typeof a.download === 'undefined') {
+          window.location = downloadUrl;
+        } else {
+          a.href = downloadUrl;
+          a.download = data.fileName;
+          document.body.appendChild(a);
+          a.click();
+        }
+        setTimeout(function () { URL.revokeObjectURL(downloadUrl); }, 100);
+      }
     })
     .catch(function(data, status){
       self.loading.complete();
-      console.log(data, status);
     })
     
 }
