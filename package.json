@@ -4,7 +4,7 @@
   "description": "Surelia",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --timeout 10000 test",
+    "test": "DB=test npm run build && mocha --timeout 10000 test",
     "single": "npm run build && node index single",
     "server": "npm run build && node index ",
     "restart": "npm run build && node index restart",
@@ -64,6 +64,7 @@
     "gulp-ng-html2js": "^0.2.0",
     "gulp-notify": "^2.2.0",
     "gulp-protractor": "^1.0.0",
+    "gulp-replace": "^0.5.4",
     "gulp-rimraf": "^0.1.1",
     "gulp-sass": "^2.0.4",
     "gulp-sourcemaps": "^1.6.0",
