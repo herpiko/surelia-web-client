@@ -106,6 +106,13 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.logout(request, reply);
     }
   })
+  self.server.route({
+    method : "GET",
+    path : "/api/1.0/attachment",
+    handler : function(request, reply){
+      self.getAttachment(request, reply);
+    }
+  })
 }
 
 /**
@@ -607,7 +614,38 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
     console.log(request.query);
     client.retrieveMessage(request.query.id, request.query.boxName)
       .then(function(message){
-        reply(message);
+        delete(message.original);
+        if (!message.hasAttachments) {
+          return reply(message);
+        }
+        // This message has attachment, cut and save them to db
+        var attachments = {
+          username : request.headers.username,
+          attachments : message.parsed.attachments,
+          timestamp : message.parsed.date
+        }
+
+        // First, check if there is existing attachment in db
+        attachmentModel().find({username : attachments.username, timestamp : attachments.timestamp}).exec(function(err, result){
+          if (err) {
+            return reply(err).code(500);
+          }
+          if (result && result.length == 0) {
+            attachmentModel().create(attachments, function(err, result){
+              if (err) {
+                return reply(err).code(500);
+              }
+              message.attachmentId = result._id;
+              for (var i = 0; i < message.parsed.attachments.length;i++) {
+                delete(message.parsed.attachments[i].content);
+              }
+              reply(message);
+            })
+          } else {
+            message.attachmentId = result[0]._id;
+            reply(message);
+          }
+        })
       })
       .catch(function(err){
         console.log(err.message);
@@ -653,6 +691,19 @@ ImapAPI.prototype.removeMessage = function(request, reply) {
         console.log(err.message);
         reply({err : err.message}).code(500);
       })
+  }
+  
+  checkPool(request, reply, realFunc);
+}
+
+ImapAPI.prototype.getAttachment = function(request, reply) {
+  var realFunc = function(client, request, reply) {
+    attachmentModel().findOne({_id : request.query.id}).exec(function(err, result){
+      if (err) {
+        return reply(err).code(500);
+      }
+      reply(result.attachments[parseInt(request.query.index)]);
+    })
   }
   
   checkPool(request, reply, realFunc);
@@ -714,7 +765,6 @@ var model = function() {
   var s = new mongoose.Schema(schema);
   m = mongoose.model("Auth", s);
   return m;
-
 }
 
 var keyModel = function() {
@@ -734,7 +784,26 @@ var keyModel = function() {
   var s = new mongoose.Schema(schema);
   m = mongoose.model("KeyPair", s);
   return m;
+}
 
+var attachmentModel = function() {
+  var registered = false;
+  var m;
+  try {
+    m = mongoose.model("Attachment");
+    registered = true;
+  } catch(e) {
+  }
+
+  if (registered) return m;
+  var schema = {
+    username : String,
+    attachments : [],
+    timestamp : Date
+  }
+  var s = new mongoose.Schema(schema);
+  m = mongoose.model("Attachment", s);
+  return m;
 }
 
 exports.model = model;
