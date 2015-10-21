@@ -7,14 +7,21 @@ var ImapService = function($http, localStorageService, $rootScope, $state, $q) {
   this.$q = $q;
 }
 
-ImapService.prototype.auth = function(credential) {
+ImapService.prototype.auth = function(credential, canceler) {
   var self = this;
+  if (self.$rootScope.authCanceler) {
+    self.$rootScope.authCanceler.resolve();
+  }
+  self.$rootScope.authCanceler = self.$q.defer();
   var promise = self.$q.defer();
   var path = "/api/1.0/auth";
   var req = {
     method: "POST",
     url : path,
     data : credential
+  }
+  if (canceler) {
+    req.timeout = self.$rootScope.authCanceler.promise;
   }
   self.$http(req)
   .success(function(data, status, headers) {

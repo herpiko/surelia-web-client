@@ -4,6 +4,7 @@ var inspect = require("util").inspect;
 var MailParser = require("mailparser").MailParser;
 var monowrap = require("monowrap");
 var moment = require("moment");
+var lodash = require("lodash");
 
 /**
  * @typedef Promise
@@ -125,6 +126,28 @@ Imap.prototype.getSpecialBoxes = function() {
           return reject(err);
         }
         self.specials = specials;
+        var boxes = Object.keys(self.boxes);
+        var essentialBoxes = ["Drafts", "Sent", "Trash"];
+        lodash.some(essentialBoxes, function(box) {
+          var isMatched = lodash.some(specials, function(s){
+              return s.specialName == box;
+            })
+          var isExists = lodash.some(boxes, function(b){
+              return b == box;
+            })
+          if (!isMatched && !isExists) {
+            console.log(box + " does not exist");
+            
+            // Add new essential box, but do not wait
+            self.client.addBox(box);
+
+             
+            specials[box] = {
+              path : box,
+              specialName : box
+            }
+          }
+        })
         resolve(specials)
       })
     })
@@ -144,6 +167,7 @@ Imap.prototype.getBoxes = function() {
       if (err) {
         return reject(err);
       }
+      self.boxes = boxes;
       resolve(boxes);
     })
   })
