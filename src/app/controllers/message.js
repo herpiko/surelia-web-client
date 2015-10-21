@@ -246,6 +246,7 @@ Message.prototype.retrieveMessage = function(id, boxName){
       if (self.currentMessage.parsed.attachments.length > 0) {
         var attachments = self.currentMessage.parsed.attachments;
         for (var i = 0; i < attachments.length;i++) {
+          self.currentMessage.parsed.attachments[i].index = i;
           self.currentMessage.parsed.attachments[i].size = self.formatBytes(attachments[i].length);
           lodash.some(mimeTypes, function(mime){
             var matched = lodash.some(mime.type, function(type){
@@ -265,6 +266,21 @@ Message.prototype.retrieveMessage = function(id, boxName){
       self.loading.complete();
       console.log(data, status);
     })
+}
+
+Message.prototype.getAttachment = function(id, index) {
+  var self = this;
+  self.ImapService.getAttachment(id, index)
+    .then(function(data){
+      self.loading.complete();
+      console.log(data);
+      alert(JSON.stringify(data));
+    })
+    .catch(function(data, status){
+      self.loading.complete();
+      console.log(data, status);
+    })
+    
 }
 
 Message.prototype.moveMessage = function(id, boxName, newBoxName){
