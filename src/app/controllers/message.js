@@ -229,6 +229,7 @@ Message.prototype.retrieveMessage = function(id, boxName){
       console.log(data);
       self.view = "message";
       self.currentMessage = data;
+      self.currentMessage.seq = id;
       var e = angular.element(document.querySelector("#messageContent"));
       e.empty();
       var html = "";
@@ -268,9 +269,9 @@ Message.prototype.retrieveMessage = function(id, boxName){
     })
 }
 
-Message.prototype.getAttachment = function(id, index) {
+Message.prototype.getAttachment = function(messageId, index) {
   var self = this;
-  self.ImapService.getAttachment(id, index)
+  self.ImapService.getAttachment(messageId, index)
     .then(function(data){
       self.loading.complete();
 
@@ -320,21 +321,6 @@ Message.prototype.moveMessage = function(id, boxName, newBoxName){
     })
 }
 
-Message.prototype.deleteMessage = function(id, boxName){
-  var self = this;
-  self.loading.start();
-  console.log("delete message");
-  self.ImapService.deleteMessage(id, boxName)
-    .success(function(data){
-      self.loading.complete();
-      console.log(data);
-      alert(JSON.stringify(data));
-    })
-    .error(function(data, status){
-      self.loading.complete();
-      console.log(data, status);
-    })
-}
 Message.prototype.newMessage = function(newMessage){
   var self = this;
   self.loading.start();
@@ -377,6 +363,28 @@ Message.prototype.sendMessage = function(msg){
       self.loading.complete();
       console.log(data);
       alert("Message was sent successfully.\n" + JSON.stringify(data));
+      self.view = "list";
+    })
+    .error(function(data, status){
+      self.loading.complete();
+      console.log(data, status);
+    })
+}
+
+Message.prototype.removeMessage = function(seq, messageId, boxName){
+  var self = this;
+  self.loading.start();
+  console.log("remove message");
+  self.ImapService.removeMessage(seq, messageId, boxName)
+    .success(function(data){
+      self.loading.complete();
+      console.log(data);
+      console.log("Message was removed successfully.");
+      for (var i = 0;i < self.currentList.length;i++) {
+        if (self.currentList[i].seq == seq) {
+          self.currentList.splice(i, 1); 
+        }
+      }
       self.view = "list";
     })
     .error(function(data, status){

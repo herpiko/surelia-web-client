@@ -178,14 +178,14 @@ ImapService.prototype.retrieveMessage = function(id, boxName, canceler) {
   return promise.promise;
 }
 
-ImapService.prototype.getAttachment = function(id, index, canceler) {
+ImapService.prototype.getAttachment = function(messageId, index, canceler) {
   var self = this;
   var promise = self.$q.defer();
   if (self.$rootScope.getAttachmentCanceler) {
     self.$rootScope.getAttachmentCanceler.resolve();
   }
   self.$rootScope.getAttachmentCanceler = self.$q.defer();
-  var path = "/api/1.0/attachment?id=" + id + "&index=" + index;
+  var path = "/api/1.0/attachment?messageId=" + messageId + "&index=" + index;
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
   var req = {
@@ -227,9 +227,9 @@ ImapService.prototype.moveMessage = function(id, boxName, newBoxName) {
   return self.$http(req)
 }
 
-ImapService.prototype.deleteMessage = function(id, boxName) {
+ImapService.prototype.removeMessage = function(seq, messageId, boxName) {
   var self = this;
-  var path = "/api/1.0/message?id=" + id + "&boxName=" + boxName;
+  var path = "/api/1.0/message?seq=" + seq + "&messageId=" + encodeURIComponent(messageId) + "&boxName=" + boxName;
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
   var req = {
