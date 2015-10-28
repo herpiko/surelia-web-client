@@ -95,6 +95,7 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.$compile = $compile;
   this.$timeout = $timeout;
   var self = this;
+  self.compose = false;
   self.loading = self.ngProgressFactory.createInstance();
   
   if (self.localStorageService.get("username")) {
@@ -393,14 +394,19 @@ Message.prototype.removeMessage = function(seq, messageId, boxName){
     })
 }
 
-Message.prototype.compose = function(){
+Message.prototype.composeMessage = function(){
   var self = this;
-  self.view = "compose";
+  self.compose = true;
   self.newMessage = {
     from : self.localStorageService.get("username"),
     sender : self.localStorageService.get("username"),
   };
   console.log("compose message");
+}
+
+Message.prototype.cancelCompose = function(){
+  var self = this;
+  self.compose = false;
 }
 
 Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout"];

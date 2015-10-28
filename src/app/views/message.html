@@ -1,6 +1,6 @@
 <div ng-controller="MessageCtrl as msg">
   <div style="width:100%;background:#ECECEC;padding:10px">
-    <button ng-click="msg.compose()">compose</button>
+    <button ng-click="msg.composeMessage()">compose</button>
     <button ng-click="msg.logout()">logout</button>
     <br>
   </div>
@@ -46,16 +46,41 @@
               </ul>
             </div>
     </div>
-    
-    <!--Compose view-->
-    <div ng-show="msg.view=='compose'" style="width:60%;display:inline-block;vertical-align:top;">
-      <h4>Compose</h4>
-      <input ng-model="msg.newMessage.from" placeholder="from"></input><br>
-      <input ng-model="msg.newMessage.recipients" placeholder="to"></input><br>
-      <input ng-model="msg.newMessage.subject" placeholder="subject"></input><br>
-      <textarea ng-model="msg.newMessage.text" placeholder="text"></textarea><br>
-      <button ng-click="msg.newMessage(msg.newMessage)">Save as draft</button> 
-      <button ng-click="msg.sendMessage(msg.newMessage)">Send</button>
-    </div>
+
+    <form ng-show="msg.compose" ng-submit="msg.sendMessage(msg.newMessage)" style="min-width: 500px;position: fixed;bottom: 0px;right: 10px;border: 1px solid black;background-color: white;">
+      <div class='header'>New message</div>
+      <div class='inner'>
+        <div>
+          <label>From: </label>
+          <input ng-model="msg.newMessage.from" placeholder="from"></input><br>
+        </div>
+        <div>
+          <label>To: </label>
+          <input ng-model="msg.newMessage.recipients" placeholder="to"></input><br>
+        </div>
+        <div>
+          <label>CC: </label>
+          <input ng-model="msg.newMessage.cc" placeholder="cc"></input><br>
+        </div>
+        <div>
+          <label>BCC: </label>
+          <input ng-model="msg.newMessage.bcc" placeholder="bcc"></input><br>
+        </div>
+        <div>
+          <label>Subject: </label>
+          <input ng-model="msg.newMessage.subject" placeholder="subject"></input><br>
+        </div>
+        <div>
+          <label>Content: </label><br>
+          <textarea cols="40" rows="7" ng-model="msg.newMessage.text" placeholder="text"></textarea><br>
+        </div>
+        <div class='button-bar'>
+          <input type="submit" value="Send">
+          <button type="button" ng-click="msg.cancelCompose()">Cancel</button>
+        </div>
+      </div>
+    </form>
+
+
   </div>
 </div>
