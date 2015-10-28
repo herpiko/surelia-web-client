@@ -184,6 +184,7 @@ ImapAPI.prototype.send = function(request, reply) {
               smtp.auth(result.username, password)
                 .then(function(){
                   var payload = request.payload;
+                  console.log(payload);
                   var recipients = payload.recipients.split(";");
                   var msg = {
                     from : payload.from,
@@ -192,14 +193,25 @@ ImapAPI.prototype.send = function(request, reply) {
                     subject : payload.subject,
                     text : payload.text
                   }
+                  if (payload.bcc) {
+                    msg.bcc = payload.bcc.split(";");
+                  }
+                  if (payload.cc) {
+                    msg.cc = payload.cc.split(";");
+                  }
                   console.log(msg);
                   var newMessage = composer(msg)
                   newMessage.build(function(err, message){
                     if (err) {
                       return reply({error : err.message}).code(500);
                     }
-                    console.log(message);
-                    smtp.send(payload.sender, payload.recipients, message)
+                    if (msg.cc) {
+                      msg.to = msg.to.concat(msg.cc);
+                    }
+                    if (msg.bcc) {
+                      msg.to = msg.to.concat(msg.bcc);
+                    }
+                    smtp.send(msg.from, msg.to, message)
                       .then(function(info){
                         reply(info).type("application/json");
                       })
