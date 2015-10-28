@@ -439,14 +439,23 @@ Imap.prototype.removeMessage = function(id, boxName) {
       }
       self.getSpecialBoxes()
         .then(function(specials){
-          self.client.seq.move(id.toString(), specials.Trash.path, function(err, code){
-            if (err) {
-              return reject(err);
-            }
-            resolve();
-          });
+          if (specials.Trash && specials.Trash.path) {
+            self.client.seq.move(id.toString(), specials.Trash.path, function(err, code){
+              if (err) {
+                return reject(err);
+              }
+              resolve();
+            });
+          } else {
+            self.client.seq.move(id.toString(), "Trash", function(err, code){
+              if (err) {
+                return reject(err);
+              }
+              resolve();
+            });
+          }
         })
-        .catch(function(){
+        .catch(function(err){
           return reject(err);
         })
     })
