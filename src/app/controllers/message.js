@@ -82,7 +82,7 @@ var mimeTypes = {
     ]
   }
 }
-var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout){
+var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -94,6 +94,7 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.ngProgressFactory = ngProgressFactory;
   this.$compile = $compile;
   this.$timeout = $timeout;
+  this.Upload = Upload;
   var self = this;
   self.compose = false;
   self.loading = self.ngProgressFactory.createInstance();
@@ -245,7 +246,7 @@ Message.prototype.retrieveMessage = function(id, boxName){
       var content = linkFn(self.$scope);
       e.append(content);
       // Set size and icon
-      if (self.currentMessage.parsed.attachments.length > 0) {
+      if (self.currentMessage.parsed.attachments && self.currentMessage.parsed.attachments.length > 0) {
         var attachments = self.currentMessage.parsed.attachments;
         for (var i = 0; i < attachments.length;i++) {
           self.currentMessage.parsed.attachments[i].index = i;
@@ -387,6 +388,7 @@ Message.prototype.removeMessage = function(seq, messageId, boxName){
         }
       }
       self.view = "list";
+      self.listBox("INBOX");
     })
     .error(function(data, status){
       self.loading.complete();
@@ -400,6 +402,7 @@ Message.prototype.composeMessage = function(){
   self.newMessage = {
     from : self.localStorageService.get("username"),
     sender : self.localStorageService.get("username"),
+    attachments : []
   };
   console.log("compose message");
 }
@@ -407,7 +410,49 @@ Message.prototype.composeMessage = function(){
 Message.prototype.cancelCompose = function(){
   var self = this;
   self.compose = false;
+  var attachments = angular.copy(self.newMessage.attachments);
+  for (var i = 0;i < attachments.length;i++) {
+    self.ImapService.removeAttachment(attachments[i].attachmentId);
+  }
 }
+
+Message.prototype.uploadFiles = function(files, errFiles) {
+  var self = this;
+  angular.forEach(files, function(file) {
+    console.log(file);
+    var attachment = {
+      filename : file.name,
+      contentType : file.type,
+      encoding : "base64",
+      progress : "uploading"
+    }
+    self.newMessage.attachments.push(attachment);
+    self.Upload.base64DataUrl(files)
+      .then(function(b64){
+        var data = b64[0].split(",")[1];
+        self.ImapService.uploadAttachment(data)
+          .then(function(result){
+            lodash.some(self.newMessage.attachments, function(attachment){
+              console.log(attachment);
+              if (attachment.filename == file.name) {
+                attachment.attachmentId = result.attachmentId;
+                attachment.progress = "uploaded";
+                console.log(self.newMessage.attachments);
+              }
+            })
+          })
+          .catch(function(data){
+            lodash.some(self.newMessage.attachments, function(attachment){
+              if (attachment.filename == file.filename) {
+                attachment.progress = "failed";
+              }
+            })
+            console.log(data);
+          })
+      })
+  });
+}
+
 
 Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout"];
 

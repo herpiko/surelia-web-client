@@ -74,6 +74,20 @@
           <label>Content: </label><br>
           <textarea cols="40" rows="7" ng-model="msg.newMessage.text" placeholder="text"></textarea><br>
         </div>
+        <div>
+            Attachments<br>
+            <ul>
+              <li ng-repeat="a in msg.newMessage.attachments">
+                {{a.filename}} -  
+                <span ng-show="a.progress=='uploading'">uploading</span>
+                <span ng-show="a.progress=='uploaded'">uploaded</span>
+                <span ng-show="a.progress=='failed'">failed</span>
+              </li>
+            </ul>
+            <button ngf-select="msg.uploadFiles($files, $invalidFiles)" multiple
+              accept="*/*" ngf-max-height="1000" ngf-max-size="15MB">
+            Select Files</button>
+        </div>
         <div class='button-bar'>
           <input type="submit" value="Send">
           <button type="button" ng-click="msg.cancelCompose()">Cancel</button>
