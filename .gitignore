@@ -4,3 +4,4 @@ public
 *npm-debug.log
 src/app/js/templates.js
 src/app/js/templates.js
+api/hapi-mongoose-db-connector.settings.json
