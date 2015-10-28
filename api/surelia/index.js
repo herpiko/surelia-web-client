@@ -5,7 +5,8 @@ var Pool = require("./pool");
 var composer = require("mailcomposer");
 var forge = require("node-forge");
 var config = require('../../conf/prod/surelia');
-
+var async = require("async");
+var moment = require("moment");
 
 var ImapAPI = function(server, options, next) {
   this.server = server;
@@ -113,6 +114,20 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.getAttachment(request, reply);
     }
   })
+  self.server.route({
+    method : "POST",
+    path : "/api/1.0/attachment",
+    handler : function(request, reply){
+      self.uploadAttachment(request, reply);
+    }
+  })
+  self.server.route({
+    method : "DELETE",
+    path : "/api/1.0/attachment",
+    handler : function(request, reply){
+      self.removeAttachment(request, reply);
+    }
+  })
 }
 
 /**
@@ -137,6 +152,28 @@ ImapAPI.prototype.registerEndPoints = function(){
  */
 
 ImapAPI.prototype.send = function(request, reply) {
+  var realSend = function(request, reply, smtp, msg){
+    console.log(msg);
+    var newMessage = composer(msg)
+    newMessage.build(function(err, message){
+      if (err) {
+        return reply({error : err.message}).code(500);
+      }
+      if (msg.cc) {
+        msg.to = msg.to.concat(msg.cc);
+      }
+      if (msg.bcc) {
+        msg.to = msg.to.concat(msg.bcc);
+      }
+      smtp.send(msg.from, msg.to, message)
+        .then(function(info){
+          reply(info).type("application/json");
+        })
+        .catch(function(err){
+          reply({error : err.message}).code(500);
+        })
+    })
+  }
 
   if (!request.headers.token && !request.headers.username) {
     var err = new Error("Token needed");
@@ -181,48 +218,51 @@ ImapAPI.prototype.send = function(request, reply) {
           smtp.connect()
             .then(function(){
               console.log(0);
-              smtp.auth(result.username, password)
-                .then(function(){
-                  var payload = request.payload;
-                  console.log(payload);
-                  var recipients = payload.recipients.split(";");
-                  var msg = {
-                    from : payload.from,
-                    to : recipients,
-                    sender : payload.sender,
-                    subject : payload.subject,
-                    text : payload.text
-                  }
-                  if (payload.bcc) {
-                    msg.bcc = payload.bcc.split(";");
-                  }
-                  if (payload.cc) {
-                    msg.cc = payload.cc.split(";");
-                  }
-                  console.log(msg);
-                  var newMessage = composer(msg)
-                  newMessage.build(function(err, message){
-                    if (err) {
-                      return reply({error : err.message}).code(500);
-                    }
-                    if (msg.cc) {
-                      msg.to = msg.to.concat(msg.cc);
-                    }
-                    if (msg.bcc) {
-                      msg.to = msg.to.concat(msg.bcc);
-                    }
-                    smtp.send(msg.from, msg.to, message)
-                      .then(function(info){
-                        reply(info).type("application/json");
-                      })
-                      .catch(function(err){
-                        reply({error : err.message}).code(500);
-                      })
-                  })
+              return smtp.auth(result.username, password);
+            })
+            .then(function(){
+              var payload = request.payload;
+              console.log(payload);
+              var recipients = payload.recipients.split(";");
+              var msg = {
+                from : payload.from,
+                to : recipients,
+                sender : payload.sender,
+                subject : payload.subject,
+                text : payload.text
+              }
+              if (payload.bcc) {
+                msg.bcc = payload.bcc.split(";");
+              }
+              if (payload.cc) {
+                msg.cc = payload.cc.split(";");
+              }
+              if (payload.attachments.length > 0) {
+                msg.attachments = [];
+                // Check for attachmentId,
+                // if any, grab them from temporary attachment collection
+                async.eachSeries(payload.attachments, function(attachment, cb){
+                  uploadAttachmentModel().findOne({_id : attachment.attachmentId})
+                    .exec(function(err, result){
+                      if (err) {
+                        return reply(err).code(500);
+                      } 
+                      if (!result) {
+                        return reply(new Error("Attachments not found").message).code(500);
+                      }
+                      attachment.content = result.content;
+                      delete(attachment.progress);
+                      msg.attachments.push(attachment);
+                      // Remove temporary attachment, but do not wait
+                      uploadAttachmentModel().remove({_id : attachment.attachmentId});
+                      cb(); 
+                    })
+                }, function(err){
+                  realSend(request, reply, smtp, msg);
                 })
-                .catch(function(err){
-                  reply({error : err.message}).code(500);
-                })
+              } else {
+                realSend(request, reply, smtp, msg);
+              }
             })
             .catch(function(err){
               reply({error : err.message}).code(500);
@@ -705,6 +745,10 @@ ImapAPI.prototype.removeMessage = function(request, reply) {
   checkPool(request, reply, realFunc);
 }
 
+/**
+ * Get attachment of a message
+ *
+ */
 ImapAPI.prototype.getAttachment = function(request, reply) {
   var realFunc = function(client, request, reply) {
     attachmentModel().findOne({ messageId : request.query.messageId}).exec(function(err, result){
@@ -712,6 +756,40 @@ ImapAPI.prototype.getAttachment = function(request, reply) {
         return reply(err).code(500);
       }
       reply(result.attachments[parseInt(request.query.index)]);
+    })
+  }
+  
+  checkPool(request, reply, realFunc);
+}
+
+
+/**
+ * Upload attachment during compose in client side
+ *
+ */
+ImapAPI.prototype.uploadAttachment = function(request, reply) {
+  var realFunc = function(client, request, reply) {
+    var attachment = {
+      content : request.payload.content,
+      timestamp : new Date()
+    }
+    uploadAttachmentModel().create(attachment, function(err, result){
+      if (err) {
+        return reply(err).code(500);
+      }
+      reply({attachmentId : result._id});
+    })
+  }
+  
+  checkPool(request, reply, realFunc);
+}
+ImapAPI.prototype.removeAttachment = function(request, reply) {
+  var realFunc = function(client, request, reply) {
+    uploadAttachmentModel().remove({_id : request.query.attachmentId}, function(err, result){
+      if (err) {
+        return reply(err).code(500);
+      }
+      reply().code(200);
     })
   }
   
@@ -814,7 +892,31 @@ var attachmentModel = function() {
   return m;
 }
 
+var uploadAttachmentModel = function() {
+  var registered = false;
+  var m;
+  try {
+    m = mongoose.model("UploadAttachment");
+    registered = true;
+  } catch(e) {
+  }
+
+  if (registered) return m;
+  var schema = {
+    content : String,
+    timestamp : Date
+  }
+  var s = new mongoose.Schema(schema);
+  m = mongoose.model("UploadAttachment", s);
+  return m;
+}
+
 exports.model = model;
+
+// Interval function to remove expired temporary attachment
+setInterval(function(){
+  uploadAttachmentModel().remove({timestamp : {$lt : moment().subtract(24, "hours")}});
+}, 10000)
 
 exports.register = function(server, options, next) {
   new ImapAPI(server, options, next);
