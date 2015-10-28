@@ -1,6 +1,6 @@
 <div ng-controller="MessageCtrl as msg">
   <div style="width:100%;background:#ECECEC;padding:10px">
-    <button ng-click="msg.compose()">compose</button>
+    <button ng-click="msg.composeMessage()">compose</button>
     <button ng-click="msg.logout()">logout</button>
     <br>
   </div>
@@ -28,6 +28,9 @@
     
     <!--Message view-->
     <div ng-show="msg.view=='message'" style="width:60%;display:inline-block;vertical-align:top;background:#ECECEC">
+            <div>
+              <button ng-click="msg.removeMessage(msg.currentMessage.seq, msg.currentMessage.parsed.messageId, msg.currentMessage.boxName)">Delete</button>
+            </div>
             <div><b>{{msg.currentMessage.parsed.subject}}</b></div>
             <div>{{msg.currentMessage.parsed.from[0].address}}</div>
             <div>{{msg.currentMessage.parsed.date}}</div>
@@ -37,22 +40,61 @@
             <span ng-show="msg.currentMessage.hasAttachments">[attachment]</span>
             <div>
               <ul>
-                      <li ng-repeat="attachment in msg.currentMessage.parsed.attachments" class="{{attachment.icon}}">
-                  {{attachment.fileName}} - {{attachment.size}}
+                  <li ng-repeat="attachment in msg.currentMessage.parsed.attachments" class="{{attachment.icon}}">
+                  <span style="cursor:pointer" ng-click="msg.getAttachment(msg.currentMessage.parsed.messageId, attachment.index)">{{attachment.fileName}} - {{attachment.size}}</span>
                 </li>
               </ul>
             </div>
     </div>
-    
-    <!--Compose view-->
-    <div ng-show="msg.view=='compose'" style="width:60%;display:inline-block;vertical-align:top;">
-      <h4>Compose</h4>
-      <input ng-model="msg.newMessage.from" placeholder="from"></input><br>
-      <input ng-model="msg.newMessage.recipients" placeholder="to"></input><br>
-      <input ng-model="msg.newMessage.subject" placeholder="subject"></input><br>
-      <textarea ng-model="msg.newMessage.text" placeholder="text"></textarea><br>
-      <button ng-click="msg.newMessage(msg.newMessage)">Save as draft</button> 
-      <button ng-click="msg.sendMessage(msg.newMessage)">Send</button>
-    </div>
+
+    <form ng-show="msg.compose" ng-submit="msg.sendMessage(msg.newMessage)" style="min-width: 500px;position: fixed;bottom: 0px;right: 10px;border: 1px solid black;background-color: white;">
+      <div class='header'>New message</div>
+      <div class='inner'>
+        <div>
+          <label>From: </label>
+          <input ng-model="msg.newMessage.from" placeholder="from"></input><br>
+        </div>
+        <div>
+          <label>To: </label>
+          <input ng-model="msg.newMessage.recipients" placeholder="to"></input><br>
+        </div>
+        <div>
+          <label>CC: </label>
+          <input ng-model="msg.newMessage.cc" placeholder="cc"></input><br>
+        </div>
+        <div>
+          <label>BCC: </label>
+          <input ng-model="msg.newMessage.bcc" placeholder="bcc"></input><br>
+        </div>
+        <div>
+          <label>Subject: </label>
+          <input ng-model="msg.newMessage.subject" placeholder="subject"></input><br>
+        </div>
+        <div>
+          <label>Content: </label><br>
+          <textarea cols="40" rows="7" ng-model="msg.newMessage.text" placeholder="text"></textarea><br>
+        </div>
+        <div>
+            Attachments<br>
+            <ul>
+              <li ng-repeat="a in msg.newMessage.attachments">
+                {{a.filename}} -  
+                <span ng-show="a.progress=='uploading'">uploading</span>
+                <span ng-show="a.progress=='uploaded'">uploaded</span>
+                <span ng-show="a.progress=='failed'">failed</span>
+              </li>
+            </ul>
+            <button ngf-select="msg.uploadFiles($files, $invalidFiles)" multiple
+              accept="*/*" ngf-max-height="1000" ngf-max-size="15MB">
+            Select Files</button>
+        </div>
+        <div class='button-bar'>
+          <input type="submit" value="Send">
+          <button type="button" ng-click="msg.cancelCompose()">Cancel</button>
+        </div>
+      </div>
+    </form>
+
+
   </div>
 </div>

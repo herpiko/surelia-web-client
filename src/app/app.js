@@ -9,6 +9,7 @@ require("angular-local-storage");
 require("angular-file-upload");
 require("ngprogress-npm");
 require("angular-toastr");
+require("ng-file-upload");
 
 // Load service and controllers
 require("./service/index");
@@ -24,7 +25,8 @@ var app = angular.module("App", [
   "app.services",
   "app.controllers",
   "ngProgress",
-  "toastr"
+  "toastr",
+  "ngFileUpload"
 ])
 .config(function($stateProvider) {
   $stateProvider

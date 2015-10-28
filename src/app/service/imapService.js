@@ -178,6 +178,103 @@ ImapService.prototype.retrieveMessage = function(id, boxName, canceler) {
   return promise.promise;
 }
 
+ImapService.prototype.getAttachment = function(messageId, index, canceler) {
+  var self = this;
+  var promise = self.$q.defer();
+  if (self.$rootScope.getAttachmentCanceler) {
+    self.$rootScope.getAttachmentCanceler.resolve();
+  }
+  self.$rootScope.getAttachmentCanceler = self.$q.defer();
+  var path = "/api/1.0/attachment?messageId=" + messageId + "&index=" + index;
+  var token = self.localStorageService.get("token"); 
+  var username = self.localStorageService.get("username"); 
+  var req = {
+    method: "GET",
+    url : path,
+    headers : {
+      token : token,
+      username : username
+    }
+  }
+  if (canceler) {
+    req.timeout = self.$rootScope.getAttachmentCanceler.promise;
+  }
+  self.$http(req)
+  .success(function(data, status, headers) {
+    promise.resolve(data, status); 
+  })
+  .error(function(data, status, headers) {
+    promise.reject(data, status);
+  });
+  return promise.promise;
+}
+
+ImapService.prototype.uploadAttachment = function(data, canceler) {
+  var self = this;
+  console.log("Uploading");
+  var promise = self.$q.defer();
+  if (self.$rootScope.uploadAttachmentCanceler) {
+    self.$rootScope.uploadAttachmentCanceler.resolve();
+  }
+  self.$rootScope.uploadAttachmentCanceler = self.$q.defer();
+  var path = "/api/1.0/attachment";
+  var token = self.localStorageService.get("token"); 
+  var username = self.localStorageService.get("username"); 
+  var req = {
+    method: "POST",
+    url : path,
+    data : {content : data},
+    headers : {
+      token : token,
+      username : username
+    }
+  }
+  if (canceler) {
+    req.timeout = self.$rootScope.uploadAttachmentCanceler.promise;
+  }
+  self.$http(req)
+  .success(function(data, status, headers) {
+    promise.resolve(data, status); 
+  })
+  .error(function(data, status, headers) {
+    promise.reject(data, status);
+  });
+  return promise.promise;
+}
+
+ImapService.prototype.removeAttachment = function(attachmentId, canceler) {
+  var self = this;
+  console.log("Removing");
+  var promise = self.$q.defer();
+  if (self.$rootScope.removeAttachmentCanceler) {
+    self.$rootScope.removeAttachmentCanceler.resolve();
+  }
+  self.$rootScope.removeAttachmentCanceler = self.$q.defer();
+  var path = "/api/1.0/attachment?attachmentId=" + attachmentId;
+  var token = self.localStorageService.get("token"); 
+  var username = self.localStorageService.get("username"); 
+  var req = {
+    method: "DELETE",
+    url : path,
+    headers : {
+      token : token,
+      username : username
+    }
+  }
+  if (canceler) {
+    req.timeout = self.$rootScope.removeAttachmentCanceler.promise;
+  }
+  self.$http(req)
+  .success(function(data, status, headers) {
+    promise.resolve(data, status); 
+  })
+  .error(function(data, status, headers) {
+    promise.reject(data, status);
+  });
+  return promise.promise;
+}
+
+
 ImapService.prototype.moveMessage = function(id, boxName, newBoxName) {
   var self = this;
   var path = "/api/1.0/move-message?id=" + id + "&boxName=" + boxName + "&newBoxName=" + newBoxName;;
@@ -194,9 +291,9 @@ ImapService.prototype.moveMessage = function(id, boxName, newBoxName) {
   return self.$http(req)
 }
 
-ImapService.prototype.deleteMessage = function(id, boxName) {
+ImapService.prototype.removeMessage = function(seq, messageId, boxName) {
   var self = this;
-  var path = "/api/1.0/message?id=" + id + "&boxName=" + boxName;
+  var path = "/api/1.0/message?seq=" + seq + "&messageId=" + encodeURIComponent(messageId) + "&boxName=" + boxName;
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
   var req = {

@@ -430,32 +430,34 @@ Imap.prototype.moveMessage = function(id, oldBox, newBox) {
  * @returns {Promise}
  */
 Imap.prototype.removeMessage = function(id, boxName) {
+  console.log(id);
   var self = this;
   return new Promise(function(resolve, reject){
     self.client.openBox(boxName, false, function(err){
       if (err) {
         return reject(err);
       }
-      self.client.search([id.toString()], function(err, result){
-        self.client.seq.addFlags([id.toString()], "\\Deleted", function(err){
-          if (err) {
-            console.log(err);
-            return reject(err);
+      self.getSpecialBoxes()
+        .then(function(specials){
+          if (specials.Trash && specials.Trash.path) {
+            self.client.seq.move(id.toString(), specials.Trash.path, function(err, code){
+              if (err) {
+                return reject(err);
+              }
+              resolve();
+            });
+          } else {
+            self.client.seq.move(id.toString(), "Trash", function(err, code){
+              if (err) {
+                return reject(err);
+              }
+              resolve();
+            });
           }
-          self.getSpecialBoxes()
-            .then(function(specials){
-              self.client.seq.move([id.toString()], specials.Trash.path, function(err, code){
-                if (err) {
-                  return reject(err);
-                }
-                resolve();
-              });
-            })
-            .catch(function(){
-              return reject(err);
-            })
         })
-      });
+        .catch(function(err){
+          return reject(err);
+        })
     })
   })
 }
