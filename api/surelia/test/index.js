@@ -968,7 +968,7 @@ hoodiecrowServer.listen(1143, function(){
           sender : "Surelia",
           subject : "Subject of the message.",
           text : "Content of the message",
-          attachment : [
+          attachments : [
             {
               filename : "hello.txt",
               contentType : "text/plain",
@@ -989,18 +989,41 @@ hoodiecrowServer.listen(1143, function(){
         }, function(response){
           console.log(response.result);
           should(response.result.accepted.length).equal(1);
-          server.inject({
-            method: "GET",
-            url : "/api/1.0/list-box?boxName=INBOX",
-            headers : {
-              token : token,
-              username : process.env.TEST_SMTP_USERNAME
-            }
-          }, function(response){
-            console.log("arstarst");
-            console.log(response.result);
-            done();
-          })
+          // Email with attachment has been sent, wait a bit
+          setTimeout(function(){
+            server.inject({
+              method: "GET",
+              url : "/api/1.0/list-box?boxName=INBOX",
+              headers : {
+                token : token,
+                username : process.env.TEST_SMTP_USERNAME
+              }
+            }, function(response){
+              console.log(response.result);
+              var seq = response.result[0].seq;
+              server.inject({
+                method: "GET",
+                url : "/api/1.0/message?boxName=INBOX&id=" + seq,
+                headers : {
+                  token : token,
+                  username : process.env.TEST_SMTP_USERNAME
+                }
+              }, function(response){
+                console.log(response.result);
+                server.inject({
+                  method: "GET",
+                  url : "/api/1.0/attachment?messageId=" + encodeURIComponent(response.result.parsed.messageId) + "&index=0",
+                  headers : {
+                    token : token,
+                    username : process.env.TEST_SMTP_USERNAME
+                  }
+                }, function(response){
+                  should.exist(response.result.content);
+                  done();
+                })
+              })
+            })
+          }, 3000)
         })
       })
     })
