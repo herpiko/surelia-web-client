@@ -229,7 +229,7 @@ ImapAPI.prototype.send = function(request, reply) {
                 to : recipients,
                 sender : payload.sender,
                 subject : payload.subject,
-                text : payload.text
+                html : payload.html
               }
               if (payload.bcc) {
                 msg.bcc = payload.bcc.split(";");
