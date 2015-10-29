@@ -99,7 +99,7 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.compose = false;
   self.composeMode = "corner";
   self.cc = false;;
-  self.bcc = false;;
+  self.bcc = false;
   self.loading = self.ngProgressFactory.createInstance();
   
   if (self.localStorageService.get("username")) {

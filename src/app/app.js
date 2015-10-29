@@ -57,13 +57,13 @@ var app = angular.module("App", [
     // register the tool with textAngular
     taOptions.toolbar = [
       [
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "pre",
+        /* "h1", */
+        /* "h2", */
+        /* "h3", */
+        /* "h4", */
+        /* "h5", */
+        /* "h6", */
+        /* "pre", */
         "quote",
         "bold",
         "italics",
