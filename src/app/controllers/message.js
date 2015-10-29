@@ -370,6 +370,7 @@ Message.prototype.sendMessage = function(msg){
       console.log(data);
       alert("Message was sent successfully.\n" + JSON.stringify(data));
       self.view = "list";
+      self.compose = false;
     })
     .error(function(data, status){
       self.loading.complete();
