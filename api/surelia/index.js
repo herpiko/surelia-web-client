@@ -237,7 +237,7 @@ ImapAPI.prototype.send = function(request, reply) {
               if (payload.cc) {
                 msg.cc = payload.cc.split(";");
               }
-              if (payload.attachments.length > 0) {
+              if (payload.attachments && payload.attachments.length > 0) {
                 msg.attachments = [];
                 // Check for attachmentId,
                 // if any, grab them from temporary attachment collection

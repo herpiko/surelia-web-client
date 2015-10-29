@@ -207,7 +207,46 @@ hoodiecrowServer.listen(1143, function(){
       mail.connect()
         .then(function(){
           should(mail.isConnected()).equal(true);
-          done();
+          // This UT does not work well if the INBOX is empty. Let fill it.
+            var data = {
+              imapHost : "imap.gmail.com",
+              imapPort : "993",
+              imapTLS : true,
+              smtpHost : "smtp.gmail.com",
+              smtpPort : "465",
+              smtpTLS : true,
+              smtpSecure : true,
+              username : process.env.TEST_SMTP_USERNAME,
+              password : process.env.TEST_SMTP_PASSWORD,
+            }
+            server.inject({
+              method: "POST",
+              url : "/api/1.0/auth",
+              payload : data,
+            }, function(response){
+              token = response.result.token;
+              var data = {
+                // Envelope
+                from : process.env.TEST_SMTP_USERNAME,
+                recipients : process.env.TEST_SMTP_USERNAME,
+                sender : "Surelia",
+                subject : "Subject of the message",
+                text : "Content of the message"
+              }
+              server.inject({
+                method: "POST",
+                url : "/api/1.0/send",
+                payload : data,
+                headers : {
+                  token : token,
+                  username : process.env.TEST_SMTP_USERNAME
+                }
+              }, function(response){
+                console.log(response.result);
+                should(response.result.accepted.length).equal(1);
+                done();
+              })
+            })
         })
     })
     describe("IMAP", function() {
@@ -495,7 +534,7 @@ hoodiecrowServer.listen(1143, function(){
         payload : data,
       }, function(response){
         should(response.statusCode).equal(401);
-        should(response.result.err).equal("Invalid credentials (Failure)");
+        should(response.result.err).equal("Invalid credentials");
         done();
       })
     })
@@ -516,8 +555,8 @@ hoodiecrowServer.listen(1143, function(){
         url : "/api/1.0/auth",
         payload : data,
       }, function(response){
-        should(response.statusCode).equal(500);
-        should(response.result.err.substr(0, 13)).equal("Lookup failed");
+        should(response.statusCode).equal(401);
+        should(response.result.err).equal("Invalid credentials");
         done();
       })
     })
@@ -747,7 +786,7 @@ hoodiecrowServer.listen(1143, function(){
     it("Should be able to remove a message", function(done){
       server.inject({
         method: "DELETE",
-        url : "/api/1.0/message?id=1&boxName=" + draftsPath,
+        url : "/api/1.0/message?seq=1&boxName=" + draftsPath,
         headers : {
           token : token,
           username : process.env.TEST_SMTP_USERNAME
@@ -859,7 +898,134 @@ hoodiecrowServer.listen(1143, function(){
         }
       }, function(response){
         console.log(response.result);
+        should(response.result.accepted.length).equal(1);
         done();
+      })
+    })
+    it("Should be able to send a message with cc", function(done){
+      var data = {
+        // Envelope
+        from : process.env.TEST_SMTP_USERNAME,
+        recipients : process.env.TEST_SMTP_USERNAME,
+        sender : "Surelia",
+        subject : "Subject of the message. Testing CC",
+        text : "Content of the message",
+        cc : process.env.TEST_SMTP_USERNAME,
+      }
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/send",
+        payload : data,
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.accepted.length).equal(2);
+        done();
+      })
+    })
+    it("Should be able to send a message with bcc", function(done){
+      var data = {
+        // Envelope
+        from : process.env.TEST_SMTP_USERNAME,
+        recipients : process.env.TEST_SMTP_USERNAME,
+        sender : "Surelia",
+        subject : "Subject of the message. Testing BCC",
+        text : "Content of the message",
+        bcc : process.env.TEST_SMTP_USERNAME,
+      }
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/send",
+        payload : data,
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.accepted.length).equal(2);
+        done();
+      })
+    })
+    it("Should be able to send a message with an attachment", function(done){
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/attachment",
+        payload : {content: "aGVsbG8K"},
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        var data = {
+          // Envelope
+          from : process.env.TEST_SMTP_USERNAME,
+          recipients : process.env.TEST_SMTP_USERNAME,
+          sender : "Surelia",
+          subject : "Subject of the message.",
+          text : "Content of the message",
+          attachment : [
+            {
+              filename : "hello.txt",
+              contentType : "text/plain",
+              encoding : "base64",
+              progress : "uploaded",
+              attachmentId : response.result.attachmentId 
+            }
+          ]
+        }
+        server.inject({
+          method: "POST",
+          url : "/api/1.0/send",
+          payload : data,
+          headers : {
+            token : token,
+            username : process.env.TEST_SMTP_USERNAME
+          }
+        }, function(response){
+          console.log(response.result);
+          should(response.result.accepted.length).equal(1);
+          server.inject({
+            method: "GET",
+            url : "/api/1.0/list-box?boxName=INBOX",
+            headers : {
+              token : token,
+              username : process.env.TEST_SMTP_USERNAME
+            }
+          }, function(response){
+            console.log("arstarst");
+            console.log(response.result);
+            done();
+          })
+        })
+      })
+    })
+    it("Should be able to remove temporary attachment in surelia backend", function(done){
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/attachment",
+        payload : {content: "aGVsbG8K"},
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        server.inject({
+          method: "DELETE",
+          url : "/api/1.0/attachment?attachmentId=" + response.result.attachmentId,
+          headers : {
+            token : token,
+            username : process.env.TEST_SMTP_USERNAME
+          }
+        }, function(response){
+          should(response.statusCode).equal(200);
+          done();
+        })
       })
     })
   });
