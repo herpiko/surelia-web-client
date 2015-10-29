@@ -1,0 +1,70 @@
+
+.compose-header {
+  background: #C0392B;
+  color: white;
+  padding: 5px;
+  padding-left: 10px;
+  margin-bottom:15px;
+}
+.compose-container-maximaze {
+  min-width: 90%;
+  min-height: 90%;
+  position: fixed;
+  top: 5%;
+  left: 5%;
+  border: 1px solid black;
+  background-color: white;
+  z-index: 9999;
+}
+.compose-container {
+  min-width: 500px;
+  position: fixed;
+  bottom: 0px;
+  right: 10px;
+  border: 1px solid black;
+  background-color: white;
+  z-index:9999;
+}
+
+.compose-header-button {
+  width:15px;
+  height:15px;
+  float:right;
+  cursor:pointer;
+}
+.compose-header-button:hover {
+  background:#A0392B;
+}
+.compose-label {
+  position:absolute;
+  margin-left:10px;
+}
+.compose-input-to {
+  padding-left:75px;
+}
+.compose-input-cc {
+  padding-left:40px;
+}
+.compose-input-bcc {
+  padding-left:50px;
+}
+.compose-input-subject {
+  padding-left:60px;
+}
+.compose-label-cc-button {
+  position: absolute;
+  margin-top: 7px;
+  right: 0;
+  margin-right: 60px;
+  cursor:pointer;
+}
+.compose-label-bcc-button {
+  position: absolute;
+  margin-top: 7px;
+  right: 0;
+  margin-right: 30px;
+  cursor:pointer;
+}
+.compose-attachments {
+  margin-top:15px;
+}
