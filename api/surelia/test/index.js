@@ -179,7 +179,7 @@ hoodiecrowServer.listen(1143, function(){
           from : sender,
           sender : "Sender",
           subject : "Subject",
-          text : "Messagn content"
+          html : "Message content"
         });
         newMail.build(function(err, message){
           if (err) {
@@ -231,7 +231,7 @@ hoodiecrowServer.listen(1143, function(){
                 recipients : process.env.TEST_SMTP_USERNAME,
                 sender : "Surelia",
                 subject : "Subject of the message",
-                text : "Content of the message"
+                html : "Content of the message"
               }
               server.inject({
                 method: "POST",
@@ -483,7 +483,7 @@ hoodiecrowServer.listen(1143, function(){
           from : "someemail1@example.com",
           sender : "Sender",
           subject : "Subject",
-          text : "Content"
+          html : "Content"
         });
         newMail.build(function(err, message){
           if (err) {
@@ -741,7 +741,7 @@ hoodiecrowServer.listen(1143, function(){
         recipients : process.env.TEST_SMTP_USERNAME,
         sender : "Surelia",
         subject : randomString(),
-        text : randomString()
+        html : randomString()
       }
       server.inject({
         method: "POST",
@@ -886,7 +886,7 @@ hoodiecrowServer.listen(1143, function(){
         recipients : process.env.TEST_SMTP_USERNAME,
         sender : "Surelia",
         subject : "Subject of the message",
-        text : "Content of the message"
+        html : "Content of the message"
       }
       server.inject({
         method: "POST",
@@ -909,7 +909,7 @@ hoodiecrowServer.listen(1143, function(){
         recipients : process.env.TEST_SMTP_USERNAME,
         sender : "Surelia",
         subject : "Subject of the message. Testing CC",
-        text : "Content of the message",
+        html : "Content of the message",
         cc : process.env.TEST_SMTP_USERNAME,
       }
       server.inject({
@@ -933,7 +933,7 @@ hoodiecrowServer.listen(1143, function(){
         recipients : process.env.TEST_SMTP_USERNAME,
         sender : "Surelia",
         subject : "Subject of the message. Testing BCC",
-        text : "Content of the message",
+        html : "Content of the message",
         bcc : process.env.TEST_SMTP_USERNAME,
       }
       server.inject({
@@ -967,7 +967,7 @@ hoodiecrowServer.listen(1143, function(){
           recipients : process.env.TEST_SMTP_USERNAME,
           sender : "Surelia",
           subject : "Subject of the message.",
-          text : "Content of the message",
+          html : "Content of the message",
           attachments : [
             {
               filename : "hello.txt",
