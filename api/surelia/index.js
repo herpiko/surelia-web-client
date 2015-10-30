@@ -229,7 +229,7 @@ ImapAPI.prototype.send = function(request, reply) {
                 to : recipients,
                 sender : payload.sender,
                 subject : payload.subject,
-                text : payload.text
+                html : payload.html
               }
               if (payload.bcc) {
                 msg.bcc = payload.bcc.split(";");
@@ -237,7 +237,7 @@ ImapAPI.prototype.send = function(request, reply) {
               if (payload.cc) {
                 msg.cc = payload.cc.split(";");
               }
-              if (payload.attachments.length > 0) {
+              if (payload.attachments && payload.attachments.length > 0) {
                 msg.attachments = [];
                 // Check for attachmentId,
                 // if any, grab them from temporary attachment collection
@@ -687,7 +687,7 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
                 return reply(err).code(500);
               }
               for (var i = 0; i < message.parsed.attachments.length;i++) {
-                delete(message.parsed.attachments[i].content);
+                message.parsed.attachments[i].content = "";
               }
               reply(message);
             })
@@ -751,9 +751,13 @@ ImapAPI.prototype.removeMessage = function(request, reply) {
  */
 ImapAPI.prototype.getAttachment = function(request, reply) {
   var realFunc = function(client, request, reply) {
+    console.log(request.query);
     attachmentModel().findOne({ messageId : request.query.messageId}).exec(function(err, result){
       if (err) {
         return reply(err).code(500);
+      }
+      if (!result){
+        return reply(new Error("Attachment not found").message).code(404);
       }
       reply(result.attachments[parseInt(request.query.index)]);
     })

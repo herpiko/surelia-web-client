@@ -47,50 +47,63 @@
             </div>
     </div>
 
-    <form ng-show="msg.compose" ng-submit="msg.sendMessage(msg.newMessage)" style="min-width: 500px;position: fixed;bottom: 0px;right: 10px;border: 1px solid black;background-color: white;">
-      <div class='header'>New message</div>
-      <div class='inner'>
-        <div>
-          <label>From: </label>
-          <input ng-model="msg.newMessage.from" placeholder="from"></input><br>
-        </div>
-        <div>
-          <label>To: </label>
-          <input ng-model="msg.newMessage.recipients" placeholder="to"></input><br>
-        </div>
-        <div>
-          <label>CC: </label>
-          <input ng-model="msg.newMessage.cc" placeholder="cc"></input><br>
-        </div>
-        <div>
-          <label>BCC: </label>
-          <input ng-model="msg.newMessage.bcc" placeholder="bcc"></input><br>
-        </div>
-        <div>
-          <label>Subject: </label>
-          <input ng-model="msg.newMessage.subject" placeholder="subject"></input><br>
-        </div>
-        <div>
-          <label>Content: </label><br>
-          <textarea cols="40" rows="7" ng-model="msg.newMessage.text" placeholder="text"></textarea><br>
-        </div>
-        <div>
-            Attachments<br>
-            <ul>
-              <li ng-repeat="a in msg.newMessage.attachments">
-                {{a.filename}} -  
-                <span ng-show="a.progress=='uploading'">uploading</span>
-                <span ng-show="a.progress=='uploaded'">uploaded</span>
-                <span ng-show="a.progress=='failed'">failed</span>
-              </li>
-            </ul>
-            <button ngf-select="msg.uploadFiles($files, $invalidFiles)" multiple
-              accept="*/*" ngf-max-height="1000" ngf-max-size="15MB">
-            Select Files</button>
-        </div>
+    <form ng-show="msg.compose" ng-submit="msg.sendMessage(msg.newMessage)" ng-class="{'compose-container':(msg.composeMode=='corner' || msg.composeMode=='minimaze' ), 'compose-container-maximaze':msg.composeMode=='maximaze'}">
+      <div class='compose-header'>Tulis surel
+        <span class="compose-header-button" ng-click="msg.cancelCompose()">X</span>
+        <span class="compose-header-button" ng-hide="msg.composeMode=='maximaze' || msg.composeMode=='minimaze'" ng-click="msg.resizeCompose('maximaze')">/</span>
+        <span class="compose-header-button" ng-hide="msg.composeMode=='corner'" ng-click="msg.resizeCompose('corner')">[]</span>
+        <span class="compose-header-button" ng-click="msg.resizeCompose('minimaze')">-</span>
+      </div>
+      <div class='inner' ng-hide="msg.composeMode=='minimaze'">
+			  <fieldset>
+			  	<div class="form-group">
+			  		<div class="col-lg-12">
+             <span class="compose-label">Kepada</span>
+             <span class="compose-label-cc-button" ng-hide="msg.cc" ng-click="msg.showCc()">Cc</span>
+             <span class="compose-label-bcc-button" ng-hide="msg.bcc" ng-click="msg.showBcc()">Bcc</span>
+			  			<input type="text" ng-model="msg.newMessage.recipients" class="compose-input-to form-control">
+			  		</div>
+			  	</div>
+			  	<div class="form-group" ng-show="msg.cc">
+			  		<div class="col-lg-12">
+             <span class="compose-label">Cc</span>
+			  			<input type="text" ng-model="msg.newMessage.cc" class="compose-input-cc form-control">
+			  		</div>
+			  	</div>
+			  	<div class="form-group" ng-show="msg.bcc">
+			  		<div class="col-lg-12">
+             <span class="compose-label">Bcc</span>
+			  			<input type="text" ng-model="msg.newMessage.bcc" class="compose-input-bcc form-control">
+			  		</div>
+			  	</div>
+			  	<div class="form-group">
+			  		<div class="col-lg-12">
+             <span class="compose-label">Judul</span>
+			  			<input type="text"  ng-model="msg.newMessage.subject" class="compose-input-subject form-control">
+			  		</div>
+			  	</div>
+			  	<div>
+              <text-angular ng-model="msg.newMessage.html"></text-angular>
+			  	</div>
+			  	<div class="form-group">
+			  		<div class="col-lg-10">
+             <button ngf-select="msg.uploadFiles($files, $invalidFiles)" multiple
+               accept="*/*" ngf-max-height="1000" ngf-max-size="15MB" class="btn btn-default btn-file">
+			  	    <i class="fa fa-paperclip"></i> Lampiran
+             </button>
+           </div>
+           <ul>
+             <li ng-show="msg.newMessage.attachments.length > 0" ng-repeat="a in msg.newMessage.attachments" class="compose-attachments">
+               {{a.filename}}
+               <span ng-show="a.progress=='uploading'"> - Mengunggah...</span>
+               <span ng-show="a.progress=='failed'"> - Gagal mengunggah</span>
+               <span ng-show="a.progress=='uploaded'"><i class="fa fa-check"></i></span>
+             </li>
+           </ul>
+			  	</div>
+			  </fieldset>
         <div class='button-bar'>
-          <input type="submit" value="Send">
-          <button type="button" ng-click="msg.cancelCompose()">Cancel</button>
+						<button type="submit" class="btn btn-success" type="submit"><i class="fa fa-envelope-o"></i> Kirim</button>
         </div>
       </div>
     </form>

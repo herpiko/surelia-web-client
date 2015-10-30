@@ -97,6 +97,9 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.Upload = Upload;
   var self = this;
   self.compose = false;
+  self.composeMode = "corner";
+  self.cc = false;;
+  self.bcc = false;
   self.loading = self.ngProgressFactory.createInstance();
   
   if (self.localStorageService.get("username")) {
@@ -125,6 +128,7 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
       else return(bytes / 1073741824).toFixed(3) + " GB";
   };
 }
+
 
 Message.prototype.getBoxes = function(){
   var self = this;
@@ -366,6 +370,7 @@ Message.prototype.sendMessage = function(msg){
       console.log(data);
       alert("Message was sent successfully.\n" + JSON.stringify(data));
       self.view = "list";
+      self.compose = false;
     })
     .error(function(data, status){
       self.loading.complete();
@@ -399,6 +404,9 @@ Message.prototype.removeMessage = function(seq, messageId, boxName){
 Message.prototype.composeMessage = function(){
   var self = this;
   self.compose = true;
+  self.cc = false;;
+  self.bcc = false;;
+  self.composeMode = "corner";
   self.newMessage = {
     from : self.localStorageService.get("username"),
     sender : self.localStorageService.get("username"),
@@ -414,6 +422,22 @@ Message.prototype.cancelCompose = function(){
   for (var i = 0;i < attachments.length;i++) {
     self.ImapService.removeAttachment(attachments[i].attachmentId);
   }
+}
+
+Message.prototype.resizeCompose = function(mode){
+  var self = this;
+  console.log(mode);
+  self.composeMode = mode;
+}
+
+Message.prototype.showCc = function(){
+  var self = this;
+  self.cc = true;
+}
+
+Message.prototype.showBcc = function(){
+  var self = this;
+  self.bcc = true;
 }
 
 Message.prototype.uploadFiles = function(files, errFiles) {

@@ -10,6 +10,10 @@ require("angular-file-upload");
 require("ngprogress-npm");
 require("angular-toastr");
 require("ng-file-upload");
+window.rangy = require("rangy/lib/rangy-core");
+window.rangy.saveSelection = require("rangy/lib/rangy-selectionsaverestore");
+require("textangular/dist/textAngular-sanitize.min");
+require("textangular");
 
 // Load service and controllers
 require("./service/index");
@@ -20,13 +24,15 @@ var app = angular.module("App", [
   "ui.router", 
   "ui.bootstrap",
   "ngAnimate",
+  "ngSanitize",
+  "textAngular",
   "templates",
   "LocalStorageModule",
   "app.services",
   "app.controllers",
   "ngProgress",
   "toastr",
-  "ngFileUpload"
+  "ngFileUpload",
 ])
 .config(function($stateProvider) {
   $stateProvider
@@ -44,6 +50,39 @@ var app = angular.module("App", [
       }
     }
   )
+})
+.config(function($provide){
+  $provide.decorator('taOptions', ['taRegisterTool', '$delegate', function(taRegisterTool, taOptions){
+    // $delegate is the taOptions we are decorating
+    // register the tool with textAngular
+    taOptions.toolbar = [
+      [
+        /* "h1", */
+        /* "h2", */
+        /* "h3", */
+        /* "h4", */
+        /* "h5", */
+        /* "h6", */
+        /* "pre", */
+        "quote",
+        "bold",
+        "italics",
+        "underline",
+        "strikeThrough",
+        "ul",
+        "ol",
+        "justifyLeft",
+        "justifyCenter",
+        "justifyRight",
+        "justifyFull",
+        "html",
+        "insertImage",
+        "insertLink",
+        "insertVideo"
+      ]
+    ]
+    return taOptions; 
+    }]);
 })
 // Register controller
 .controller("AppCtrl", function($scope, $state) {
