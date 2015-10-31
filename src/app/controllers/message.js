@@ -114,8 +114,10 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
     .success(function(data, status){
       console.log(data);
       self.loading.set(30);
-      self.listBox("INBOX");
-      self.getSpecialBoxes()
+      self.listBox("INBOX", 10, 1, null, null);
+      self.currentBoxName = "INBOX";
+      self.currentBoxPath = "INBOX";
+      self.getSpecialBoxes();
       self.ErrorHandlerService.parse(data, status);
       self.boxes = data;
     })
@@ -163,7 +165,20 @@ Message.prototype.getSpecialBoxes = function(){
     })
 }
 
-Message.prototype.listBox = function(boxName){
+Message.prototype.listBoxOlder = function(){
+  var self = this;
+  if (self.currentListMeta.older) {
+    self.listBox(self.currentBoxPath, self.currentListMeta.limit, (parseInt(self.currentListMeta.page) + 1), null, true)
+  }
+}
+
+Message.prototype.listBoxNewer = function(){
+  var self = this;
+  if (self.currentListMeta.newer) {
+    self.listBox(self.currentBoxPath, self.currentListMeta.limit, (parseInt(self.currentListMeta.page) - 1), null, true)
+  }
+}
+Message.prototype.listBox = function(boxName, limit, page, search, canceler){
   var self = this;
   self.loading.start();
   self.view = "list";
@@ -173,11 +188,38 @@ Message.prototype.listBox = function(boxName){
   } else {
     self.isDraft = false;
   }
-  self.ImapService.listBox(boxName, true)
+  var special = lodash.some(self.specialBoxes, function(box){
+    if (box.path == boxName) {
+      self.currentBoxName = box.specialName;
+      self.currentBoxPath = box.path;
+      return;
+    } 
+  });
+  var box = lodash.some(self.boxes, function(box){
+    if (box == boxName) {
+      self.currentBoxName = box;
+      self.currentBoxPath = box;
+      return;
+    } 
+  });
+  self.ImapService.listBox(boxName, limit, page, search, canceler)
     .then(function(data){
       self.loading.complete();
       console.log(data);
-      self.currentList = data;
+      self.currentList = data.data;
+      self.currentListMeta = data.meta;
+      // calculate pagination nav
+      var meta = self.currentListMeta;
+      if ((parseInt(meta.page) - 1) > 0) {
+        self.currentListMeta.newer = true;
+      } else {
+        self.currentListMeta.newer = false;
+      }
+      if (parseInt(meta.limit) * (parseInt(meta.page) +1) - parseInt(meta.total) < parseInt(limit)) {
+        self.currentListMeta.older = true;
+      } else {
+        self.currentListMeta.older = false;
+      }
     })
     .catch(function(data, status){
       self.loading.complete();

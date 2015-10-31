@@ -551,7 +551,7 @@ ImapAPI.prototype.listBox = function(request, reply) {
       var err = new Error("Missing query parameter : boxName");
       return reply({err : err.message}).code(500);
     }
-    client.listBox(request.query.boxName)
+    client.listBox(request.query.boxName, request.query.limit, request.query.page, request.query.search)
       .then(function(result){
         reply(result);
       })

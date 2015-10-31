@@ -181,8 +181,15 @@ Imap.prototype.getBoxes = function() {
  * @returns {Promise}
  * 
  */
-Imap.prototype.listBox = function(name, start, limit, searchParams) {
+Imap.prototype.listBox = function(name, limit, page, searchParams) {
+  console.log("name " + name);
+  console.log("limit " + limit);
+  console.log("page " + page);
+  console.log("searchParams " + searchParams);
   var self = this;
+  var limit = limit || 10;
+  var page = page || 1;
+  var total;
   return new Promise(function(resolve, reject){
     var bodies = searchParams || 'HEADER.FIELDS (FROM TO SUBJECT DATE)';
     var result = [];
@@ -191,12 +198,14 @@ Imap.prototype.listBox = function(name, start, limit, searchParams) {
         return reject(err);
       }
       console.log("total message " + box.messages.total);
-      var fetchLimit = box.messages.total;
-      if (limit) {
-        fetchLimit = start + limit - 1;
+      var total = box.messages.total;
+      var start = total - page * limit + 1;
+      if (start < 0) {
+        start = 1;
       }
+      var fetchLimit = box.messages.total - (limit*page-limit);
       var seqArray = []
-      for (var i = start || 1; i <= fetchLimit; i++) {
+      for (var i = start; i <= fetchLimit; i++) {
         seqArray.push(i);
       }
       async.each(seqArray, function iterator(seq, doneIteratingMessages) {
@@ -262,7 +271,16 @@ Imap.prototype.listBox = function(name, start, limit, searchParams) {
           return reject(err);
         }
         result.reverse();
-        resolve(result);
+        var obj = {
+          data : result,
+          meta : {
+            total : total,
+            limit : limit,
+            page : page,
+            start : start,
+          }
+        }
+        resolve(obj);
       })
     })
   })

@@ -8,15 +8,20 @@
     <!--Sidebar-->
     <div style="width:300px;display:inline-block;vertical-align:top;padding:10px;background:#ECECEC;">
       <ul>
-        <li ng-repeat="box in msg.boxes" ng-click="msg.listBox(box)" style="cursor:pointer">{{box}}</li>
-        <li ng-repeat="special in msg.specialBoxes" ng-click="msg.listBox(special.path)" style="cursor:pointer">{{special.specialName}}</li>
+              <li ng-repeat="box in msg.boxes" ng-click="msg.listBox(box, null, null, null, true)" style="cursor:pointer">
+              {{box}} <span ng-show="msg.currentBoxName==box"> *</span>
+              </li>
+              <li ng-repeat="special in msg.specialBoxes" ng-click="msg.listBox(special.path, null, null, null, true)" style="cursor:pointer">
+              {{special.specialName}} <span ng-show="msg.currentBoxName==special.specialName"> *</span>
+              </li>
       </ul> 
     </div>
     
     
     <!--List view-->
-    {{msg.coba}}
     <div ng-show="msg.view=='list'" style="width:60%;display:inline-block;vertical-align:top;">
+      <button ng-click="msg.listBoxNewer()">newer</button>
+      <button ng-click="msg.listBoxOlder()">older</button>
       <div ng-repeat="message in msg.currentList" ng-click="msg.retrieveMessage(message.seq, message.boxName)"i style="cursor:pointer;margin-top:3px;background:#ECECEC">
         <span>{{message.seq}} -</span>
         <span ng-hide="msg.isDraft">{{message.header.from}} -</span>
