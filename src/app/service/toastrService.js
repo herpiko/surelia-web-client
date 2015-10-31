@@ -13,6 +13,29 @@ ToastrService.prototype.invalidCredentials = function(){
   self.toastr.error("Invalid credentials");
 }
 
+ToastrService.prototype.sent = function() {
+  var self = this;
+  self.toastr.success("Your message was sent successfully");
+}
+
+ToastrService.prototype.savedAsDraft = function() {
+  var self = this;
+  self.toastr.success("Your message draft was saved");
+}
+
+ToastrService.prototype.deleted = function() {
+  var self = this;
+  self.toastr.success("Your message was deleted");
+}
+
+ToastrService.prototype.parse = function(data, status) {
+  var self = this;
+  if ( data && data.err &&  data.err == "Invalid credentials") {
+    self.invalidCredentials();
+  }
+}
+
+
 ToastrService.prototype.parse = function(data, status) {
   var self = this;
   if ( data && data.err &&  data.err == "Invalid credentials") {
