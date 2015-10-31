@@ -14,6 +14,7 @@ window.rangy = require("rangy/lib/rangy-core");
 window.rangy.saveSelection = require("rangy/lib/rangy-selectionsaverestore");
 require("textangular/dist/textAngular-sanitize.min");
 require("textangular");
+window.objectHash = require("object-hash");
 
 // Load service and controllers
 require("./service/index");

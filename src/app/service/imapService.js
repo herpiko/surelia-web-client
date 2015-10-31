@@ -355,6 +355,23 @@ ImapService.prototype.sendMessage = function(msg) {
   return self.$http(req)
 }
 
+ImapService.prototype.saveDraft= function(msg) {
+  var self = this;
+  var path = "/api/1.0/draft";
+  var token = self.localStorageService.get("token"); 
+  var username = self.localStorageService.get("username"); 
+  var req = {
+    method: "POST",
+    url : path,
+    data : msg,
+    headers : {
+      token : token,
+      username : username
+    }
+  }
+  return self.$http(req)
+}
+
 ImapService.inject = ["$http", "localStorageService", "$rootScope", "$state", "$q"];
 
 var module = require("./index");

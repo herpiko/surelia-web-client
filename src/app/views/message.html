@@ -18,10 +18,11 @@
     {{msg.coba}}
     <div ng-show="msg.view=='list'" style="width:60%;display:inline-block;vertical-align:top;">
       <div ng-repeat="message in msg.currentList" ng-click="msg.retrieveMessage(message.seq, message.boxName)"i style="cursor:pointer;margin-top:3px;background:#ECECEC">
-        <span>{{message.seq}}</span> -
-        <span>{{message.header.from}}</span> -
-        <span>{{message.header.subject}}</span> -
-        <span>{{message.header.date}}</span> -
+        <span>{{message.seq}} -</span>
+        <span ng-hide="msg.isDraft">{{message.header.from}} -</span>
+        <span ng-show="msg.isDraft"><span ng-repeat="to in message.header.to">{{to}} </span> -</span>
+        <span>{{message.header.subject}} -</span>
+        <span>{{message.header.date}} -</span>
         <span ng-show="message.hasAttachments">[attachment]</span>
       </div>
     </div>
@@ -49,7 +50,7 @@
 
     <form ng-show="msg.compose" ng-submit="msg.sendMessage(msg.newMessage)" ng-class="{'compose-container':(msg.composeMode=='corner' || msg.composeMode=='minimaze' ), 'compose-container-maximaze':msg.composeMode=='maximaze'}">
       <div class='compose-header'>Tulis surel
-        <span class="compose-header-button" ng-click="msg.cancelCompose()">X</span>
+        <span class="compose-header-button" ng-click="msg.saveDraft()">X</span>
         <span class="compose-header-button" ng-hide="msg.composeMode=='maximaze' || msg.composeMode=='minimaze'" ng-click="msg.resizeCompose('maximaze')">/</span>
         <span class="compose-header-button" ng-hide="msg.composeMode=='corner'" ng-click="msg.resizeCompose('corner')">[]</span>
         <span class="compose-header-button" ng-click="msg.resizeCompose('minimaze')">-</span>
@@ -88,7 +89,7 @@
 			  	<div class="form-group">
 			  		<div class="col-lg-10">
              <button ngf-select="msg.uploadFiles($files, $invalidFiles)" multiple
-               accept="*/*" ngf-max-height="1000" ngf-max-size="15MB" class="btn btn-default btn-file">
+               ngf-max-height="1000" ngf-max-size="15MB" class="btn btn-default btn-file">
 			  	    <i class="fa fa-paperclip"></i> Lampiran
              </button>
            </div>
@@ -103,7 +104,8 @@
 			  	</div>
 			  </fieldset>
         <div class='button-bar'>
-						<button type="submit" class="btn btn-success" type="submit"><i class="fa fa-envelope-o"></i> Kirim</button>
+						<button class="btn btn-success" type="reset" ng-click="msg.discardDraft()"><i class="fa fa-envelope-o"></i> Batal</button>
+						<button type="submit" class="btn btn-success"><i class="fa fa-envelope-o"></i> Kirim</button>
         </div>
       </div>
     </form>
