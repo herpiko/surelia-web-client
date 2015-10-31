@@ -168,14 +168,14 @@ Message.prototype.getSpecialBoxes = function(){
 Message.prototype.listBoxOlder = function(){
   var self = this;
   if (self.currentListMeta.older) {
-    self.listBox(self.currentBoxPath, self.currentListMeta.limit, (parseInt(self.currentListMeta.page) + 1), null, true)
+    self.listBox(self.currentBoxPath, self.currentListMeta.limit, (self.currentListMeta.page + 1), null, true)
   }
 }
 
 Message.prototype.listBoxNewer = function(){
   var self = this;
   if (self.currentListMeta.newer) {
-    self.listBox(self.currentBoxPath, self.currentListMeta.limit, (parseInt(self.currentListMeta.page) - 1), null, true)
+    self.listBox(self.currentBoxPath, self.currentListMeta.limit, (self.currentListMeta.page - 1), null, true)
   }
 }
 Message.prototype.listBox = function(boxName, limit, page, search, canceler){
@@ -210,12 +210,12 @@ Message.prototype.listBox = function(boxName, limit, page, search, canceler){
       self.currentListMeta = data.meta;
       // calculate pagination nav
       var meta = self.currentListMeta;
-      if ((parseInt(meta.page) - 1) > 0) {
+      if ((meta.page - 1) > 0) {
         self.currentListMeta.newer = true;
       } else {
         self.currentListMeta.newer = false;
       }
-      if (parseInt(meta.limit) * (parseInt(meta.page) +1) - parseInt(meta.total) < parseInt(limit)) {
+      if (meta.limit * (meta.page +1) - meta.total < limit) {
         self.currentListMeta.older = true;
       } else {
         self.currentListMeta.older = false;

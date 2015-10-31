@@ -275,8 +275,8 @@ Imap.prototype.listBox = function(name, limit, page, searchParams) {
           data : result,
           meta : {
             total : total,
-            limit : limit,
-            page : page,
+            limit : parseInt(limit),
+            page : parseInt(page),
             start : start,
           }
         }
