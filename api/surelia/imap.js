@@ -2,7 +2,6 @@ var Client = require("imap");
 var async = require("async");
 var inspect = require("util").inspect;
 var MailParser = require("mailparser").MailParser;
-var monowrap = require("monowrap");
 var moment = require("moment");
 var lodash = require("lodash");
 
@@ -222,8 +221,12 @@ Imap.prototype.listBox = function(name, start, limit, searchParams) {
               mail.header = Client.parseHeader(buffer, true);
               // Normalization
               mail.header.date = moment(new Date(mail.header.date[0]));
-              mail.header.from = mail.header.from[0];
-              mail.header.subject = mail.header.subject[0];
+              if (mail.header.from && mail.header.from[0]) {
+                mail.header.from = mail.header.from[0];
+              }
+              if (mail.header.subject && mail.header.subject[0]) {
+                mail.header.subject = mail.header.subject[0];
+              }
             });
           })
           msg.once("attributes", function(attrs) {
@@ -378,7 +381,6 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
             mail.parsed.date = moment(new Date(mail.parsed.date));
             mail.parsed.receivedDate = moment(new Date(mail.parsed.receivedDate));
             mail.boxName = boxName;
-            mail.original = monowrap(mail.original, 76);
             resolve(mail);
           })
           mailparser.write(mail.original);

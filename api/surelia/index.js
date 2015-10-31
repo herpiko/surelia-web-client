@@ -128,6 +128,14 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.removeAttachment(request, reply);
     }
   })
+  
+  self.server.route({
+    method : "POST",
+    path : "/api/1.0/draft",
+    handler : function(request, reply){
+      self.saveDraft(request, reply);
+    }
+  })
 }
 
 /**
@@ -195,7 +203,7 @@ ImapAPI.prototype.send = function(request, reply) {
         } else if (!keyPair) {
           return reply("No credential stored in backend").code(401);
         } else {
-          // Dercypt the password
+          // Decrypt the password
           console.log("decrypt password");
           var password = privateKey.decrypt(result.password);
           // Mandatory option
@@ -667,34 +675,61 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
     client.retrieveMessage(request.query.id, request.query.boxName)
       .then(function(message){
         delete(message.original);
-        if (!message.hasAttachments) {
+        if (!message.hasAttachments && !message.parsed.attachments) {
           return reply(message);
+        } else {
         }
-        // This message has attachment, cut and save them to db
-        var attachments = {
-          attachments : message.parsed.attachments,
-          messageId : message.parsed.messageId,
-        }
-
-        // First, check if there is existing attachment in db
-        attachmentModel().find({messageId : message.parsed.messageId}).exec(function(err, result){
-          if (err) {
-            return reply(err).code(500);
-          }
-          if (result && result.length == 0) {
-            attachmentModel().create(attachments, function(err, result){
+        if (request.query.boxName.substr(-6) == "Drafts") {
+          message.isDraft = true;
+          async.eachSeries(message.parsed.attachments, function(attachment, cb){
+            console.log(attachment);
+            var a = {
+              content : attachment.content.toString("base64"),
+              timestamp : new Date()
+            }
+            uploadAttachmentModel().create(a, function(err, result){
               if (err) {
                 return reply(err).code(500);
               }
-              for (var i = 0; i < message.parsed.attachments.length;i++) {
-                message.parsed.attachments[i].content = "";
-              }
-              reply(message);
+              attachment.attachmentId = result._id;
+              attachment.attachmentId = result._id;
+              delete(attachment.content);
+              cb();
             })
-          } else {
+          }, function(err){
+            if (err) {
+              console.log(err);
+              return reply({err : err.message}).code(500);
+            }
             reply(message);
+          }) 
+        } else {
+          // This message has attachment, cut and save them to db
+          var attachments = {
+            attachments : message.parsed.attachments,
+            messageId : message.parsed.messageId,
           }
-        })
+  
+          // First, check if there is existing attachment in db
+          attachmentModel().find({messageId : message.parsed.messageId}).exec(function(err, result){
+            if (err) {
+              return reply(err).code(500);
+            }
+            if (result && result.length == 0) {
+              attachmentModel().create(attachments, function(err, result){
+                if (err) {
+                  return reply(err).code(500);
+                }
+                for (var i = 0; i < message.parsed.attachments.length;i++) {
+                  message.parsed.attachments[i].content = "";
+                }
+                reply(message);
+              })
+            } else {
+              reply(message);
+            }
+          })
+        }
       })
       .catch(function(err){
         console.log(err.message);
@@ -804,16 +839,8 @@ ImapAPI.prototype.removeAttachment = function(request, reply) {
  * Create new message draft and save it to Draft box
  *
  */
-ImapAPI.prototype.newMessage = function(request, reply) {
-  var realFunc = function(client, request, reply) {
-    var recipients = request.payload.recipients.split(";");
-    var msg = {
-      from : request.payload.from,
-      to : recipients,
-      sender : request.payload.sender,
-      subject : request.payload.subject,
-      text : request.payload.text
-    }
+ImapAPI.prototype.saveDraft = function(request, reply) {
+  var realSaveDraft = function(request, reply, client, msg) {
     var newMessage = composer(msg);
     newMessage.build(function(err, message){
       client.newMessage(message)
@@ -827,10 +854,54 @@ ImapAPI.prototype.newMessage = function(request, reply) {
     })
   }
   
+  var realFunc = function(client, request, reply) {
+    var recipients = request.payload.recipients.split(";");
+    var msg = {
+      from : request.payload.from,
+      to : recipients,
+      sender : request.payload.sender,
+      subject : request.payload.subject,
+      html : request.payload.html
+    }
+    if (request.payload.bcc) {
+      msg.bcc = request.payload.bcc.split(";");
+    }
+    if (request.payload.cc) {
+      msg.cc = request.payload.cc.split(";");
+    }
+    if (request.payload.attachments && request.payload.attachments.length > 0) {
+      msg.attachments = [];
+      // Check for attachmentId,
+      // if any, grab them from temporary attachment collection
+      async.eachSeries(request.payload.attachments, function(attachment, cb){
+        uploadAttachmentModel().findOne({_id : attachment.attachmentId})
+          .exec(function(err, result){
+            if (err) {
+              return reply(err).code(500);
+            } 
+            if (!result) {
+              return reply(new Error("Attachments not found").message).code(500);
+            }
+            attachment.content = result.content;
+            delete(attachment.progress);
+            msg.attachments.push(attachment);
+            // Remove temporary attachment, but do not wait
+            uploadAttachmentModel().remove({_id : attachment.attachmentId});
+            cb(); 
+          })
+      }, function(err){
+        realSaveDraft(request, reply, client, msg);
+      })
+    } else {
+      realSaveDraft(request, reply, client, msg);
+    }
+  }
+  
   checkPool(request, reply, realFunc);
 }
 
 // Model
+
 var model = function() {
   var registered = false;
   var m;
