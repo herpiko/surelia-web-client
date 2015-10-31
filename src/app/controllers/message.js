@@ -82,7 +82,7 @@ var mimeTypes = {
     ]
   }
 }
-var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload){
+var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -95,6 +95,7 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.$compile = $compile;
   this.$timeout = $timeout;
   this.Upload = Upload;
+  this.ToastrService = ToastrService;
   var self = this;
   self.compose = false;
   self.composeMode = "corner";
@@ -167,7 +168,7 @@ Message.prototype.listBox = function(boxName){
   self.loading.start();
   self.view = "list";
   console.log("list box content");
-  if (boxName.substr(-6) == "Drafts") {
+  if (boxName.indexOf("Drafts") > -1) {
     self.isDraft = true;
   } else {
     self.isDraft = false;
@@ -240,13 +241,14 @@ Message.prototype.retrieveMessage = function(id, boxName){
     .then(function(data){
       self.loading.complete();
       console.log(data);
-      if (boxName.substr(-6) == "Drafts") {
+      if (boxName.indexOf("Drafts") > -1) {
         console.log("This is a draft");
         data.seq = id;
         self.composeMessage(data);
       } else {
         self.view = "message";
         self.currentMessage = data;
+        self.currentMessage.seq = id;
         var e = angular.element(document.querySelector("#messageContent"));
         e.empty();
         var html = "";
@@ -357,15 +359,27 @@ Message.prototype.logout = function(){
 
 Message.prototype.sendMessage = function(msg){
   var self = this;
+  self.compose = false;
   self.loading.start();
   console.log("send message");
   self.ImapService.sendMessage(msg)
     .success(function(data){
-      self.loading.complete();
       console.log(data);
-      alert("Message was sent successfully.\n" + JSON.stringify(data));
       self.view = "list";
-      self.compose = false;
+      if (msg.seq && msg.messageId) {
+        var draftPath = self.specialBoxes.Drafts.path || "Drafts";
+        self.ImapService.removeMessage(msg.seq, msg.messageId, draftPath)
+          .success(function(data, status, header){
+            self.listBox(draftPath);
+            self.loading.complete();
+            self.ToastrService.sent();
+          })
+          .error(function(data, status, header){
+            self.loading.complete();
+          })
+      } else {
+        self.loading.complete();
+      }
     })
     .error(function(data, status){
       self.loading.complete();
@@ -373,7 +387,7 @@ Message.prototype.sendMessage = function(msg){
     })
 }
 
-Message.prototype.removeMessage = function(seq, messageId, boxName){
+Message.prototype.removeMessage = function(seq, messageId, boxName, toastr){
   var self = this;
   self.loading.start();
   console.log("remove message");
@@ -386,6 +400,9 @@ Message.prototype.removeMessage = function(seq, messageId, boxName){
         if (self.currentList[i].seq == seq) {
           self.currentList.splice(i, 1); 
         }
+      }
+      if (toastr) {
+        self.ToastrService.deleted();
       }
       self.view = "list";
       self.listBox("INBOX");
@@ -479,6 +496,7 @@ Message.prototype.saveDraft = function(){
     console.log("save draft");
     self.ImapService.saveDraft(msg)
       .success(function(data, status, header){
+        self.ToastrService.savedAsDraft();
         // If it's an existing draft, remove the old one
         if (msg.seq && msg.messageId) {
           var draftPath = self.specialBoxes.Drafts.path || "Drafts";
@@ -578,7 +596,7 @@ Message.prototype.uploadFiles = function(files, errFiles) {
 }
 
 
-Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout"];
+Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout", "Upload", "ToastrService"];
 
 var module = require("./index");
 module.controller("MessageCtrl", Message);

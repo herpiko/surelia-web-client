@@ -488,7 +488,7 @@ var checkPool = function(request, reply, realFunc) {
               pool.destroy();
               if (err) {
                 if ( err.message == "Invalid credentials (Failure)"
-                  || err.message.substr(0, 13) == "Lookup failed"
+                  || err.message.indexOf("Lookup failed") > -1
                   || err.type.toLowerCase() == "no" 
                   || err.type.toLowerCase() == "bad" 
                 ) {
@@ -679,7 +679,7 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
           return reply(message);
         } else {
         }
-        if (request.query.boxName.substr(-6) == "Drafts") {
+        if (request.query.boxName.indexOf("Drafts") > -1) {
           message.isDraft = true;
           async.eachSeries(message.parsed.attachments, function(attachment, cb){
             console.log(attachment);
