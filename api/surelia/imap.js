@@ -487,21 +487,15 @@ Imap.prototype.removeMessage = function(id, boxName) {
  * @param {String} messageData - The id of the message, in string or buffer
  * @returns {Promise}
  */
-Imap.prototype.newMessage = function(messageData) {
+Imap.prototype.newMessage = function(messageData, draftPath) {
   var self = this;
   return new Promise(function(resolve, reject){
-    self.getSpecialBoxes()
-      .then(function(specials){
-        self.client.append(messageData, { mailbox : self.specials.Drafts.path, flags : "\\Seen"}, function(err){
-          if (err) {
-            return reject(err);
-          }
-          resolve();
-        })
-      })
-      .catch(function(err){
-        reject(err)
-      })
+    self.client.append(messageData, { mailbox : draftPath, flags : "\\Seen"}, function(err){
+      if (err) {
+        return reject(err);
+      }
+      resolve();
+    })
   })
 }
 

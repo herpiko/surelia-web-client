@@ -843,7 +843,7 @@ ImapAPI.prototype.saveDraft = function(request, reply) {
   var realSaveDraft = function(request, reply, client, msg) {
     var newMessage = composer(msg);
     newMessage.build(function(err, message){
-      client.newMessage(message)
+      client.newMessage(message, request.query.draftPath)
         .then(function(){
           reply();
         })
