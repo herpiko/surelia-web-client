@@ -68,7 +68,7 @@ ImapService.prototype.getSpecialBoxes = function() {
   return self.$http(req)
 }
 
-ImapService.prototype.listBox = function(boxName, canceler) {
+ImapService.prototype.listBox = function(boxName, limit, page, search, canceler) {
   var self = this;
   var promise = self.$q.defer();
   if (self.$rootScope.listBoxCanceler) {
@@ -76,6 +76,15 @@ ImapService.prototype.listBox = function(boxName, canceler) {
   }
   self.$rootScope.listBoxCanceler = self.$q.defer();
   var path = "/api/1.0/list-box?boxName=" + boxName;
+  if (limit) {
+    path += "&limit=" + limit;
+  }
+  if (page) {
+    path += "&page=" + page;
+  }
+  if (search) {
+    path += "&search=" + search;
+  }
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
   var req = {
@@ -341,6 +350,23 @@ ImapService.prototype.logout = function(username, token) {
 ImapService.prototype.sendMessage = function(msg) {
   var self = this;
   var path = "/api/1.0/send";
+  var token = self.localStorageService.get("token"); 
+  var username = self.localStorageService.get("username"); 
+  var req = {
+    method: "POST",
+    url : path,
+    data : msg,
+    headers : {
+      token : token,
+      username : username
+    }
+  }
+  return self.$http(req)
+}
+
+ImapService.prototype.saveDraft= function(msg, draftPath) {
+  var self = this;
+  var path = "/api/1.0/draft?draftPath=" + draftPath;
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
   var req = {

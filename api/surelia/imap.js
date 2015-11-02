@@ -2,7 +2,6 @@ var Client = require("imap");
 var async = require("async");
 var inspect = require("util").inspect;
 var MailParser = require("mailparser").MailParser;
-var monowrap = require("monowrap");
 var moment = require("moment");
 var lodash = require("lodash");
 
@@ -182,8 +181,15 @@ Imap.prototype.getBoxes = function() {
  * @returns {Promise}
  * 
  */
-Imap.prototype.listBox = function(name, start, limit, searchParams) {
+Imap.prototype.listBox = function(name, limit, page, searchParams) {
+  console.log("name " + name);
+  console.log("limit " + limit);
+  console.log("page " + page);
+  console.log("searchParams " + searchParams);
   var self = this;
+  var limit = limit || 10;
+  var page = page || 1;
+  var total;
   return new Promise(function(resolve, reject){
     var bodies = searchParams || 'HEADER.FIELDS (FROM TO SUBJECT DATE)';
     var result = [];
@@ -192,12 +198,14 @@ Imap.prototype.listBox = function(name, start, limit, searchParams) {
         return reject(err);
       }
       console.log("total message " + box.messages.total);
-      var fetchLimit = box.messages.total;
-      if (limit) {
-        fetchLimit = start + limit - 1;
+      var total = box.messages.total;
+      var start = total - page * limit + 1;
+      if (start < 0) {
+        start = 1;
       }
+      var fetchLimit = box.messages.total - (limit*page-limit);
       var seqArray = []
-      for (var i = start || 1; i <= fetchLimit; i++) {
+      for (var i = start; i <= fetchLimit; i++) {
         seqArray.push(i);
       }
       async.each(seqArray, function iterator(seq, doneIteratingMessages) {
@@ -222,8 +230,12 @@ Imap.prototype.listBox = function(name, start, limit, searchParams) {
               mail.header = Client.parseHeader(buffer, true);
               // Normalization
               mail.header.date = moment(new Date(mail.header.date[0]));
-              mail.header.from = mail.header.from[0];
-              mail.header.subject = mail.header.subject[0];
+              if (mail.header.from && mail.header.from[0]) {
+                mail.header.from = mail.header.from[0];
+              }
+              if (mail.header.subject && mail.header.subject[0]) {
+                mail.header.subject = mail.header.subject[0];
+              }
             });
           })
           msg.once("attributes", function(attrs) {
@@ -259,7 +271,16 @@ Imap.prototype.listBox = function(name, start, limit, searchParams) {
           return reject(err);
         }
         result.reverse();
-        resolve(result);
+        var obj = {
+          data : result,
+          meta : {
+            total : total,
+            limit : parseInt(limit),
+            page : parseInt(page),
+            start : start,
+          }
+        }
+        resolve(obj);
       })
     })
   })
@@ -378,7 +399,6 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
             mail.parsed.date = moment(new Date(mail.parsed.date));
             mail.parsed.receivedDate = moment(new Date(mail.parsed.receivedDate));
             mail.boxName = boxName;
-            mail.original = monowrap(mail.original, 76);
             resolve(mail);
           })
           mailparser.write(mail.original);
@@ -467,21 +487,15 @@ Imap.prototype.removeMessage = function(id, boxName) {
  * @param {String} messageData - The id of the message, in string or buffer
  * @returns {Promise}
  */
-Imap.prototype.newMessage = function(messageData) {
+Imap.prototype.newMessage = function(messageData, draftPath) {
   var self = this;
   return new Promise(function(resolve, reject){
-    self.getSpecialBoxes()
-      .then(function(specials){
-        self.client.append(messageData, { mailbox : self.specials.Drafts.path, flags : "\\Seen"}, function(err){
-          if (err) {
-            return reject(err);
-          }
-          resolve();
-        })
-      })
-      .catch(function(err){
-        reject(err)
-      })
+    self.client.append(messageData, { mailbox : draftPath, flags : "\\Seen"}, function(err){
+      if (err) {
+        return reject(err);
+      }
+      resolve();
+    })
   })
 }
 

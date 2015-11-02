@@ -745,7 +745,7 @@ hoodiecrowServer.listen(1143, function(){
       }
       server.inject({
         method: "POST",
-        url : "/api/1.0/message",
+        url : "/api/1.0/draft",
         payload : msg,
         headers : {
           token : token,

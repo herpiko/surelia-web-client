@@ -82,7 +82,7 @@ var mimeTypes = {
     ]
   }
 }
-var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload){
+var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -95,11 +95,13 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.$compile = $compile;
   this.$timeout = $timeout;
   this.Upload = Upload;
+  this.ToastrService = ToastrService;
   var self = this;
   self.compose = false;
   self.composeMode = "corner";
   self.cc = false;;
   self.bcc = false;
+  self.newMessage = {};
   self.loading = self.ngProgressFactory.createInstance();
   
   if (self.localStorageService.get("username")) {
@@ -110,8 +112,11 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.loading.set(20);
   self.ImapService.getBoxes()
     .success(function(data, status){
-  self.loading.set(30);
-      self.listBox("INBOX");
+      console.log(data);
+      self.loading.set(30);
+      self.listBox("INBOX", 10, 1, null, null);
+      self.currentBoxName = "INBOX";
+      self.currentBoxPath = "INBOX";
       self.getSpecialBoxes();
       self.ErrorHandlerService.parse(data, status);
       self.boxes = data;
@@ -160,16 +165,67 @@ Message.prototype.getSpecialBoxes = function(){
     })
 }
 
-Message.prototype.listBox = function(boxName){
+Message.prototype.listBoxOlder = function(){
+  var self = this;
+  if (self.currentListMeta.older) {
+    self.listBox(self.currentBoxPath, self.currentListMeta.limit, (self.currentListMeta.page + 1), null, true)
+  }
+}
+
+Message.prototype.listBoxNewer = function(){
+  var self = this;
+  if (self.currentListMeta.newer) {
+    self.listBox(self.currentBoxPath, self.currentListMeta.limit, (self.currentListMeta.page - 1), null, true)
+  }
+}
+Message.prototype.listBox = function(boxName, limit, page, search, canceler){
   var self = this;
   self.loading.start();
   self.view = "list";
   console.log("list box content");
-  self.ImapService.listBox(boxName, true)
+  if (boxName.indexOf("Drafts") > -1) {
+    self.isDraft = true;
+  } else {
+    self.isDraft = false;
+  }
+  var special = lodash.some(self.specialBoxes, function(box){
+    if (box.path == boxName) {
+      self.currentBoxName = box.specialName;
+      self.currentBoxPath = box.path;
+      return;
+    } 
+  });
+  var box = lodash.some(self.boxes, function(box){
+    if (box == boxName) {
+      self.currentBoxName = box;
+      self.currentBoxPath = box;
+      return;
+    } 
+  });
+  self.ImapService.listBox(boxName, limit, page, search, canceler)
     .then(function(data){
       self.loading.complete();
       console.log(data);
-      self.currentList = data;
+      self.currentList = data.data;
+      self.currentListMeta = data.meta;
+      // calculate pagination nav
+      var meta = self.currentListMeta;
+      if ((meta.page - 1) > 0) {
+        self.currentListMeta.newer = true;
+      } else {
+        self.currentListMeta.newer = false;
+      }
+      if (meta.limit * (meta.page +1) - meta.total < limit) {
+        self.currentListMeta.older = true;
+      } else {
+        self.currentListMeta.older = false;
+      }
+      self.currentListMeta.listStart = (meta.page * meta.limit) - (meta.limit - 1);
+      if (self.currentListMeta.listStart + meta.limit > meta.total) {
+        self.currentListMeta.listEnd = meta.total;
+      } else {
+        self.currentListMeta.listEnd = self.currentListMeta.listStart + meta.limit - 1;
+      }
     })
     .catch(function(data, status){
       self.loading.complete();
@@ -233,38 +289,44 @@ Message.prototype.retrieveMessage = function(id, boxName){
     .then(function(data){
       self.loading.complete();
       console.log(data);
-      self.view = "message";
-      self.currentMessage = data;
-      self.currentMessage.seq = id;
-      var e = angular.element(document.querySelector("#messageContent"));
-      e.empty();
-      var html = "";
-      if (self.currentMessage.parsed.html) {
-        console.log("html");
-        html = self.currentMessage.parsed.html;
+      if (boxName.indexOf("Drafts") > -1) {
+        console.log("This is a draft");
+        data.seq = id;
+        self.composeMessage(data);
       } else {
-        console.log("text");
-        html = "<pre>" + self.currentMessage.parsed.text + "</pre>";
-      }
-      var linkFn = self.$compile(html);
-      var content = linkFn(self.$scope);
-      e.append(content);
-      // Set size and icon
-      if (self.currentMessage.parsed.attachments && self.currentMessage.parsed.attachments.length > 0) {
-        var attachments = self.currentMessage.parsed.attachments;
-        for (var i = 0; i < attachments.length;i++) {
-          self.currentMessage.parsed.attachments[i].index = i;
-          self.currentMessage.parsed.attachments[i].size = self.formatBytes(attachments[i].length);
-          lodash.some(mimeTypes, function(mime){
-            var matched = lodash.some(mime.type, function(type){
-              return type === attachments[i].contentType;
-            });
-            if (matched) {
-              console.log(mime.icon);
-              attachments[i].icon = mime.icon;
-              return;
-            }
-          })
+        self.view = "message";
+        self.currentMessage = data;
+        self.currentMessage.seq = id;
+        var e = angular.element(document.querySelector("#messageContent"));
+        e.empty();
+        var html = "";
+        if (self.currentMessage.parsed.html) {
+          console.log("html");
+          html = self.currentMessage.parsed.html;
+        } else {
+          console.log("text");
+          html = "<pre>" + self.currentMessage.parsed.text + "</pre>";
+        }
+        var linkFn = self.$compile(html);
+        var content = linkFn(self.$scope);
+        e.append(content);
+        // Set size and icon
+        if (self.currentMessage.parsed.attachments && self.currentMessage.parsed.attachments.length > 0) {
+          var attachments = self.currentMessage.parsed.attachments;
+          for (var i = 0; i < attachments.length;i++) {
+            self.currentMessage.parsed.attachments[i].index = i;
+            self.currentMessage.parsed.attachments[i].size = self.formatBytes(attachments[i].length);
+            lodash.some(mimeTypes, function(mime){
+              var matched = lodash.some(mime.type, function(type){
+                return type === attachments[i].contentType;
+              });
+              if (matched) {
+                console.log(mime.icon);
+                attachments[i].icon = mime.icon;
+                return;
+              }
+            })
+          }
         }
       }
 
@@ -327,23 +389,6 @@ Message.prototype.moveMessage = function(id, boxName, newBoxName){
     })
 }
 
-Message.prototype.newMessage = function(newMessage){
-  var self = this;
-  self.loading.start();
-  console.log("new message");
-  self.ImapService.newMessage(newMessage)
-    .success(function(data){
-      self.loading.complete();
-      console.log(data);
-      alert("Saved as draft.\n" + JSON.stringify(data));
-      self.view = "list";
-    })
-    .error(function(data, status){
-      self.loading.complete();
-      console.log(data, status);
-    })
-}
-
 Message.prototype.logout = function(){
   var self = this;
   self.loading.start();
@@ -362,15 +407,32 @@ Message.prototype.logout = function(){
 
 Message.prototype.sendMessage = function(msg){
   var self = this;
+  self.compose = false;
   self.loading.start();
   console.log("send message");
   self.ImapService.sendMessage(msg)
     .success(function(data){
-      self.loading.complete();
       console.log(data);
-      alert("Message was sent successfully.\n" + JSON.stringify(data));
       self.view = "list";
-      self.compose = false;
+      if (msg.seq && msg.messageId) {
+        var draftPath;
+        if (self.specialBoxes.Drafts && self.specialBoxes.Drafts.path) {
+          draftPath = self.specialBoxes.Drafts.path;
+        } else {
+          draftPath = "Drafts";
+        }
+        self.ImapService.removeMessage(msg.seq, msg.messageId, draftPath)
+          .success(function(data, status, header){
+            self.listBox(draftPath);
+            self.loading.complete();
+            self.ToastrService.sent();
+          })
+          .error(function(data, status, header){
+            self.loading.complete();
+          })
+      } else {
+        self.loading.complete();
+      }
     })
     .error(function(data, status){
       self.loading.complete();
@@ -378,7 +440,7 @@ Message.prototype.sendMessage = function(msg){
     })
 }
 
-Message.prototype.removeMessage = function(seq, messageId, boxName){
+Message.prototype.removeMessage = function(seq, messageId, boxName, toastr){
   var self = this;
   self.loading.start();
   console.log("remove message");
@@ -392,6 +454,9 @@ Message.prototype.removeMessage = function(seq, messageId, boxName){
           self.currentList.splice(i, 1); 
         }
       }
+      if (toastr) {
+        self.ToastrService.deleted();
+      }
       self.view = "list";
       self.listBox("INBOX");
     })
@@ -401,26 +466,142 @@ Message.prototype.removeMessage = function(seq, messageId, boxName){
     })
 }
 
-Message.prototype.composeMessage = function(){
+Message.prototype.composeMessage = function(msg){
   var self = this;
   self.compose = true;
-  self.cc = false;;
-  self.bcc = false;;
+  self.cc = false;
+  self.bcc = false;
   self.composeMode = "corner";
   self.newMessage = {
     from : self.localStorageService.get("username"),
     sender : self.localStorageService.get("username"),
+    recipients : "",
+    cc : "",
+    bcc : "",
+    html : "",
     attachments : []
   };
-  console.log("compose message");
+  // If there is a parameter, then it is an existing draft
+  if (msg) {
+    console.log(msg);
+    self.newMessage.isDraft = true;
+    self.newMessage.seq = msg.seq;
+    self.newMessage.messageId = msg.parsed.messageId;
+    if (msg.parsed.subject) {
+      self.newMessage.subject = msg.parsed.subject;
+    }
+    if (msg.parsed.html) {
+      self.newMessage.html = msg.parsed.html;
+    }
+    if (msg.parsed.attachments && msg.parsed.attachments.length > 0) {
+      for(var i in msg.parsed.attachments) {
+        var a = {
+          filename : msg.parsed.attachments[i].fileName,
+          contentType : msg.parsed.attachments[i].contentType,
+          encoding : "base64",
+          progress : "uploaded",
+          attachmentId : msg.parsed.attachments[i].attachmentId
+        }
+        self.newMessage.attachments.push(a);
+      }
+    }
+    if (msg.parsed.to && msg.parsed.to.length > 0) {
+      for(var i in msg.parsed.to) {
+        if (self.newMessage.recipients.length > 0) {
+          self.newMessage.recipients += ";";
+        }
+        self.newMessage.recipients += msg.parsed.to[i].address; 
+      }
+    }
+    if (msg.parsed.cc && msg.parsed.cc.length > 0) {
+      self.cc = true;
+      for(var i in msg.parsed.cc) {
+        if (self.newMessage.cc.length > 0) {
+          self.newMessage.cc += ";";
+        }
+        self.newMessage.cc += msg.parsed.cc[i].address; 
+      }
+    }
+    if (msg.parsed.bcc && msg.parsed.bcc.length > 0) {
+      self.bcc = true;
+      for(var i in msg.parsed.bcc) {
+        if (self.newMessage.bcc.length > 0) {
+          self.newMessage.bcc += ";";
+        }
+        self.newMessage.bcc += msg.parsed.bcc[i].address; 
+      }
+    }
+  }
+  // Get the hash. It needed for comparing the draft later
+  self.currentMessageHash = window.objectHash(self.newMessage);
+  console.log(self.currentMessageHash);
 }
 
-Message.prototype.cancelCompose = function(){
+Message.prototype.saveDraft = function(){
   var self = this;
   self.compose = false;
-  var attachments = angular.copy(self.newMessage.attachments);
-  for (var i = 0;i < attachments.length;i++) {
-    self.ImapService.removeAttachment(attachments[i].attachmentId);
+  var msg = self.newMessage;
+  // Save as draft if it has modified
+  console.log(window.objectHash(self.newMessage));
+  var newHash = window.objectHash(self.newMessage);
+  if (newHash != self.currentMessageHash) {
+    self.loading.start();
+    console.log("save draft");
+    var draftPath;
+    if (self.specialBoxes.Drafts && self.specialBoxes.Drafts.path) {
+      draftPath = self.specialBoxes.Drafts.path;
+    } else {
+      draftPath = "Drafts";
+    }
+    self.ImapService.saveDraft(msg, draftPath)
+      .success(function(data, status, header){
+        self.ToastrService.savedAsDraft();
+        // If it's an existing draft, remove the old one
+        if (msg.seq && msg.messageId) {
+          self.ImapService.removeMessage(msg.seq, msg.messageId, draftPath)
+            .success(function(data, status, header){
+              self.listBox(draftPath);
+              self.loading.complete();
+            })
+            .error(function(data, status, header){
+              self.loading.complete();
+            })
+        } else {
+          self.loading.complete();
+        }
+      })
+      .error(function(data, status, header){
+        self.loading.complete();
+      })
+  }
+}
+Message.prototype.discardDraft = function(id){
+  var self = this;
+  self.compose = false;
+  // Remove temporary attachments in surelia backend
+  if (self.newMessage.attachments && self.newMessage.attachments.length > 0) {
+    var attachments = angular.copy(self.newMessage.attachments);
+    for (var i = 0;i < attachments.length;i++) {
+      self.ImapService.removeAttachment(attachments[i].attachmentId);
+    }
+  }
+  // If it's an existing draft, remove it
+  if (self.newMessage.seq && self.newMessage.messageId) {
+    self.loading.start();
+    var draftPath;
+    if (self.specialBoxes.Drafts && self.specialBoxes.Drafts.path) {
+      draftPath = self.specialBoxes.Drafts.path;
+    } else {
+      draftPath = "Drafts";
+    }
+    self.ImapService.removeMessage(self.newMessage.seq, self.newMessage.messageId, draftPath)
+      .success(function(data, status, header){
+        self.listBox(draftPath);
+        self.loading.complete();
+      })
+      .error(function(data, status, header){
+        self.loading.complete();
+      })
   }
 }
 
@@ -478,7 +659,7 @@ Message.prototype.uploadFiles = function(files, errFiles) {
 }
 
 
-Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout"];
+Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout", "Upload", "ToastrService"];
 
 var module = require("./index");
 module.controller("MessageCtrl", Message);
