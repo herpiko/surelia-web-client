@@ -220,6 +220,12 @@ Message.prototype.listBox = function(boxName, limit, page, search, canceler){
       } else {
         self.currentListMeta.older = false;
       }
+      self.currentListMeta.listStart = (meta.page * meta.limit) - (meta.limit - 1);
+      if (self.currentListMeta.listStart + meta.limit > meta.total) {
+        self.currentListMeta.listEnd = meta.total;
+      } else {
+        self.currentListMeta.listEnd = self.currentListMeta.listStart + meta.limit - 1;
+      }
     })
     .catch(function(data, status){
       self.loading.complete();

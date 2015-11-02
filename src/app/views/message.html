@@ -20,6 +20,7 @@
     
     <!--List view-->
     <div ng-show="msg.view=='list'" style="width:60%;display:inline-block;vertical-align:top;">
+            {{msg.currentListMeta.listStart}} - {{msg.currentListMeta.listEnd}} / {{msg.currentListMeta.total}}
       <button ng-click="msg.listBoxNewer()">newer</button>
       <button ng-click="msg.listBoxOlder()">older</button>
       <div ng-repeat="message in msg.currentList" ng-click="msg.retrieveMessage(message.seq, message.boxName)"i style="cursor:pointer;margin-top:3px;background:#ECECEC">
