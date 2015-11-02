@@ -409,7 +409,12 @@ Message.prototype.sendMessage = function(msg){
       console.log(data);
       self.view = "list";
       if (msg.seq && msg.messageId) {
-        var draftPath = self.specialBoxes.Drafts.path || "Drafts";
+        var draftPath;
+        if (self.specialBoxes.Drafts && self.specialBoxes.Drafts.path) {
+          draftPath = self.specialBoxes.Drafts.path;
+        } else {
+          draftPath = "Drafts";
+        }
         self.ImapService.removeMessage(msg.seq, msg.messageId, draftPath)
           .success(function(data, status, header){
             self.listBox(draftPath);
@@ -536,12 +541,17 @@ Message.prototype.saveDraft = function(){
   if (newHash != self.currentMessageHash) {
     self.loading.start();
     console.log("save draft");
-    self.ImapService.saveDraft(msg)
+    var draftPath;
+    if (self.specialBoxes.Drafts && self.specialBoxes.Drafts.path) {
+      draftPath = self.specialBoxes.Drafts.path;
+    } else {
+      draftPath = "Drafts";
+    }
+    self.ImapService.saveDraft(msg, draftPath)
       .success(function(data, status, header){
         self.ToastrService.savedAsDraft();
         // If it's an existing draft, remove the old one
         if (msg.seq && msg.messageId) {
-          var draftPath = self.specialBoxes.Drafts.path || "Drafts";
           self.ImapService.removeMessage(msg.seq, msg.messageId, draftPath)
             .success(function(data, status, header){
               self.listBox(draftPath);
@@ -572,7 +582,12 @@ Message.prototype.discardDraft = function(id){
   // If it's an existing draft, remove it
   if (self.newMessage.seq && self.newMessage.messageId) {
     self.loading.start();
-    var draftPath = self.specialBoxes.Drafts.path || "Drafts";
+    var draftPath;
+    if (self.specialBoxes.Drafts && self.specialBoxes.Drafts.path) {
+      draftPath = self.specialBoxes.Drafts.path;
+    } else {
+      draftPath = "Drafts";
+    }
     self.ImapService.removeMessage(self.newMessage.seq, self.newMessage.messageId, draftPath)
       .success(function(data, status, header){
         self.listBox(draftPath);

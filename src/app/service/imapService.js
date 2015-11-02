@@ -364,9 +364,9 @@ ImapService.prototype.sendMessage = function(msg) {
   return self.$http(req)
 }
 
-ImapService.prototype.saveDraft= function(msg) {
+ImapService.prototype.saveDraft= function(msg, draftPath) {
   var self = this;
-  var path = "/api/1.0/draft";
+  var path = "/api/1.0/draft?draftPath=" + draftPath;
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
   var req = {
