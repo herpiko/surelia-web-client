@@ -213,8 +213,8 @@ Message.prototype.listBox = function(boxName, limit, page, search, canceler){
       var assignedColor = [];
       for (var i in self.currentList) {
         var hash = window.objectHash(self.currentList[i].header.from[0]);
-        console.log(hash);
-        self.currentList[i].avatar = self.currentList[i].header.from[0].substr(0,1).toUpperCase();
+        var index = (self.currentList[i].header.from.substr(index,1) == "\"") ? 1 : 0;
+        self.currentList[i].avatar = self.currentList[i].header.from[index].toUpperCase();
         if (assignedColor.indexOf(hash) < 0) {
           assignedColor.push(hash);
           self.currentList[i].color = colors[assignedColor.indexOf(hash)];
