@@ -27,6 +27,7 @@
       <button ng-click="msg.listBoxNewer()">newer</button>
       <button ng-click="msg.listBoxOlder()">older</button>
       <div ng-repeat="message in msg.currentList" ng-click="msg.retrieveMessage(message.seq, message.boxName)"i style="cursor:pointer;margin-top:3px;background:#ECECEC">
+              <span style="background:{{message.color}};padding:2px;">{{message.avatar}} -</span>
         <span>{{message.seq}} -</span>
         <span ng-hide="msg.isDraft">{{message.header.from}} -</span>
         <span ng-show="msg.isDraft"><span ng-repeat="to in message.header.to">{{to}} </span> -</span>

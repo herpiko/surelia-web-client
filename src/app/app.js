@@ -11,6 +11,7 @@ require("ngprogress-npm");
 require("angular-toastr");
 require("ng-file-upload");
 window.rangy = require("rangy/lib/rangy-core");
+window.randomcolor = require("randomcolor");
 window.rangy.saveSelection = require("rangy/lib/rangy-selectionsaverestore");
 require("textangular/dist/textAngular-sanitize.min");
 require("textangular");

@@ -208,6 +208,21 @@ Message.prototype.listBox = function(boxName, limit, page, search, canceler){
       console.log(data);
       self.currentList = data.data;
       self.currentListMeta = data.meta;
+      // generate avatar
+      var colors = window.randomcolor({hue:"red", count:10});
+      var assignedColor = [];
+      for (var i in self.currentList) {
+        var hash = window.objectHash(self.currentList[i].header.from[0]);
+        console.log(hash);
+        self.currentList[i].avatar = self.currentList[i].header.from[0].substr(0,1).toUpperCase();
+        if (assignedColor.indexOf(hash) < 0) {
+          assignedColor.push(hash);
+          self.currentList[i].color = colors[assignedColor.indexOf(hash)];
+        } else {
+          self.currentList[i].color = colors[assignedColor.indexOf(hash)];
+        }
+
+      }
       // calculate pagination nav
       var meta = self.currentListMeta;
       if ((meta.page - 1) > 0) {
