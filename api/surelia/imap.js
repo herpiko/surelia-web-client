@@ -177,44 +177,52 @@ Imap.prototype.getBoxes = function() {
  * @param {String} name - The name of the box
  * @param {Number} start - The offset
  * @param {Number} limit - The expected number of result
- * @param {Object} searchParams - Search parameters
+ * @param {Object} search - Search parameters
  * @returns {Promise}
  * 
  */
-Imap.prototype.listBox = function(name, limit, page, searchParams) {
+Imap.prototype.listBox = function(name, limit, page, search) {
   console.log("name " + name);
   console.log("limit " + limit);
   console.log("page " + page);
-  console.log("searchParams " + searchParams);
+  console.log("search " + search);
   var self = this;
   var limit = limit || 10;
   var page = page || 1;
   var total;
   return new Promise(function(resolve, reject){
-    var bodies = searchParams || 'HEADER.FIELDS (FROM TO SUBJECT DATE)';
+    var bodies = "HEADER.FIELDS (FROM TO SUBJECT DATE)";
     var result = [];
-    self.client.openBox(name, true, function(err, box){
-      if (err) {
-        return reject(err);
-      }
-      console.log("total message " + box.messages.total);
-      var total = box.messages.total;
+    var fetcher = function(seqs){
+      console.log("total message " + seqs.messages.total);
+      var total = seqs.messages.total;
       var start = total - page * limit + 1;
       if (start < 0) {
         start = 1;
       }
-      var fetchLimit = box.messages.total - (limit*page-limit);
-      var seqArray = []
-      for (var i = start; i <= fetchLimit; i++) {
-        seqArray.push(i);
+      var fetchLimit = seqs.messages.total - (limit*page-limit);
+      if (seqs.messages.seqArray) {
+        seqArray = seqs.messages.seqArray;
+      } else {
+        var seqArray = []
+        for (var i = start; i <= fetchLimit; i++) {
+          seqArray.push(i);
+        }
       }
       async.each(seqArray, function iterator(seq, doneIteratingMessages) {
         var mail = {}
         try {
-          var f = self.client.seq.fetch(seq, {
-            bodies : bodies,
-            struct : true
-          });
+          if (seqs.messages.seqArray) {
+            var f = self.client.fetch(seq, {
+              bodies : bodies,
+              struct : true
+            });
+          } else {
+            var f = self.client.seq.fetch(seq, {
+              bodies : bodies,
+              struct : true
+            });
+          }
         } catch (err) {
           reject(err);
         }
@@ -282,6 +290,23 @@ Imap.prototype.listBox = function(name, limit, page, searchParams) {
         }
         resolve(obj);
       })
+    }
+    self.client.openBox(name, true, function(err, seqs){
+      if (err) {
+        return reject(err);
+      }
+      if (search && search!=undefined) {
+        self.client.search([["OR",["SUBJECT", search],["BODY", search]]], function(err, result){
+          if (err) {
+            return reject(err);
+          }
+          seqs.messages.total = result.length;
+          seqs.messages.seqArray = result;
+          fetcher(seqs);
+        })
+      } else {
+        fetcher(seqs);
+      }
     })
   })
 }

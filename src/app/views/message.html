@@ -7,11 +7,14 @@
   <div>
     <!--Sidebar-->
     <div style="width:300px;display:inline-block;vertical-align:top;padding:10px;background:#ECECEC;">
+      <form ng-submit="msg.listBox(msg.currentBoxPath, null, null, searchString, true)">
+        <input ng-model="searchString" placeholder="search..."></input>
+      </form>
       <ul>
-              <li ng-repeat="box in msg.boxes" ng-click="msg.listBox(box, null, null, null, true)" style="cursor:pointer">
+              <li ng-repeat="box in msg.boxes" ng-click="msg.listBox(box, 10, 1, null, true)" style="cursor:pointer">
               {{box}} <span ng-show="msg.currentBoxName==box"> *</span>
               </li>
-              <li ng-repeat="special in msg.specialBoxes" ng-click="msg.listBox(special.path, null, null, null, true)" style="cursor:pointer">
+              <li ng-repeat="special in msg.specialBoxes" ng-click="msg.listBox(special.path, 10, 1, null, true)" style="cursor:pointer">
               {{special.specialName}} <span ng-show="msg.currentBoxName==special.specialName"> *</span>
               </li>
       </ul> 
