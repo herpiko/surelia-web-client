@@ -68,7 +68,7 @@ ImapService.prototype.getSpecialBoxes = function() {
   return self.$http(req)
 }
 
-ImapService.prototype.listBox = function(boxName, limit, page, search, canceler) {
+ImapService.prototype.listBox = function(boxName, opts, canceler) {
   var self = this;
   var promise = self.$q.defer();
   if (self.$rootScope.listBoxCanceler) {
@@ -76,14 +76,14 @@ ImapService.prototype.listBox = function(boxName, limit, page, search, canceler)
   }
   self.$rootScope.listBoxCanceler = self.$q.defer();
   var path = "/api/1.0/list-box?boxName=" + boxName;
-  if (limit) {
-    path += "&limit=" + limit;
+  if (opts.limit && opts.limit !== undefined) {
+    path += "&limit=" + opts.limit;
   }
-  if (page) {
-    path += "&page=" + page;
+  if (opts.page && opts.page !== undefined) {
+    path += "&page=" + opts.page;
   }
-  if (search) {
-    path += "&search=" + search;
+  if (opts.search && opts.search !== undefined) {
+    path += "&search=" + opts.search;
   }
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 

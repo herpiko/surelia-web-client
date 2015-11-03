@@ -114,7 +114,11 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
     .success(function(data, status){
       console.log(data);
       self.loading.set(30);
-      self.listBox("INBOX", 10, 1, null, null);
+      var opts = {
+        limit : 10,
+        page : 1,
+      }
+      self.listBox("INBOX", opts);
       self.currentBoxName = "INBOX";
       self.currentBoxPath = "INBOX";
       self.getSpecialBoxes();
@@ -168,17 +172,25 @@ Message.prototype.getSpecialBoxes = function(){
 Message.prototype.listBoxOlder = function(){
   var self = this;
   if (self.currentListMeta.older) {
-    self.listBox(self.currentBoxPath, self.currentListMeta.limit, (self.currentListMeta.page + 1), null, true)
+    var opts = {
+      limit : self.currentListMeta.limit,
+      page : self.currentListMeta.page + 1,
+    }
+    self.listBox(self.currentBoxPath, opts, true)
   }
 }
 
 Message.prototype.listBoxNewer = function(){
   var self = this;
   if (self.currentListMeta.newer) {
-    self.listBox(self.currentBoxPath, self.currentListMeta.limit, (self.currentListMeta.page - 1), null, true)
+    var opts = {
+      limit : self.currentListMeta.limit,
+      page : self.currentListMeta.page - 1,
+    }
+    self.listBox(self.currentBoxPath, opts, true)
   }
 }
-Message.prototype.listBox = function(boxName, limit, page, search, canceler){
+Message.prototype.listBox = function(boxName, opts, canceler){
   var self = this;
   self.loading.start();
   self.view = "list";
@@ -202,14 +214,15 @@ Message.prototype.listBox = function(boxName, limit, page, search, canceler){
       return;
     } 
   });
-  self.ImapService.listBox(boxName, limit, page, search, canceler)
+  self.ImapService.listBox(boxName, opts, canceler)
     .then(function(data){
       self.loading.complete();
       console.log(data);
       self.currentList = data.data;
       self.currentListMeta = data.meta;
       // generate avatar
-      var colors = window.randomcolor({hue:"red", count:10, luminosity : "dark"});
+      var count = opts.limit || 10;
+      var colors = window.randomcolor({hue:"red", count:count, luminosity : "dark"});
       var assignedColor = [];
       for (var i in self.currentList) {
         var hash = window.objectHash(self.currentList[i].header.from[0]);
@@ -230,7 +243,7 @@ Message.prototype.listBox = function(boxName, limit, page, search, canceler){
       } else {
         self.currentListMeta.newer = false;
       }
-      if (meta.limit * (meta.page +1) - meta.total < limit) {
+      if (meta.limit * (meta.page +1) - meta.total < opts.limit) {
         self.currentListMeta.older = true;
       } else {
         self.currentListMeta.older = false;
