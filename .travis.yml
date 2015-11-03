@@ -1,6 +1,12 @@
 language: node_js
 node_js:
   - '4.0'
+
+before_install:
+  - "sudo apt-get update;sudo apt-get install curl libssl-dev build-essential g++ libkrb5-dev"
+
+services:
+  - mongodb
+
 env:
-  - DB=test
-  - TEST_SMTP_USERNAME=ci.surelia@gmail.com TEST_SMTP_PASSWORD=sandimantong
+  - DB=test TEST_SMTP_USERNAME=ci.surelia@gmail.com TEST_SMTP_PASSWORD=sandimantong
