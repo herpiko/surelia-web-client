@@ -2,9 +2,5 @@ language: node_js
 node_js:
   - '4.0'
 env:
-  matrix:
   - DB=test
-  - TEST_SMTP_USERNAME=ci.surelia@gmail.com
-  - TEST_SMTP_PASSWORD=sandimantong
-  global:
-    secure: IziU5mSQhUFt0Htom0DyFqSPQgw3IH3hQCiQDD/SbfA9zrMVHxxilLczBXIfUVLuusK/IZwCPDa6VrGB97zrMV5fCnsC71xzbNA0hP0yZyRVtztOfTRmnQp0GI2tdzQRq+EtuQT6G5sTuwStfEDPQ0BUyOKX5kpQRFx+D4WLBbd9qfchi/G72gt3qtFvoVMcP9MJK79bDOPfCD31KhDVpB2UUI4ZpOj+DhtKV6yLIbD/HESdINF4ul/MQvvtGYBfLGWpXFEiA4Ugy71fv8flGGAi+iLeIqRaGCtaBkmIpMsvQnNUs0H6UiQU/neJ1opj9NKII7Z82z6yBjoG0KRhMglr7KrGEaujiSEGxCuO+y6NcKPUi8nKa5jLxLwUQizi76fwh8nAGFbnxyGW9f0ydicuEziBy+hJfsc5pBTxQIV2/FJqdYMGRHtPa2kn/KXN5ziRY/t8CkQWbRyboujLgDw9n1ccgws/wo9LKc063f0Zg9vQRjLnhy2PZTo9la0tJvb9UYXukjSC0hAtbOT/j8zX5t9oThLSttIe6ScmSyMDwNOWnVdB67q9q1ETKEQUyp6+XfxHcSUa70wt4GTqlMXhf880tVxJJqrDveoZPkXU5r25iP/Djq+7zmyBfqU0YJbtydY2+MQYVcLU3n9GfbYLQCL39irYkhNGeN3uHVk=
+  - TEST_SMTP_USERNAME=ci.surelia@gmail.com TEST_SMTP_PASSWORD=sandimantong
