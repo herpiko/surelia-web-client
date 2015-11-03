@@ -136,6 +136,15 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.saveDraft(request, reply);
     }
   })
+
+  self.server.route({
+    method : "GET",
+    path : "/api/1.0/quota-info",
+    handler : function(request, reply){
+      self.quotaInfo(request, reply);
+    }
+  })
+
 }
 
 /**
@@ -897,6 +906,24 @@ ImapAPI.prototype.saveDraft = function(request, reply) {
     }
   }
   
+  checkPool(request, reply, realFunc);
+}
+
+/**
+ * Gets quota information
+ */
+ImapAPI.prototype.quotaInfo = function(request, reply) {
+  var realFunc = function(client, request, reply) {
+    client.quotaInfo()
+      .then(function(info){
+        reply(info);
+      })
+    .catch(function(err){
+      console.log(err.message);
+      reply({err : err.message}).code(500);
+    })
+  }
+
   checkPool(request, reply, realFunc);
 }
 

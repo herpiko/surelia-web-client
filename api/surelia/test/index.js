@@ -102,11 +102,11 @@ var hoodiecrowServer = hoodiecrow({
 
 var Imap = require(__dirname + "/../../../api/surelia").module.IMAP;
 var credentials = {
-  user : "testuser",
-  password : "testpass",
-  host : "localhost",
-  port : 1143,
-  tls : false
+  user : process.env.TEST_SMTP_USERNAME || "testuser",
+  password : process.env.TEST_SMTP_PASSWORD || "testpass",
+  host : process.env.TEST_IMAP_HOST || "localhost",
+  port : process.env.TEST_IMAP_PORT || 1143,
+  tls : process.env.TEST_IMAP_TLS || false
 
   // Gmail configuration
   /* user : "someone@gmail.com", */
@@ -513,7 +513,21 @@ hoodiecrowServer.listen(1143, function(){
             })
         })
       });
+      it("should be able to get quota information", function(done) {
+        mail.quotaInfo()
+          .then(function(result){
+            result.should.have.property('usage');
+            result.should.have.property('limit');
+            result.usage.should.be.aboveOrEqual(0);
+            result.limit.should.be.aboveOrEqual(0);
+            done();
+          })
+        .catch(function(err){
+          return done(err);
+        })
+      });
     });
+
   });
   describe("IMAP API Endpoint", function() {
     it("Should be fail to login because of wrong password", function(done){
@@ -560,6 +574,7 @@ hoodiecrowServer.listen(1143, function(){
         done();
       })
     })
+
     it("Should be able to connect and get token", function(done){
       var data = {
         imapHost : "imap.gmail.com",
@@ -581,6 +596,25 @@ hoodiecrowServer.listen(1143, function(){
         done();
       })
     })
+    it("Should be able to get quota info", function(done){
+      server.inject({
+        method: "GET",
+        url : "/api/1.0/quota-info",
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        var result = response.result;
+        result.should.have.property('usage');
+        result.should.have.property('limit');
+        result.usage.should.be.aboveOrEqual(0);
+        result.limit.should.be.aboveOrEqual(0);
+
+        done();
+      })
+    })
+
     it("Should be able to get mail boxes", function(done){
       server.inject({
         method: "GET",

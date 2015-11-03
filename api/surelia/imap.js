@@ -499,4 +499,34 @@ Imap.prototype.newMessage = function(messageData, draftPath) {
   })
 }
 
+/**
+ * Gets mailbox quota info 
+ *
+ * @returns {Promise}
+ */
+Imap.prototype.quotaInfo = function() {
+  var self = this;
+  return new Promise(function(resolve, reject){
+    self.client.getQuota("", function(err, info){
+      if (err) {
+        return reject(err);
+      }
+      var quotaInfo;
+      if (info && 
+          info.resources && 
+          info.resources.storage &&
+          info.resources.storage.usage) { // no check on limits as it could be unlimited, not specified in the RFC, though
+        quotaInfo = {
+          usage: info.resources.storage.usage,
+          limit: info.resources.storage.limit
+        }
+      } else {
+        reject(new Error('malformed quota info'));
+      }
+      resolve(quotaInfo);
+    })
+  })
+}
+
+
 module.exports = Imap;
