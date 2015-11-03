@@ -102,11 +102,11 @@ var hoodiecrowServer = hoodiecrow({
 
 var Imap = require(__dirname + "/../../../api/surelia").module.IMAP;
 var credentials = {
-  user : process.env.TEST_SMTP_USERNAME || "testuser",
-  password : process.env.TEST_SMTP_PASSWORD || "testpass",
-  host : process.env.TEST_IMAP_HOST || "localhost",
-  port : process.env.TEST_IMAP_PORT || 1143,
-  tls : process.env.TEST_IMAP_TLS || false
+  user : "testuser",
+  password : "testpass",
+  host : "localhost",
+  port : 1143,
+  tls : false
 
   // Gmail configuration
   /* user : "someone@gmail.com", */
@@ -151,10 +151,7 @@ hoodiecrowServer.listen(1143, function(){
             done();
           })
           .catch(function(err){
-            if (err) {
-              console.log(err);
-              should(1).equal(2);
-            }
+            done(err);
           })
       })
       it.skip("Should get authenticated to SMTP server", function(done){
@@ -165,10 +162,7 @@ hoodiecrowServer.listen(1143, function(){
             done();
           })
           .catch(function(err){
-            if (err) {
-              console.log(err);
-              should(1).equal(2);
-            }
+            done(err);
           })
       })
       it("Should be able to send mail to SMTP server", function(done){
@@ -183,8 +177,7 @@ hoodiecrowServer.listen(1143, function(){
         });
         newMail.build(function(err, message){
           if (err) {
-            console.log(err);
-            should(1).equal(2);
+            return done(err);
           }
           smtp.send(sender, recipients, message)
             .then(function(info){
@@ -192,10 +185,7 @@ hoodiecrowServer.listen(1143, function(){
               done();
             })
             .catch(function(err){
-              if (err) {
-                console.log(err);
-                should(1).equal(2);
-              }
+              return done(err);
             })
         })
       })
@@ -257,9 +247,7 @@ hoodiecrowServer.listen(1143, function(){
             done();
           })
           .catch(function(err){
-            if (err) {
-              should(1).equal(2);
-            }
+            return done(err);
           })
       });
       it("should be able to list the contents of main box ", function(done) {
@@ -270,15 +258,13 @@ hoodiecrowServer.listen(1143, function(){
             done();
           })
           .catch(function(err){
-            if (err) {
-              should(1).equal(2);
-            }
+            return done(err);
           })
       });
       it("should be fail to list the contents of main box that does not exist ", function(done) {
         mail.listBox("SOMETHINGTHATDOESNTEXIST")
           .then(function(result){
-            should(1).equal(2);
+            return done('This should not happened');
           })
           .catch(function(err){
             done();
@@ -292,90 +278,61 @@ hoodiecrowServer.listen(1143, function(){
             done();
           })
           .catch(function(err){
-            if (err) {
-              should(1).equal(2);
-            }
+            return done(err);
           })
       });
       it("should be able to add new mail box", function(done) {
         mail.createBox("NEWMAILBOX")
           .then(function(){
-            mail.getBoxes()
-              .then(function(boxes){
-                console.log(boxes);
-                should(boxes.NEWMAILBOX.delimiter).equal("/");
-                should(boxes.NEWMAILBOX.parent).equal(null);
-                should(boxes.NEWMAILBOX.children).equal(null);
-                done();
-              })
-              .catch(function(err) {
-                if (err) {
-                  console.log(err.message);
-                  should(1).equal(2);
-                }
-              })
-          })
-          .catch(function(err) {
-            if (err) {
-              console.log(err.message);
-              should(1).equal(2);
-            }
+            return mail.getBoxes()
+          }).then(function(boxes){
+            console.log(boxes);
+            should(boxes.NEWMAILBOX.delimiter).equal("/");
+            should(boxes.NEWMAILBOX.parent).equal(null);
+            should(boxes.NEWMAILBOX.children).equal(null);
+            done();
+          }).catch(function(err) {
+            return done(err);
           })
       });
       it("should be able to rename a mail box, NEWMAILBOX to NEWBOX", function(done) {
         mail.renameBox("NEWMAILBOX", "NEWBOX")
           .then(function(){
-            mail.getBoxes()
-              .then(function(boxes){
-                console.log(boxes);
-                should(boxes.NEWBOX.delimiter).equal("/");
-                should(boxes.NEWBOX.parent).equal(null);
-                should(boxes.NEWBOX.children).equal(null);
-                done();
-              })
-              .catch(function(err) {
-                if (err) {
-                  console.log(err.message);
-                  should(1).equal(2);
-                }
-              })
-          })
-          .catch(function(err) {
-            if (err) {
-              should(1).equal(2);
-              console.log(err.message);
-            }
+            return mail.getBoxes()
+          }).then(function(boxes){
+            console.log(boxes);
+            should(boxes.NEWBOX.delimiter).equal("/");
+            should(boxes.NEWBOX.parent).equal(null);
+            should(boxes.NEWBOX.children).equal(null);
+            done();
+          }).catch(function(err) {
+            return done(err);
           })
       });
       it("should be fail to rename unexisting mail box", function(done) {
         mail.renameBox("NOTEXIST", "NEWBOX")
           .then(function(){
-            should(1).equal(2);
+            return done('This should not happened');
           })
           .catch(function(err) {
             if (err) {
               console.log(err.message);
               should(err.message).equal("Mailbox does not exist");
               done();
+            } else {
+              done('Error thrown but is not specified. Check code');
             }
           })
       });
       it("should be able to delete a mail box", function(done) {
         mail.removeBox("NEWBOX")
           .then(function(){
-            mail.getBoxes()
-              .then(function(boxes){
-                console.log(boxes);
-                should(boxes.NEWBOX).equal(undefined);
-                done();
-              })
-              .catch(function(err) {
-                if (err) {
-                  console.log(err.message);
-                }
-              })
-          })
-          .catch(function(err) {
+            return mail.getBoxes();
+          }).then(function(boxes){
+            console.log(boxes);
+            should(boxes.NEWBOX).equal(undefined);
+            done();
+          }).catch(function(err) {
             if (err) {
               console.log(err.message);
             }
@@ -390,6 +347,8 @@ hoodiecrowServer.listen(1143, function(){
               console.log(err.message);
               should(err.message).equal("Mailbox does not exist");
               done();
+            } else{
+              done('Error thrown but is not specified. Check code');
             }
           })
       });
@@ -401,81 +360,49 @@ hoodiecrowServer.listen(1143, function(){
             done();
           })
           .catch(function(err) {
-            if (err) {
-              console.log(err.message);
-              should(1).equal(2);
-            }
+            return done(err);
           })
       });
       it("should be fail to fetch unexisting UID", function(done) {
         mail.retrieveMessage(1, "INBOX")
           .then(function(mail){
-            should(1).equal(2);
+            return done('This should not happened');
           })
           .catch(function(err) {
             if (err) {
               console.log(err.message);
               done();
+            } else {
+              done('Error thrown but is not specified. Check code');
             }
           })
       });
       it("should be able to move a message to other box", function(done) {
         mail.createBox("SOMEBOX")
           .then(function(){
-            mail.moveMessage(1, "INBOX", "SOMEBOX")
-              .then(function(){
-                mail.retrieveMessage(1, "SOMEBOX")
-                  .then(function(mail){
-                    console.log(mail);
-                    should(mail.attributes.uid).equal(1);
-                    done();
-                  })
-                  .catch(function(err) {
-                    if (err) {
-                      console.log(err.message);
-                      should(1).equal(2);
-                    }
-                  })
-              })
-              .catch(function(err) {
-                if (err) {
-                  console.log(err.message);
-                  should(1).equal(2);
-                  done();
-                }
-              })
-          })
-          .catch(function(err) {
-            if (err) {
-              console.log(err.message);
-              should(1).equal(2);
-            }
-          })
+            return mail.moveMessage(1, "INBOX", "SOMEBOX");
+        }).then(function(){
+            return mail.retrieveMessage(1, "SOMEBOX");
+        }).then(function(mail){
+          console.log(mail);
+          should(mail.attributes.uid).equal(1);
+          done();
+        }).catch(function(err) {
+          return done(err);
+        })
       });
       it("should be able to remove a message to Trash", function(done) {
         mail.removeMessage(1, "INBOX")
           .then(function(){
-            mail.listBox(mail.specials.Trash.path)
-              .then(function(result){
-                console.log(result[0].attributes.flags);
-                should(result[0].attributes.uid).equal(1);
-                should(result[0].header.from).equal("sender name <sender@example.com>");
-                done();
-              })
-              .catch(function(err) {
-                if (err) {
-                  console.log(err.message);
-                  should(1).equal(2);
-                }
-              })
-          })
-          .catch(function(err) {
-            if (err) {
-              console.log(err.message);
-              should(1).equal(2);
-              done();
-            }
-          })
+            return mail.listBox(mail.specials.Trash.path)
+        }).then(function(result){
+            console.log(result[0].attributes.flags);
+            should(result[0].attributes.uid).equal(1);
+            should(result[0].header.from).equal("sender name <sender@example.com>");
+            done();
+        }).catch(function(err) {
+          return done(err);
+        })
       });
       it("should be able to create new email message in draft box", function(done) {
         var newMail = composer({
@@ -487,30 +414,18 @@ hoodiecrowServer.listen(1143, function(){
         });
         newMail.build(function(err, message){
           if (err) {
-            should(1).equal(2);
+            return done(err);
           }
           mail.newMessage(message)
             .then(function(){
-              mail.listBox(mail.specials.Drafts.path)
-                .then(function(result){
-                  should(result[0].header.from).equal("someemail1@example.com");
-                  should(result[0].attributes.uid).equal(1);
-                  done();
-                })
-                .catch(function(err) {
-                  if (err) {
-                    console.log(err.message);
-                    should(1).equal(2);
-                  }
-                })
-            })
-            .catch(function(err) {
-              if (err) {
-                console.log(err.message);
-                should(1).equal(2);
-                done();
-              }
-            })
+             return mail.listBox(mail.specials.Drafts.path)
+            }).then(function(result){
+              should(result[0].header.from).equal("someemail1@example.com");
+              should(result[0].attributes.uid).equal(1);
+              done();
+            }).catch(function(err) {
+            return done(err);
+          })
         })
       });
       it("should be able to get quota information", function(done) {
@@ -527,7 +442,6 @@ hoodiecrowServer.listen(1143, function(){
         })
       });
     });
-
   });
   describe("IMAP API Endpoint", function() {
     it("Should be fail to login because of wrong password", function(done){
