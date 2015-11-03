@@ -237,7 +237,9 @@ Imap.prototype.listBox = function(name, limit, page, search) {
             stream.once("end", function(attrs){
               mail.header = Client.parseHeader(buffer, true);
               // Normalization
-              mail.header.date = moment(new Date(mail.header.date[0]));
+              if (mail.header.date && mail.header.date[0]) {
+                mail.header.date = moment(new Date(mail.header.date[0]));
+              }
               if (mail.header.from && mail.header.from[0]) {
                 mail.header.from = mail.header.from[0];
               }
