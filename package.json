@@ -4,8 +4,8 @@
   "description": "Surelia",
   "main": "index.js",
   "scripts": {
-    "test": "DB=test npm run build && mocha --timeout 30000 test",
-    "single": "npm run build && node index single",
+    "test": " NODE_TLS_REJECT_UNAUTHORIZED=0 DB=test npm run build && mocha --timeout 30000 test",
+    "single": "NODE_TLS_REJECT_UNAUTHORIZED=0 npm run build && node index single",
     "server": "npm run build && node index ",
     "restart": "npm run build && node index restart",
     "stop": "./node_modules/.bin/idup stop teman-iklan",
