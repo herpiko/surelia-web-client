@@ -224,8 +224,8 @@ Message.prototype.listBox = function(boxName, opts, canceler){
       self.currentList = data.data;
       self.currentListMeta = data.meta;
       // generate avatar
-      var count = opts.limit || 10;
-      var colors = window.randomcolor({hue:"red", count:count, luminosity : "dark"});
+      opts.limit = opts.limit || 10;
+      var colors = window.randomcolor({count:opts.limit, luminosity : "dark"});
       var assignedColor = [];
       for (var i in self.currentList) {
         var hash = window.objectHash(self.currentList[i].header.from[0]);
