@@ -572,7 +572,7 @@ Message.prototype.saveDraft = function(){
   // Save as draft if it has modified
   console.log(window.objectHash(self.newMessage));
   var newHash = window.objectHash(self.newMessage);
-  if (newHash != self.currentMessageHash) {
+  if (newHash !== self.currentMessageHash) {
     self.loading.start();
     console.log("save draft");
     var draftPath;
