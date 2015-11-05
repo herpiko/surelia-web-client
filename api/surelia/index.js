@@ -533,6 +533,9 @@ ImapAPI.prototype.listBox = function(request, reply) {
         reply(result);
       })
       .catch(function(err){
+        if (err && err.message && err.message == "Nothing to fetch") {
+          return reply({err : err.message}).code(404);
+        }
         reply({err : err.message}).code(500);
       })
   }

@@ -196,8 +196,10 @@ Imap.prototype.listBox = function(name, limit, page, search) {
         
         /* seqArray = seqs.messages.seqArray; */
         var index = seqs.messages.seqArray.indexOf(seqs.messages.seqArray[start]);
-        for (var i = index - 1; i <= fetchLimit; i++) {
-          seqArray.push(seqs.messages.seqArray[i]);
+        for (var i = index; i <= fetchLimit; i++) {
+          if (seqs.messages.seqArray[i]) {
+            seqArray.push(seqs.messages.seqArray[i]);
+          }
           if (seqArray.length == limit) {
             break;
           }
@@ -232,7 +234,7 @@ Imap.prototype.listBox = function(name, limit, page, search) {
             });
           }
         } catch (err) {
-          reject(err);
+          return reject(err);
         }
         f.on("message", function(msg, seqno){
           var prefix = "(#" + seqno + ")";
@@ -314,7 +316,7 @@ Imap.prototype.listBox = function(name, limit, page, search) {
       }
       if (search && search!== undefined) {
         console.log(1);
-        self.client.search([["OR",["SUBJECT", search],["BODY", search]]], function(err, result){
+        self.client.search([["OR",["SUBJECT", search],["FROM", search]]], function(err, result){
           if (err) {
             return reject(err);
           }
