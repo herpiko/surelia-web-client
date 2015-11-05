@@ -179,7 +179,9 @@ Message.prototype.listBoxOlder = function(){
       limit : self.currentListMeta.limit,
       page : self.currentListMeta.page + 1,
     }
-    self.listBox(self.currentBoxPath, opts, true)
+    var boxName = self.searchString ? "search" : self.currentBoxPath;
+    opts.search = self.searchString ? self.searchString : null;
+    self.listBox(boxName, opts, true)
   }
 }
 
@@ -190,7 +192,9 @@ Message.prototype.listBoxNewer = function(){
       limit : self.currentListMeta.limit,
       page : self.currentListMeta.page - 1,
     }
-    self.listBox(self.currentBoxPath, opts, true)
+    var boxName = self.searchString ? "search" : self.currentBoxPath;
+    opts.search = self.searchString ? self.searchString : null;
+    self.listBox(boxName, opts, true)
   }
 }
 Message.prototype.listBox = function(boxName, opts, canceler){
@@ -217,6 +221,12 @@ Message.prototype.listBox = function(boxName, opts, canceler){
       return;
     } 
   });
+  if (boxName == "search") {
+    opts.search = opts.search || self.searchString;
+  } else {
+    opts.search = undefined;
+    delete(self.searchString);
+  }
   self.ImapService.listBox(boxName, opts, canceler)
     .then(function(data){
       self.loading.complete();

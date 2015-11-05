@@ -7,8 +7,8 @@
   <div>
     <!--Sidebar-->
     <div style="width:300px;display:inline-block;vertical-align:top;padding:10px;background:#ECECEC;">
-            <form ng-submit="msg.listBox(msg.currentBoxPath, {page : 1, limit : 10, search : searchString}, true)">
-        <input ng-model="searchString" placeholder="search..."></input>
+            <form ng-submit="msg.listBox('search', {page : 1, limit : 10, search : msg.searchString}, true)">
+        <input ng-model="msg.searchString" placeholder="search..."></input>
       </form>
       <ul>
               <li ng-repeat="box in msg.boxes" ng-click="msg.listBox(box,{},true)" style="cursor:pointer">
