@@ -181,6 +181,7 @@ Imap.prototype.listBox = function(name, limit, page, search) {
   var limit = limit || 10;
   var page = page || 1;
   var total;
+  var isSearch = false;
   return new Promise(function(resolve, reject){
     var bodies = "HEADER.FIELDS (FROM TO SUBJECT DATE)";
     var result = [];
@@ -193,8 +194,6 @@ Imap.prototype.listBox = function(name, limit, page, search) {
       var fetchLimit = seqs.messages.total - (limit*page-limit);
       var seqArray = []
       if (seqs.messages.seqArray) {
-        
-        /* seqArray = seqs.messages.seqArray; */
         var index = seqs.messages.seqArray.indexOf(seqs.messages.seqArray[start]);
         for (var i = index - 1; i <= fetchLimit; i++) {
           if (seqs.messages.seqArray[i]) {
@@ -273,7 +272,7 @@ Imap.prototype.listBox = function(name, limit, page, search) {
               }
               mail.attributes = attrs;
               mail.seq = seq;
-              mail.boxName = name;
+              mail.boxName = (isSearch) ? "search" : name;
           })
           msg.once("end", function(){
             result.push(mail);
@@ -307,15 +306,15 @@ Imap.prototype.listBox = function(name, limit, page, search) {
         })
       })
     }
-    if (name == "search") {
+    if (name == "search" && search && search !== undefined) {
       name = "INBOX";
+      isSearch = true;
     }
     self.client.openBox(name, true, function(err, seqs){
       if (err) {
         return reject(err);
       }
-      if (search && search!== undefined) {
-        console.log(1);
+      if (isSearch) {
         self.client.search([["OR",["SUBJECT", search],["FROM", search]]], function(err, result){
           if (err) {
             return reject(err);
@@ -325,7 +324,6 @@ Imap.prototype.listBox = function(name, limit, page, search) {
           fetcher(seqs);
         })
       } else {
-        console.log(2);
         fetcher(seqs);
       }
     })
@@ -402,18 +400,27 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
   var self = this;
   return new Promise(function(resolve, reject){
     var result = [];
+    var isSearch = false;
+    if (boxName == "search") {
+      boxName = "INBOX";
+      isSearch = true;
+    }
     self.client.openBox(boxName, true, function(err, box){
       if (err) {
         return reject(err);
       }
-      if (parseInt(id) > box.messages.total) {
-        return reject(new Error("Message not found").message);
-      }
       var mail = {}
-      var f = self.client.seq.fetch(id.toString(), {
-        bodies : "",
-        struct : true
-      });
+      if (isSearch) {
+        var f = self.client.fetch(id.toString(), {
+          bodies : "",
+          struct : true
+        });
+      } else {
+        var f = self.client.seq.fetch(id.toString(), {
+          bodies : "",
+          struct : true
+        });
+      }
       f.on("message", function(msg, seqno){
         var prefix = "(#" + seqno + ")";
         msg.on("body", function(stream, info) {
@@ -446,7 +453,7 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
             mail.parsed = mailObject;
             mail.parsed.date = moment(new Date(mail.parsed.date));
             mail.parsed.receivedDate = moment(new Date(mail.parsed.receivedDate));
-            mail.boxName = boxName;
+            mail.boxName = (isSearch) ? "search" : boxName;
             resolve(mail);
           })
           mailparser.write(mail.original);
