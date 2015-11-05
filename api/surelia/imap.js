@@ -22,7 +22,6 @@ var Imap = function(credentials) {
   // Increase timeout
   credentials.connTimeout = 60000;
   credentials.authTimeout = 60000;
-  console.log(credentials);
   this.client = new Client(credentials);
   this.connected = false;
 }
@@ -60,18 +59,15 @@ Imap.prototype.connect = function() {
   var self = this;
   return new Promise(function(resolve, reject){
     self.client.once("ready", function(){
-      console.log("Connection ready");
       self.connected = true;
       resolve();
     })
     self.client.once("error", function(err) {
-      console.log(err);
       self.connected = false;
       reject(err);
     })
     self.client.once("end", function() {
       self.connected = false;
-      console.log("Connection ended");
     })
     self.client.connect();
   })
@@ -96,7 +92,7 @@ Imap.prototype.getSpecialBoxes = function() {
       var boxes = Object.keys(mboxes);
       async.each(specialBoxes, function iterator(special, doneIteratingSpecialBoxes) {
         async.each(boxes, function iterator(index, doneIteratingBoxes){
-          if (mboxes[index].children !=null) {
+          if (mboxes[index].children !== null) {
             var children = Object.keys(mboxes[index].children);
             async.each(children, function iterator(child, doneIteratingChildrens){
               var currentSpecialUse = mboxes[index].children[child].special_use_attrib; 
@@ -134,7 +130,6 @@ Imap.prototype.getSpecialBoxes = function() {
               return b == box;
             })
           if (!isMatched && !isExists) {
-            console.log(box + " does not exist");
             
             // Add new essential box, but do not wait
             self.client.addBox(box);
@@ -177,46 +172,68 @@ Imap.prototype.getBoxes = function() {
  * @param {String} name - The name of the box
  * @param {Number} start - The offset
  * @param {Number} limit - The expected number of result
- * @param {Object} searchParams - Search parameters
+ * @param {Object} search - Search parameters
  * @returns {Promise}
  * 
  */
-Imap.prototype.listBox = function(name, limit, page, searchParams) {
-  console.log("name " + name);
-  console.log("limit " + limit);
-  console.log("page " + page);
-  console.log("searchParams " + searchParams);
+Imap.prototype.listBox = function(name, limit, page, search) {
   var self = this;
   var limit = limit || 10;
   var page = page || 1;
   var total;
+  var isSearch = false;
   return new Promise(function(resolve, reject){
-    var bodies = searchParams || 'HEADER.FIELDS (FROM TO SUBJECT DATE)';
+    var bodies = "HEADER.FIELDS (FROM TO SUBJECT DATE)";
     var result = [];
-    self.client.openBox(name, true, function(err, box){
-      if (err) {
-        return reject(err);
-      }
-      console.log("total message " + box.messages.total);
-      var total = box.messages.total;
+    var fetcher = function(seqs){
+      var total = seqs.messages.total;
       var start = total - page * limit + 1;
       if (start < 0) {
         start = 1;
       }
-      var fetchLimit = box.messages.total - (limit*page-limit);
+      var fetchLimit = seqs.messages.total - (limit*page-limit);
       var seqArray = []
-      for (var i = start; i <= fetchLimit; i++) {
-        seqArray.push(i);
+      if (seqs.messages.seqArray) {
+        var index = seqs.messages.seqArray.indexOf(seqs.messages.seqArray[start]);
+        for (var i = index - 1; i <= fetchLimit; i++) {
+          if (seqs.messages.seqArray[i]) {
+            seqArray.push(seqs.messages.seqArray[i]);
+          }
+          if (seqArray.length == limit) {
+            break;
+          }
+        }
+      } else {
+        for (var i = start; i <= fetchLimit; i++) {
+          seqArray.push(i);
+          if (seqArray.length == limit) {
+            break;
+          }
+        }
       }
+      console.log("name" + name);
+      console.log("limit" + limit);
+      console.log("page" + page);
+      console.log("search" + search);
+      console.log("fetchLimit" + fetchLimit);
+      console.log("start" + start);
+      console.log("seqArray" + seqArray);
       async.each(seqArray, function iterator(seq, doneIteratingMessages) {
         var mail = {}
         try {
-          var f = self.client.seq.fetch(seq, {
-            bodies : bodies,
-            struct : true
-          });
+          if (seqs.messages.seqArray) {
+            var f = self.client.fetch(seq, {
+              bodies : bodies,
+              struct : true
+            });
+          } else {
+            var f = self.client.seq.fetch(seq, {
+              bodies : bodies,
+              struct : true
+            });
+          }
         } catch (err) {
-          reject(err);
+          return reject(err);
         }
         f.on("message", function(msg, seqno){
           var prefix = "(#" + seqno + ")";
@@ -229,7 +246,9 @@ Imap.prototype.listBox = function(name, limit, page, searchParams) {
             stream.once("end", function(attrs){
               mail.header = Client.parseHeader(buffer, true);
               // Normalization
-              mail.header.date = moment(new Date(mail.header.date[0]));
+              if (mail.header.date && mail.header.date[0]) {
+                mail.header.date = moment(new Date(mail.header.date[0]));
+              }
               if (mail.header.from && mail.header.from[0]) {
                 mail.header.from = mail.header.from[0];
               }
@@ -253,14 +272,13 @@ Imap.prototype.listBox = function(name, limit, page, searchParams) {
               }
               mail.attributes = attrs;
               mail.seq = seq;
-              mail.boxName = name;
+              mail.boxName = (isSearch) ? "search" : name;
           })
           msg.once("end", function(){
             result.push(mail);
           })
         });
         f.once("error", function(err) {
-          console.log("Fetch error : " + err);
           doneIteratingMessages(err);
         })
         f.once("end", function(err) {
@@ -270,18 +288,44 @@ Imap.prototype.listBox = function(name, limit, page, searchParams) {
         if (err) {
           return reject(err);
         }
-        result.reverse();
-        var obj = {
-          data : result,
-          meta : {
-            total : total,
-            limit : parseInt(limit),
-            page : parseInt(page),
-            start : start,
+        self.client.closeBox(function(err){
+          if (err) {
+            return reject(err);
           }
-        }
-        resolve(obj);
+          result.reverse();
+          var obj = {
+            data : result,
+            meta : {
+              total : total,
+              limit : parseInt(limit),
+              page : parseInt(page),
+              start : start,
+            }
+          }
+          resolve(obj);
+        })
       })
+    }
+    if (name == "search" && search && search !== undefined) {
+      name = "INBOX";
+      isSearch = true;
+    }
+    self.client.openBox(name, true, function(err, seqs){
+      if (err) {
+        return reject(err);
+      }
+      if (isSearch) {
+        self.client.search([["OR",["SUBJECT", search],["FROM", search]]], function(err, result){
+          if (err) {
+            return reject(err);
+          }
+          seqs.messages.total = result.length;
+          seqs.messages.seqArray = result;
+          fetcher(seqs);
+        })
+      } else {
+        fetcher(seqs);
+      }
     })
   })
 }
@@ -356,15 +400,38 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
   var self = this;
   return new Promise(function(resolve, reject){
     var result = [];
+    var isSearch = false;
+    if (boxName == "search") {
+      boxName = "INBOX";
+      isSearch = true;
+    }
     self.client.openBox(boxName, true, function(err, box){
       if (err) {
         return reject(err);
       }
       var mail = {}
-      var f = self.client.seq.fetch(id.toString(), {
-        bodies : "",
-        struct : true
-      });
+      if (isSearch) {
+        try {
+          var f = self.client.fetch(id.toString(), {
+            bodies : "",
+            struct : true
+          });
+        } catch (err) {
+          return reject(err);
+        }
+      } else {
+        if (parseInt(id) > box.messages.total) {
+          return reject(new Error("Nothing to fetch"));
+        }
+        try {
+          var f = self.client.seq.fetch(id.toString(), {
+            bodies : "",
+            struct : true
+          });
+        } catch (err) {
+          return reject(err);
+        }
+      }
       f.on("message", function(msg, seqno){
         var prefix = "(#" + seqno + ")";
         msg.on("body", function(stream, info) {
@@ -394,19 +461,21 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
         msg.once("end", function(){
           var mailparser = new MailParser();
           mailparser.on("end", function(mailObject){
-            console.log(mailObject);
             mail.parsed = mailObject;
             mail.parsed.date = moment(new Date(mail.parsed.date));
             mail.parsed.receivedDate = moment(new Date(mail.parsed.receivedDate));
-            mail.boxName = boxName;
+            mail.boxName = (isSearch) ? "search" : boxName;
             resolve(mail);
           })
           mailparser.write(mail.original);
           mailparser.end();
         })
+        msg.once("error", function(err) {
+          return reject(err);
+        })
       });
       f.once("error", function(err) {
-        reject(err);
+        return reject(err);
       })
     })
   })
@@ -421,16 +490,13 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
  * @returns {Promise}
  */
 Imap.prototype.moveMessage = function(id, oldBox, newBox) {
-  console.log(id, oldBox, newBox);
   var self = this;
   return new Promise(function(resolve, reject){
     self.client.openBox(oldBox, true, function(err){
-      console.log(err);
       if (err) {
         return reject(err);
       }
       self.client.move([id.toString()], newBox, function(err){
-        console.log(err);
         if (err) {
           return reject(err);
         }
@@ -449,7 +515,6 @@ Imap.prototype.moveMessage = function(id, oldBox, newBox) {
  * @returns {Promise}
  */
 Imap.prototype.removeMessage = function(id, boxName) {
-  console.log(id);
   var self = this;
   return new Promise(function(resolve, reject){
     self.client.openBox(boxName, false, function(err){
@@ -498,5 +563,35 @@ Imap.prototype.newMessage = function(messageData, draftPath) {
     })
   })
 }
+
+/**
+ * Gets mailbox quota info 
+ *
+ * @returns {Promise}
+ */
+Imap.prototype.quotaInfo = function() {
+  var self = this;
+  return new Promise(function(resolve, reject){
+    self.client.getQuota("", function(err, info){
+      if (err) {
+        return reject(err);
+      }
+      var quotaInfo;
+      if (info && 
+          info.resources && 
+          info.resources.storage &&
+          info.resources.storage.usage) { // no check on limits as it could be unlimited, not specified in the RFC, though
+        quotaInfo = {
+          usage: info.resources.storage.usage,
+          limit: info.resources.storage.limit
+        }
+      } else {
+        reject(new Error('malformed quota info'));
+      }
+      resolve(quotaInfo);
+    })
+  })
+}
+
 
 module.exports = Imap;

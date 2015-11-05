@@ -102,6 +102,9 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.cc = false;;
   self.bcc = false;
   self.newMessage = {};
+  self.isAlpha = function(str) {
+    return /^[a-zA-Z()]+$/.test(str);
+  }
   self.loading = self.ngProgressFactory.createInstance();
   
   if (self.localStorageService.get("username")) {
@@ -114,7 +117,11 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
     .success(function(data, status){
       console.log(data);
       self.loading.set(30);
-      self.listBox("INBOX", 10, 1, null, null);
+      var opts = {
+        limit : 10,
+        page : 1,
+      }
+      self.listBox("INBOX", opts);
       self.currentBoxName = "INBOX";
       self.currentBoxPath = "INBOX";
       self.getSpecialBoxes();
@@ -168,17 +175,29 @@ Message.prototype.getSpecialBoxes = function(){
 Message.prototype.listBoxOlder = function(){
   var self = this;
   if (self.currentListMeta.older) {
-    self.listBox(self.currentBoxPath, self.currentListMeta.limit, (self.currentListMeta.page + 1), null, true)
+    var opts = {
+      limit : self.currentListMeta.limit,
+      page : self.currentListMeta.page + 1,
+    }
+    var boxName = self.searchString ? "search" : self.currentBoxPath;
+    opts.search = self.searchString ? self.searchString : null;
+    self.listBox(boxName, opts, true)
   }
 }
 
 Message.prototype.listBoxNewer = function(){
   var self = this;
   if (self.currentListMeta.newer) {
-    self.listBox(self.currentBoxPath, self.currentListMeta.limit, (self.currentListMeta.page - 1), null, true)
+    var opts = {
+      limit : self.currentListMeta.limit,
+      page : self.currentListMeta.page - 1,
+    }
+    var boxName = self.searchString ? "search" : self.currentBoxPath;
+    opts.search = self.searchString ? self.searchString : null;
+    self.listBox(boxName, opts, true)
   }
 }
-Message.prototype.listBox = function(boxName, limit, page, search, canceler){
+Message.prototype.listBox = function(boxName, opts, canceler){
   var self = this;
   self.loading.start();
   self.view = "list";
@@ -202,12 +221,34 @@ Message.prototype.listBox = function(boxName, limit, page, search, canceler){
       return;
     } 
   });
-  self.ImapService.listBox(boxName, limit, page, search, canceler)
+  if (boxName == "search") {
+    opts.search = opts.search || self.searchString;
+  } else {
+    opts.search = undefined;
+    delete(self.searchString);
+  }
+  self.ImapService.listBox(boxName, opts, canceler)
     .then(function(data){
       self.loading.complete();
       console.log(data);
       self.currentList = data.data;
       self.currentListMeta = data.meta;
+      // generate avatar
+      opts.limit = opts.limit || 10;
+      var colors = window.randomcolor({count:opts.limit, luminosity : "dark"});
+      var assignedColor = [];
+      for (var i in self.currentList) {
+        var hash = window.objectHash(self.currentList[i].header.from[0]);
+        var index = self.isAlpha(self.currentList[i].header.from[0]) ? 0 : 1;
+        self.currentList[i].avatar = self.currentList[i].header.from[index].toUpperCase();
+        if (assignedColor.indexOf(hash) < 0) {
+          assignedColor.push(hash);
+          self.currentList[i].color = colors[assignedColor.indexOf(hash)];
+        } else {
+          self.currentList[i].color = colors[assignedColor.indexOf(hash)];
+        }
+
+      }
       // calculate pagination nav
       var meta = self.currentListMeta;
       if ((meta.page - 1) > 0) {
@@ -215,7 +256,7 @@ Message.prototype.listBox = function(boxName, limit, page, search, canceler){
       } else {
         self.currentListMeta.newer = false;
       }
-      if (meta.limit * (meta.page +1) - meta.total < limit) {
+      if (meta.limit * (meta.page +1) - meta.total < opts.limit) {
         self.currentListMeta.older = true;
       } else {
         self.currentListMeta.older = false;
@@ -544,7 +585,7 @@ Message.prototype.saveDraft = function(){
   // Save as draft if it has modified
   console.log(window.objectHash(self.newMessage));
   var newHash = window.objectHash(self.newMessage);
-  if (newHash != self.currentMessageHash) {
+  if (newHash !== self.currentMessageHash) {
     self.loading.start();
     console.log("save draft");
     var draftPath;
