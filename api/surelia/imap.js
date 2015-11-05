@@ -411,15 +411,26 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
       }
       var mail = {}
       if (isSearch) {
-        var f = self.client.fetch(id.toString(), {
-          bodies : "",
-          struct : true
-        });
+        try {
+          var f = self.client.fetch(id.toString(), {
+            bodies : "",
+            struct : true
+          });
+        } catch (err) {
+          return reject(err);
+        }
       } else {
-        var f = self.client.seq.fetch(id.toString(), {
-          bodies : "",
-          struct : true
-        });
+        if (parseInt(id) > box.messages.total) {
+          return reject(new Error("Nothing to fetch"));
+        }
+        try {
+          var f = self.client.seq.fetch(id.toString(), {
+            bodies : "",
+            struct : true
+          });
+        } catch (err) {
+          return reject(err);
+        }
       }
       f.on("message", function(msg, seqno){
         var prefix = "(#" + seqno + ")";
@@ -459,9 +470,12 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
           mailparser.write(mail.original);
           mailparser.end();
         })
+        msg.once("error", function(err) {
+          return reject(err);
+        })
       });
       f.once("error", function(err) {
-        reject(err);
+        return reject(err);
       })
     })
   })
