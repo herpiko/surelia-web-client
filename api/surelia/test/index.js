@@ -126,7 +126,7 @@ var smtp,
 
 var Mailback = require('mailback');
 var onMessage = function(err, message) {
-  console.log(arguments, '------------------');
+  //console.log(arguments, '------------------');
 }
 
 var smtpServer = new Mailback.Server({ onMessage: onMessage, port: 25255, host: 'localhost' });
@@ -181,7 +181,6 @@ hoodiecrowServer.listen(1143, function(){
           }
           smtp.send(sender, recipients, message)
             .then(function(info){
-              console.log(info);
               done();
             })
             .catch(function(err){
@@ -232,7 +231,6 @@ hoodiecrowServer.listen(1143, function(){
                   username : process.env.TEST_SMTP_USERNAME
                 }
               }, function(response){
-                console.log(response.result);
                 should(response.result.accepted.length).equal(1);
                 done();
               })
@@ -243,7 +241,6 @@ hoodiecrowServer.listen(1143, function(){
       it("should be able to list special boxes ", function(done) {
         mail.getSpecialBoxes()
           .then(function(result){
-            console.log(mail.specials);
             done();
           })
           .catch(function(err){
@@ -253,8 +250,7 @@ hoodiecrowServer.listen(1143, function(){
       it("should be able to list the contents of main box ", function(done) {
         mail.listBox("INBOX")
           .then(function(result){
-            console.log(result);
-            should(result.length).equal(6);
+            should(result.data.length).equal(6);
             done();
           })
           .catch(function(err){
@@ -271,10 +267,9 @@ hoodiecrowServer.listen(1143, function(){
           })
       });
       it("should be able to list the contents of main box with more parameter ", function(done) {
-        mail.listBox("INBOX", 1, 2)
+        mail.listBox("INBOX", 2, 1)
           .then(function(result){
-            console.log(result);
-            should(result.length).equal(2);
+            should(result.data.length).equal(2);
             done();
           })
           .catch(function(err){
@@ -286,7 +281,6 @@ hoodiecrowServer.listen(1143, function(){
           .then(function(){
             return mail.getBoxes()
           }).then(function(boxes){
-            console.log(boxes);
             should(boxes.NEWMAILBOX.delimiter).equal("/");
             should(boxes.NEWMAILBOX.parent).equal(null);
             should(boxes.NEWMAILBOX.children).equal(null);
@@ -300,7 +294,6 @@ hoodiecrowServer.listen(1143, function(){
           .then(function(){
             return mail.getBoxes()
           }).then(function(boxes){
-            console.log(boxes);
             should(boxes.NEWBOX.delimiter).equal("/");
             should(boxes.NEWBOX.parent).equal(null);
             should(boxes.NEWBOX.children).equal(null);
@@ -316,7 +309,6 @@ hoodiecrowServer.listen(1143, function(){
           })
           .catch(function(err) {
             if (err) {
-              console.log(err.message);
               should(err.message).equal("Mailbox does not exist");
               done();
             } else {
@@ -329,12 +321,10 @@ hoodiecrowServer.listen(1143, function(){
           .then(function(){
             return mail.getBoxes();
           }).then(function(boxes){
-            console.log(boxes);
             should(boxes.NEWBOX).equal(undefined);
             done();
           }).catch(function(err) {
             if (err) {
-              console.log(err.message);
             }
           })
       });
@@ -344,7 +334,6 @@ hoodiecrowServer.listen(1143, function(){
           })
           .catch(function(err) {
             if (err) {
-              console.log(err.message);
               should(err.message).equal("Mailbox does not exist");
               done();
             } else{
@@ -355,7 +344,6 @@ hoodiecrowServer.listen(1143, function(){
       it("should be able to fetch a mail by UID", function(done) {
         mail.retrieveMessage(1, "INBOX")
           .then(function(mail){
-            console.log(mail);
             should(mail.attributes.uid).equal(1);
             done();
           })
@@ -364,13 +352,12 @@ hoodiecrowServer.listen(1143, function(){
           })
       });
       it("should be fail to fetch unexisting UID", function(done) {
-        mail.retrieveMessage(1, "INBOX")
+        mail.retrieveMessage(123456789, "INBOX")
           .then(function(mail){
             return done('This should not happened');
           })
           .catch(function(err) {
             if (err) {
-              console.log(err.message);
               done();
             } else {
               done('Error thrown but is not specified. Check code');
@@ -384,7 +371,6 @@ hoodiecrowServer.listen(1143, function(){
         }).then(function(){
             return mail.retrieveMessage(1, "SOMEBOX");
         }).then(function(mail){
-          console.log(mail);
           should(mail.attributes.uid).equal(1);
           done();
         }).catch(function(err) {
@@ -396,9 +382,8 @@ hoodiecrowServer.listen(1143, function(){
           .then(function(){
             return mail.listBox(mail.specials.Trash.path)
         }).then(function(result){
-            console.log(result[0].attributes.flags);
-            should(result[0].attributes.uid).equal(1);
-            should(result[0].header.from).equal("sender name <sender@example.com>");
+            should(result.data[0].attributes.uid).equal(1);
+            should(result.data[0].header.from).equal("sender name <sender@example.com>");
             done();
         }).catch(function(err) {
           return done(err);
@@ -416,19 +401,20 @@ hoodiecrowServer.listen(1143, function(){
           if (err) {
             return done(err);
           }
-          mail.newMessage(message)
+          mail.newMessage(message, mail.specials.Drafts.path)
             .then(function(){
              return mail.listBox(mail.specials.Drafts.path)
             }).then(function(result){
-              should(result[0].header.from).equal("someemail1@example.com");
-              should(result[0].attributes.uid).equal(1);
+              should(result.data[0].header.from).equal("someemail1@example.com");
+              should(result.data[0].attributes.uid).equal(1);
               done();
             }).catch(function(err) {
             return done(err);
           })
         })
       });
-      it("should be able to get quota information", function(done) {
+      // Quota not yet implemented in hoodiecrow
+      it.skip("should be able to get quota information", function(done) {
         mail.quotaInfo()
           .then(function(result){
             result.should.have.property('usage');
@@ -538,7 +524,6 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         should(response.result.indexOf("[Gmail]")).greaterThan(-1);
         done();
       })
@@ -552,7 +537,6 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         should(response.result.All.path).equal("[Gmail]/All Mail");
         should(response.result.Drafts.path).equal("[Gmail]/Drafts");
         should(response.result.Sent.path).equal("[Gmail]/Sent Mail");
@@ -571,8 +555,7 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
-        should(response.result.length).greaterThan(0);
+        should(response.result.data.length).greaterThan(0);
         done();
       })
     })
@@ -585,7 +568,6 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         should(response.result.err.substr(0, 15)).equal("Unknown Mailbox");
         done();
       })
@@ -609,7 +591,6 @@ hoodiecrowServer.listen(1143, function(){
             username : process.env.TEST_SMTP_USERNAME
           }
         }, function(response){
-          console.log(response.result);
           should(response.result.indexOf(newMailBox)).greaterThan(-1);
           done();
         })
@@ -624,7 +605,6 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         should(response.result.err.substr(0, 21)).equal("Duplicate folder name");
         done();
       })
@@ -648,7 +628,6 @@ hoodiecrowServer.listen(1143, function(){
             username : process.env.TEST_SMTP_USERNAME
           }
         }, function(response){
-          console.log(response.result);
           should(response.result.indexOf(newMailBox)).equal(-1);
           should(response.result.indexOf(newMailBox2)).greaterThan(-1);
           done();
@@ -664,7 +643,6 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         should(response.result.err.substr(0, 21)).equal("Unknown source folder");
         done();
       })
@@ -678,7 +656,6 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         should(response.result.err.substr(0, 21)).equal("Duplicate folder name");
         done();
       })
@@ -693,14 +670,13 @@ hoodiecrowServer.listen(1143, function(){
       }
       server.inject({
         method: "POST",
-        url : "/api/1.0/draft",
+        url : "/api/1.0/draft?draftPath=[Gmail]/Drafts",
         payload : msg,
         headers : {
           token : token,
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         should(response.statusCode).equal(200);
         done();
       })
@@ -714,7 +690,6 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         should(response.statusCode).equal(200);
         // Move it back
         server.inject({
@@ -725,7 +700,6 @@ hoodiecrowServer.listen(1143, function(){
             username : process.env.TEST_SMTP_USERNAME
           }
         }, function(response){
-          console.log(response.result);
           should(response.statusCode).equal(200);
           done();
         })
@@ -740,7 +714,6 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         should(response.statusCode).equal(200);
         done();
       })
@@ -763,7 +736,6 @@ hoodiecrowServer.listen(1143, function(){
             username : process.env.TEST_SMTP_USERNAME
           }
         }, function(response){
-          console.log(response.result);
           should(response.result.indexOf(newMailBox2)).equal(-1);
           done();
         })
@@ -778,7 +750,6 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         should(response.result.err.substr(0, 14)).equal("Unknown folder");
         done();
       })
@@ -792,7 +763,6 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         should.exist(response.result.parsed);
         should.exist(response.result.attributes);
         done();
@@ -807,12 +777,11 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         should(response.result.err.substr(0, 15)).equal("Unknown Mailbox");
         done();
       })
     })
-    it.skip("Should be fail to fetch a message from INBOX with wrong seq number", function(done){
+    it("Should be fail to fetch a message from INBOX with wrong seq number", function(done){
       server.inject({
         method: "GET",
         url : "/api/1.0/message?boxName=INBOX&id=99999",
@@ -821,7 +790,6 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         done();
       })
     })
@@ -845,7 +813,6 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         should(response.result.accepted.length).equal(1);
         done();
       })
@@ -869,7 +836,6 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         should(response.result.accepted.length).equal(2);
         done();
       })
@@ -893,7 +859,6 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         should(response.result.accepted.length).equal(2);
         done();
       })
@@ -908,7 +873,6 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         var data = {
           // Envelope
           from : process.env.TEST_SMTP_USERNAME,
@@ -935,7 +899,6 @@ hoodiecrowServer.listen(1143, function(){
             username : process.env.TEST_SMTP_USERNAME
           }
         }, function(response){
-          console.log(response.result);
           should(response.result.accepted.length).equal(1);
           // Email with attachment has been sent, wait a bit
           setTimeout(function(){
@@ -947,8 +910,7 @@ hoodiecrowServer.listen(1143, function(){
                 username : process.env.TEST_SMTP_USERNAME
               }
             }, function(response){
-              console.log(response.result);
-              var seq = response.result[0].seq;
+              var seq = response.result.data[0].seq;
               server.inject({
                 method: "GET",
                 url : "/api/1.0/message?boxName=INBOX&id=" + seq,
@@ -957,7 +919,6 @@ hoodiecrowServer.listen(1143, function(){
                   username : process.env.TEST_SMTP_USERNAME
                 }
               }, function(response){
-                console.log(response.result);
                 server.inject({
                   method: "GET",
                   url : "/api/1.0/attachment?messageId=" + encodeURIComponent(response.result.parsed.messageId) + "&index=0",
@@ -985,7 +946,6 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         server.inject({
           method: "DELETE",
           url : "/api/1.0/attachment?attachmentId=" + response.result.attachmentId,
@@ -1010,7 +970,6 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        console.log(response.result);
         should(response.statusCode).equal(200);
         server.inject({
           method: "GET",

@@ -22,7 +22,6 @@ var Imap = function(credentials) {
   // Increase timeout
   credentials.connTimeout = 60000;
   credentials.authTimeout = 60000;
-  console.log(credentials);
   this.client = new Client(credentials);
   this.connected = false;
 }
@@ -60,18 +59,15 @@ Imap.prototype.connect = function() {
   var self = this;
   return new Promise(function(resolve, reject){
     self.client.once("ready", function(){
-      console.log("Connection ready");
       self.connected = true;
       resolve();
     })
     self.client.once("error", function(err) {
-      console.log(err);
       self.connected = false;
       reject(err);
     })
     self.client.once("end", function() {
       self.connected = false;
-      console.log("Connection ended");
     })
     self.client.connect();
   })
@@ -96,7 +92,7 @@ Imap.prototype.getSpecialBoxes = function() {
       var boxes = Object.keys(mboxes);
       async.each(specialBoxes, function iterator(special, doneIteratingSpecialBoxes) {
         async.each(boxes, function iterator(index, doneIteratingBoxes){
-          if (mboxes[index].children !=null) {
+          if (mboxes[index].children !== null) {
             var children = Object.keys(mboxes[index].children);
             async.each(children, function iterator(child, doneIteratingChildrens){
               var currentSpecialUse = mboxes[index].children[child].special_use_attrib; 
@@ -134,7 +130,6 @@ Imap.prototype.getSpecialBoxes = function() {
               return b == box;
             })
           if (!isMatched && !isExists) {
-            console.log(box + " does not exist");
             
             // Add new essential box, but do not wait
             self.client.addBox(box);
@@ -182,10 +177,6 @@ Imap.prototype.getBoxes = function() {
  * 
  */
 Imap.prototype.listBox = function(name, limit, page, search) {
-  console.log("name " + name);
-  console.log("limit " + limit);
-  console.log("page " + page);
-  console.log("search " + search);
   var self = this;
   var limit = limit || 10;
   var page = page || 1;
@@ -194,7 +185,6 @@ Imap.prototype.listBox = function(name, limit, page, search) {
     var bodies = "HEADER.FIELDS (FROM TO SUBJECT DATE)";
     var result = [];
     var fetcher = function(seqs){
-      console.log("total message " + seqs.messages.total);
       var total = seqs.messages.total;
       var start = total - page * limit + 1;
       if (start < 0) {
@@ -270,7 +260,6 @@ Imap.prototype.listBox = function(name, limit, page, search) {
           })
         });
         f.once("error", function(err) {
-          console.log("Fetch error : " + err);
           doneIteratingMessages(err);
         })
         f.once("end", function(err) {
@@ -297,7 +286,7 @@ Imap.prototype.listBox = function(name, limit, page, search) {
       if (err) {
         return reject(err);
       }
-      if (search && search!=undefined) {
+      if (search && search!== undefined) {
         self.client.search([["OR",["SUBJECT", search],["BODY", search]]], function(err, result){
           if (err) {
             return reject(err);
@@ -387,6 +376,9 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
       if (err) {
         return reject(err);
       }
+      if (parseInt(id) > box.messages.total) {
+        return reject(new Error("Message not found").message);
+      }
       var mail = {}
       var f = self.client.seq.fetch(id.toString(), {
         bodies : "",
@@ -421,7 +413,6 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
         msg.once("end", function(){
           var mailparser = new MailParser();
           mailparser.on("end", function(mailObject){
-            console.log(mailObject);
             mail.parsed = mailObject;
             mail.parsed.date = moment(new Date(mail.parsed.date));
             mail.parsed.receivedDate = moment(new Date(mail.parsed.receivedDate));
@@ -448,16 +439,13 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
  * @returns {Promise}
  */
 Imap.prototype.moveMessage = function(id, oldBox, newBox) {
-  console.log(id, oldBox, newBox);
   var self = this;
   return new Promise(function(resolve, reject){
     self.client.openBox(oldBox, true, function(err){
-      console.log(err);
       if (err) {
         return reject(err);
       }
       self.client.move([id.toString()], newBox, function(err){
-        console.log(err);
         if (err) {
           return reject(err);
         }
@@ -476,7 +464,6 @@ Imap.prototype.moveMessage = function(id, oldBox, newBox) {
  * @returns {Promise}
  */
 Imap.prototype.removeMessage = function(id, boxName) {
-  console.log(id);
   var self = this;
   return new Promise(function(resolve, reject){
     self.client.openBox(boxName, false, function(err){

@@ -170,7 +170,6 @@ ImapAPI.prototype.registerEndPoints = function(){
 
 ImapAPI.prototype.send = function(request, reply) {
   var realSend = function(request, reply, smtp, msg){
-    console.log(msg);
     var newMessage = composer(msg)
     newMessage.build(function(err, message){
       if (err) {
@@ -196,7 +195,6 @@ ImapAPI.prototype.send = function(request, reply) {
     var err = new Error("Token needed");
     return reply({err : err.message}).code(500);
   }
-  console.log(request.headers.token);
   // This token is a public key that encrypt credential password which has been stored in db
   // Get the public key's pair (private key) in purpose to decrypt password
   keyModel().findOne({publicKey : request.headers.token}).select().lean().exec(function(err, keyPair){
@@ -213,7 +211,6 @@ ImapAPI.prototype.send = function(request, reply) {
           return reply("No credential stored in backend").code(401);
         } else {
           // Decrypt the password
-          console.log("decrypt password");
           var password = privateKey.decrypt(result.password);
           // Mandatory option
           var options = {
@@ -226,20 +223,14 @@ ImapAPI.prototype.send = function(request, reply) {
           if (result.smtpSecure) {
             options.secure = true;
           }
-          console.log("options");
-          console.log(options);
-          console.log(result.username);
-          console.log(password);
 
           var smtp = new SMTP(options);
           smtp.connect()
             .then(function(){
-              console.log(0);
               return smtp.auth(result.username, password);
             })
             .then(function(){
               var payload = request.payload;
-              console.log(payload);
               var recipients = payload.recipients.split(";");
               var msg = {
                 from : payload.from,
@@ -328,17 +319,11 @@ var createPool = function(request, reply, credential, callback){
 var checkPool = function(request, reply, realFunc) {
   return new Promise(function(resolve, reject){
     var pool = Pool.getInstance();
-    console.log("pool map");
-    console.log(Object.keys(pool.map));
     var id = request.headers.username;
-    console.log(id);
     // Check if the pool is exist
     if (pool.map[id]) {
-      console.log("pool already exist");
-      console.log("print current pool");
       if (pool.map[id].obj.client.state == "disconnected") {
         var client = pool.get(id);
-        console.log("connecting");
         client.connect()
           .then(function(){
             realFunc(client, request, reply);
@@ -353,11 +338,8 @@ var checkPool = function(request, reply, realFunc) {
         realFunc(pool.map[id].obj, request, reply);
       }
     } else {
-      console.log("initiate new pool");
       if (request.headers.token) {
         // Pool doesn't exists, Check if there is a token in request header.
-        console.log("client has token");
-        console.log(request.headers.token);
         // This token is a public key that encrypt credential password which has been stored in db
         // Get the public key's pair (private key) in purpose to decrypt password
         keyModel().findOne({publicKey : request.headers.token}).select().lean().exec(function(err, keyPair){
@@ -381,13 +363,11 @@ var checkPool = function(request, reply, realFunc) {
                   tls : result.imapTLS
                 }
                 // Dercypt the password
-                console.log("decrypt password");
                 credential.password = privateKey.decrypt(result.password);
   
                 createPool(request, reply, credential, function(client){
                   // Recall to extend expiry time
                   var client = pool.get(id);
-                  console.log("connecting");
                   client.connect()
                     .then(function(){
                       realFunc(client, request, reply);
@@ -408,8 +388,6 @@ var checkPool = function(request, reply, realFunc) {
       } else {
         // Pool doesn't exists and there is no token in request header.
         // This must be a login request, create new pool and connect/auth.
-        console.log("client does not have token");
-        console.log(request.payload);
         if (!request.payload.username
         || !request.payload.password
         || !request.payload.imapHost
@@ -454,13 +432,9 @@ var checkPool = function(request, reply, realFunc) {
           // Recall to extend expiry time
           var client = pool.get(credential.user);
           // Make connection to IMAP server
-          console.log("connecting");
           client.connect()
             .then(function(){
-              console.log("Successfully connect");
-              console.log("Connection ready");
               // create key pair to encrypt password
-              console.log("generating key pair");
               var keys = forge.pki.rsa.generateKeyPair({bits:1024});
               var publicKey = keys.publicKey;
         
@@ -470,20 +444,15 @@ var checkPool = function(request, reply, realFunc) {
               // Public key need to be decaded to base64 for easy query later
               keyPair.publicKey = forge.util.encode64(forge.pem.decode(publicKeyPem)[0].body);
               // And private key stay in PEM format
-                console.log("private key to pem");
               keyPair.privateKey = forge.pki.privateKeyToPem(keys.privateKey);
-                console.log("save to db");
               keyModel().create(keyPair, function(err, result){
                 if (err) {
                   return reject(err);
                 }
                 // Encrypt password and save the credential to db
-                console.log("encrypt");
                 request.payload.password = publicKey.encrypt(request.payload.password);
                 request.payload.publicKey = keyPair.publicKey;
                 model().create(request.payload, function(err, result){
-                  console.log(err);
-                  console.log(result);
                   if (err) {
                     return reject(err);
                   }
@@ -555,7 +524,6 @@ ImapAPI.prototype.auth = function(request, reply) {
  */
 ImapAPI.prototype.listBox = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    console.log(request.query.boxName);
     if (!request.query.boxName || request.query.boxName == undefined) {
       var err = new Error("Missing query parameter : boxName");
       return reply({err : err.message}).code(500);
@@ -580,13 +548,11 @@ ImapAPI.prototype.getBoxes = function(request, reply) {
   var realFunc = function(client, request, reply) {
     client.getBoxes()
       .then(function(boxes){
-        console.log(boxes);
         // Circular object, need to be simplified
         var boxes = Object.keys(boxes);
         reply(boxes);
       })
       .catch(function(err){
-        console.log(err);
         reply(err);
       })
   }
@@ -620,13 +586,11 @@ ImapAPI.prototype.getSpecialBoxes = function(request, reply) {
  */
 ImapAPI.prototype.addBox = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    console.log(request.query.boxName);
     client.createBox(request.query.boxName)
       .then(function(){
         reply();
       })
       .catch(function(err){
-        console.log(err.message);
         reply({err : err.message}).code(500);
       })
   }
@@ -640,13 +604,11 @@ ImapAPI.prototype.addBox = function(request, reply) {
  */
 ImapAPI.prototype.removeBox = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    console.log(request.query.boxName);
     client.removeBox(request.query.boxName)
       .then(function(){
         reply();
       })
       .catch(function(err){
-        console.log(err.message);
         reply({err : err.message}).code(500);
       })
   }
@@ -660,13 +622,11 @@ ImapAPI.prototype.removeBox = function(request, reply) {
  */
 ImapAPI.prototype.renameBox = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    console.log(request.query.boxName);
     client.renameBox(request.query.boxName, request.query.newBoxName)
       .then(function(){
         reply();
       })
       .catch(function(err){
-        console.log(err.message);
         reply({err : err.message}).code(500);
       })
   }
@@ -680,7 +640,6 @@ ImapAPI.prototype.renameBox = function(request, reply) {
  */
 ImapAPI.prototype.retrieveMessage = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    console.log(request.query);
     client.retrieveMessage(request.query.id, request.query.boxName)
       .then(function(message){
         delete(message.original);
@@ -691,7 +650,6 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
         if (request.query.boxName.indexOf("Drafts") > -1) {
           message.isDraft = true;
           async.eachSeries(message.parsed.attachments, function(attachment, cb){
-            console.log(attachment);
             var a = {
               content : attachment.content.toString("base64"),
               timestamp : new Date()
@@ -707,7 +665,6 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
             })
           }, function(err){
             if (err) {
-              console.log(err);
               return reply({err : err.message}).code(500);
             }
             reply(message);
@@ -741,7 +698,6 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
         }
       })
       .catch(function(err){
-        console.log(err.message);
         reply({err : err.message}).code(500);
       })
   }
@@ -760,7 +716,6 @@ ImapAPI.prototype.moveMessage = function(request, reply) {
         reply();
       })
       .catch(function(err){
-        console.log(err.message);
         reply({err : err.message}).code(500);
       })
   }
@@ -781,7 +736,6 @@ ImapAPI.prototype.removeMessage = function(request, reply) {
         reply().code(200);
       })
       .catch(function(err){
-        console.log(err.message);
         reply({err : err.message}).code(500);
       })
   }
@@ -795,7 +749,6 @@ ImapAPI.prototype.removeMessage = function(request, reply) {
  */
 ImapAPI.prototype.getAttachment = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    console.log(request.query);
     attachmentModel().findOne({ messageId : request.query.messageId}).exec(function(err, result){
       if (err) {
         return reply(err).code(500);
@@ -857,7 +810,6 @@ ImapAPI.prototype.saveDraft = function(request, reply) {
           reply();
         })
         .catch(function(err){
-          console.log(err.message);
           reply({err : err.message}).code(500);
         })
     })
@@ -919,7 +871,6 @@ ImapAPI.prototype.quotaInfo = function(request, reply) {
         reply(info);
       })
     .catch(function(err){
-      console.log(err.message);
       reply({err : err.message}).code(500);
     })
   }
