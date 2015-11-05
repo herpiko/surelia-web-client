@@ -102,6 +102,9 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.cc = false;;
   self.bcc = false;
   self.newMessage = {};
+  self.isAlpha = function(str) {
+    return /^[a-zA-Z()]+$/.test(str);
+  }
   self.loading = self.ngProgressFactory.createInstance();
   
   if (self.localStorageService.get("username")) {
@@ -226,7 +229,7 @@ Message.prototype.listBox = function(boxName, opts, canceler){
       var assignedColor = [];
       for (var i in self.currentList) {
         var hash = window.objectHash(self.currentList[i].header.from[0]);
-        var index = (self.currentList[i].header.from.substr(index,1) == "\"") ? 1 : 0;
+        var index = self.isAlpha(self.currentList[i].header.from[0]) ? 0 : 1;
         self.currentList[i].avatar = self.currentList[i].header.from[index].toUpperCase();
         if (assignedColor.indexOf(hash) < 0) {
           assignedColor.push(hash);
