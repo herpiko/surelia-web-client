@@ -196,7 +196,7 @@ Imap.prototype.listBox = function(name, limit, page, search) {
         
         /* seqArray = seqs.messages.seqArray; */
         var index = seqs.messages.seqArray.indexOf(seqs.messages.seqArray[start]);
-        for (var i = index; i <= fetchLimit; i++) {
+        for (var i = index - 1; i <= fetchLimit; i++) {
           if (seqs.messages.seqArray[i]) {
             seqArray.push(seqs.messages.seqArray[i]);
           }
