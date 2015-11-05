@@ -191,14 +191,32 @@ Imap.prototype.listBox = function(name, limit, page, search) {
         start = 1;
       }
       var fetchLimit = seqs.messages.total - (limit*page-limit);
+      var seqArray = []
       if (seqs.messages.seqArray) {
-        seqArray = seqs.messages.seqArray;
+        
+        /* seqArray = seqs.messages.seqArray; */
+        var index = seqs.messages.seqArray.indexOf(seqs.messages.seqArray[start]);
+        for (var i = index - 1; i <= fetchLimit; i++) {
+          seqArray.push(seqs.messages.seqArray[i]);
+          if (seqArray.length == limit) {
+            break;
+          }
+        }
       } else {
-        var seqArray = []
         for (var i = start; i <= fetchLimit; i++) {
           seqArray.push(i);
+          if (seqArray.length == limit) {
+            break;
+          }
         }
       }
+      console.log("name" + name);
+      console.log("limit" + limit);
+      console.log("page" + page);
+      console.log("search" + search);
+      console.log("fetchLimit" + fetchLimit);
+      console.log("start" + start);
+      console.log("seqArray" + seqArray);
       async.each(seqArray, function iterator(seq, doneIteratingMessages) {
         var mail = {}
         try {
@@ -269,24 +287,33 @@ Imap.prototype.listBox = function(name, limit, page, search) {
         if (err) {
           return reject(err);
         }
-        result.reverse();
-        var obj = {
-          data : result,
-          meta : {
-            total : total,
-            limit : parseInt(limit),
-            page : parseInt(page),
-            start : start,
+        self.client.closeBox(function(err){
+          if (err) {
+            return reject(err);
           }
-        }
-        resolve(obj);
+          result.reverse();
+          var obj = {
+            data : result,
+            meta : {
+              total : total,
+              limit : parseInt(limit),
+              page : parseInt(page),
+              start : start,
+            }
+          }
+          resolve(obj);
+        })
       })
+    }
+    if (name == "search") {
+      name = "INBOX";
     }
     self.client.openBox(name, true, function(err, seqs){
       if (err) {
         return reject(err);
       }
       if (search && search!== undefined) {
+        console.log(1);
         self.client.search([["OR",["SUBJECT", search],["BODY", search]]], function(err, result){
           if (err) {
             return reject(err);
@@ -296,6 +323,7 @@ Imap.prototype.listBox = function(name, limit, page, search) {
           fetcher(seqs);
         })
       } else {
+        console.log(2);
         fetcher(seqs);
       }
     })
