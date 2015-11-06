@@ -1,5 +1,4 @@
 'use strict';
-var lodash = require("lodash");
 var mimeTypes = {
   "word" : {
     icon : "file-word-o",
@@ -127,6 +126,28 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
       self.getSpecialBoxes();
       self.ErrorHandlerService.parse(data, status);
       self.boxes = data;
+      /*
+      Trash and Drafts has different count definition.
+       - Show no count in Trash box
+       - Show total messages in Drafts
+      */
+      lodash.some(self.specialBoxes, function(box){
+        if (box && box.specialName && box.specialName.indexOf("Trash") > -1) {
+          box.meta.count = 0;
+        } 
+        if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
+          box.meta.count = box.meta.total;
+        } 
+      });
+      lodash.some(self.boxes, function(box){
+        if (box && box.boxName && box.boxName.indexOf("Trash") > -1) {
+          box.meta.count = 0;
+        } 
+        if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
+          console.log(box);
+          box.meta.count = box.meta.total;
+        } 
+      });
     })
     .error(function(data, status){
       self.loading.complete();
@@ -198,6 +219,7 @@ Message.prototype.listBoxNewer = function(){
   }
 }
 Message.prototype.listBox = function(boxName, opts, canceler){
+  opts = opts || {};
   var self = this;
   self.loading.start();
   self.view = "list";
@@ -207,6 +229,7 @@ Message.prototype.listBox = function(boxName, opts, canceler){
   } else {
     self.isDraft = false;
   }
+  // Set current box property
   var special = lodash.some(self.specialBoxes, function(box){
     if (box.path == boxName) {
       self.currentBoxName = box.specialName;
@@ -215,9 +238,9 @@ Message.prototype.listBox = function(boxName, opts, canceler){
     } 
   });
   var box = lodash.some(self.boxes, function(box){
-    if (box == boxName) {
-      self.currentBoxName = box;
-      self.currentBoxPath = box;
+    if (box.boxName == boxName) {
+      self.currentBoxName = box.boxName;
+      self.currentBoxPath = box.boxName;
       return;
     } 
   });
@@ -233,7 +256,21 @@ Message.prototype.listBox = function(boxName, opts, canceler){
       console.log(data);
       self.currentList = data.data;
       self.currentListMeta = data.meta;
-      // generate avatar
+      // Assign message count
+      lodash.some(self.specialBoxes, function(box){
+        if (box.specialName == boxName) {
+          box.meta.count = data.meta.count;
+          return;
+        } 
+      });
+      lodash.some(self.boxes, function(box){
+        if (box.boxName == boxName) {
+          box.meta.count = data.meta.count;
+          return;
+        } 
+      });
+
+      // generate avatar, unread status
       opts.limit = opts.limit || 10;
       var colors = window.randomcolor({count:opts.limit, luminosity : "dark"});
       var assignedColor = [];
@@ -247,7 +284,11 @@ Message.prototype.listBox = function(boxName, opts, canceler){
         } else {
           self.currentList[i].color = colors[assignedColor.indexOf(hash)];
         }
-
+        self.currentList[i].unread = false;
+        console.log(self.currentList[i].attributes.flags.indexOf("\\Seen"));
+        if (self.currentList[i].attributes.flags.indexOf("\\Seen") < 0) {
+          self.currentList[i].unread = true;
+        }
       }
       // calculate pagination nav
       var meta = self.currentListMeta;
@@ -322,13 +363,31 @@ Message.prototype.deleteBox = function(boxName){
     })
 }
 
-Message.prototype.retrieveMessage = function(id, boxName){
+Message.prototype.retrieveMessage = function(id, boxName, isUnread){
   var self = this;
   self.loading.start();
   console.log("retrieve message");
   self.ImapService.retrieveMessage(id, boxName, true)
     .then(function(data){
       self.loading.complete();
+      // If it is an unread message, decrease unread count in current box
+      if (isUnread) {
+        lodash.some(self.specialBoxes, function(box){
+          if (box && box.specialName && box.specialName.indexOf(boxName) > -1) {
+            box.meta.count--;
+          } 
+        });
+        lodash.some(self.boxes, function(box){
+          if (box && box.boxName && box.boxName.indexOf(boxName) > -1) {
+            box.meta.count--;
+          } 
+        });
+        lodash.some(self.currentList, function(message){
+          if (message.seq == id) {
+            message.unread = false;
+          } 
+        });
+      }
       console.log(data);
       if (boxName.indexOf("Drafts") > -1) {
         console.log("This is a draft");

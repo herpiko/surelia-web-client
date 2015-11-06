@@ -155,13 +155,40 @@ Imap.prototype.getSpecialBoxes = function() {
 
 Imap.prototype.getBoxes = function() {
   var self = this;
+  var result = [];
   return new Promise(function(resolve, reject){
     self.client.getBoxes(function(err, boxes){
       if (err) {
         return reject(err);
       }
       self.boxes = boxes;
-      resolve(boxes);
+      // Circular object, need to be simplified
+      var boxes = Object.keys(boxes);
+      async.eachSeries(boxes, function(box, cb){
+        self.client.openBox(box, true, function(err, seqs){
+          if (err) {
+            return reject(err);
+          }
+          var obj = {
+            boxName : box,
+          }
+          if (seqs.messages) {
+            obj.meta = seqs.messages;
+          }
+          result.push(obj);
+          self.client.closeBox(function(err){
+            if (err) {
+              return reject(err);
+            }
+            cb();
+          })
+        })
+      }, function(err){
+        if (err) {
+          return reject(err);
+        }
+        resolve(result);
+      })
     })
   })
 }
@@ -181,12 +208,18 @@ Imap.prototype.listBox = function(name, limit, page, search) {
   var limit = limit || 10;
   var page = page || 1;
   var total;
+  var unread;
   var isSearch = false;
+  var isDraft = false;
+  if (name.indexOf("Drafts") > -1) {
+    isDraft = true;
+  }
   return new Promise(function(resolve, reject){
     var bodies = "HEADER.FIELDS (FROM TO SUBJECT DATE)";
     var result = [];
     var fetcher = function(seqs){
       var total = seqs.messages.total;
+      unread = seqs.messages.new;
       var start = total - page * limit + 1;
       if (start < 0) {
         start = 1;
@@ -288,21 +321,33 @@ Imap.prototype.listBox = function(name, limit, page, search) {
         if (err) {
           return reject(err);
         }
-        self.client.closeBox(function(err){
+        // Count the unread mail
+        self.client.search(["UNSEEN"], function(err, unread){
           if (err) {
             return reject(err);
           }
-          result.reverse();
-          var obj = {
-            data : result,
-            meta : {
-              total : total,
-              limit : parseInt(limit),
-              page : parseInt(page),
-              start : start,
+          var unread = unread.length;
+          self.client.closeBox(function(err){
+            if (err) {
+              return reject(err);
             }
-          }
-          resolve(obj);
+            result.reverse();
+            var obj = {
+              data : result,
+              meta : {
+                total : total,
+                limit : parseInt(limit),
+                page : parseInt(page),
+                start : start,
+              }
+            }
+            if (isDraft) {
+              obj.meta.count = total;
+            } else {
+              obj.meta.count = unread;
+            }
+            resolve(obj);
+          })
         })
       })
     }
@@ -401,11 +446,12 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
   return new Promise(function(resolve, reject){
     var result = [];
     var isSearch = false;
+    var isSearch = false;
     if (boxName == "search") {
       boxName = "INBOX";
       isSearch = true;
     }
-    self.client.openBox(boxName, true, function(err, box){
+    self.client.openBox(boxName, false, function(err, box){
       if (err) {
         return reject(err);
       }
@@ -465,7 +511,22 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
             mail.parsed.date = moment(new Date(mail.parsed.date));
             mail.parsed.receivedDate = moment(new Date(mail.parsed.receivedDate));
             mail.boxName = (isSearch) ? "search" : boxName;
-            resolve(mail);
+            // flag it as SEEN
+            if (isSearch) {
+              self.client.addFlags(id.toString(), ["\\Seen"], function(err){
+                if (err) {
+                  return reject(err);
+                }
+                resolve(mail);
+              }); 
+            } else {
+              self.client.seq.addFlags(id.toString(), ["\\Seen"], function(err){
+                if (err) {
+                  return reject(err);
+                }
+                resolve(mail);
+              }); 
+            }
           })
           mailparser.write(mail.original);
           mailparser.end();
