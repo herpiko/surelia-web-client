@@ -163,26 +163,30 @@ Imap.prototype.getBoxes = function() {
       }
       self.boxes = boxes;
       // Circular object, need to be simplified
-      var boxes = Object.keys(boxes);
-      async.eachSeries(boxes, function(box, cb){
-        self.client.openBox(box, true, function(err, seqs){
-          if (err) {
-            return reject(err);
-          }
-          var obj = {
-            boxName : box,
-          }
-          if (seqs.messages) {
-            obj.meta = seqs.messages;
-          }
-          result.push(obj);
-          self.client.closeBox(function(err){
+      var boxNames = Object.keys(boxes);
+      async.eachSeries(boxNames, function(box, cb){
+        if (boxes[box].attribs.indexOf("\\Noselect") > -1) {
+          cb();
+        } else {
+          self.client.openBox(box, true, function(err, seqs){
             if (err) {
-              return reject(err);
+              return cb(err);
             }
-            cb();
+            var obj = {
+              boxName : box,
+            }
+            if (seqs.messages) {
+              obj.meta = seqs.messages;
+            }
+            result.push(obj);
+            self.client.closeBox(function(err){
+              if (err) {
+                return cb(err);
+              }
+              cb();
+            })
           })
-        })
+        }
       }, function(err){
         if (err) {
           return reject(err);
