@@ -551,8 +551,6 @@ ImapAPI.prototype.getBoxes = function(request, reply) {
   var realFunc = function(client, request, reply) {
     client.getBoxes()
       .then(function(boxes){
-        // Circular object, need to be simplified
-        var boxes = Object.keys(boxes);
         reply(boxes);
       })
       .catch(function(err){
