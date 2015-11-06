@@ -123,24 +123,17 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
       self.listBox("INBOX", opts);
       self.currentBoxName = "INBOX";
       self.currentBoxPath = "INBOX";
-      self.getSpecialBoxes();
       self.ErrorHandlerService.parse(data, status);
       self.boxes = data;
       /*
-      Trash and Drafts has different count definition.
-       - Show no count in Trash box
+      Trash, Sent and Drafts has different message count definition.
+       - Show no count in Trash and Sent box
        - Show total messages in Drafts
       */
-      window.lodash.some(self.specialBoxes, function(box){
-        if (box && box.specialName && box.specialName.indexOf("Trash") > -1) {
-          box.meta.count = 0;
-        } 
-        if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
-          box.meta.count = box.meta.total;
-        } 
-      });
       window.lodash.some(self.boxes, function(box){
-        if (box && box.boxName && box.boxName.indexOf("Trash") > -1) {
+        if (box && box.boxName && 
+          (box.boxName.indexOf("Trash") > -1 || box.boxName.indexOf("Sent") > -1 )
+        ) {
           box.meta.count = 0;
         } 
         if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
@@ -148,6 +141,26 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
           box.meta.count = box.meta.total;
         } 
       });
+      self.ImapService.getSpecialBoxes()
+        .success(function(data, status){
+          self.loading.complete();
+          self.specialBoxes = data;
+          window.lodash.some(self.specialBoxes, function(box){
+            if (box && box.specialName && 
+              (box.specialName.indexOf("Trash") > -1 || box.specialName.indexOf("Sent") > -1 )
+            ) {
+              box.meta.count = 0;
+            } 
+            if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
+              box.meta.count = box.meta.total;
+            } 
+          });
+        })
+        .error(function(data, status){
+          self.loading.complete();
+          console.log(data, status);
+          self.ErrorHandlerService.parse(data, status);
+        })
     })
     .error(function(data, status){
       self.loading.complete();
@@ -178,18 +191,6 @@ Message.prototype.getBoxes = function(){
       self.loading.complete();
       console.log(data, status);
       self.ErrorHandlerService.parse(data, status);
-    })
-}
-Message.prototype.getSpecialBoxes = function(){
-  var self = this;
-  console.log("special boxes");
-  self.ImapService.getSpecialBoxes()
-    .success(function(data){
-      console.log(data);
-      self.specialBoxes = data;
-    })
-    .error(function(data, status){
-      console.log(data, status);
     })
 }
 

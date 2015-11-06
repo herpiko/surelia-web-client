@@ -585,7 +585,7 @@ ImapAPI.prototype.getSpecialBoxes = function(request, reply) {
         reply(specials);
       })
       .catch(function(err){
-        return reply(err);
+        return reply(err.message);
       })
   }
 
