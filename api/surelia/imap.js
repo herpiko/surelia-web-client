@@ -141,7 +141,22 @@ Imap.prototype.getSpecialBoxes = function() {
             }
           }
         })
-        resolve(specials)
+        async.eachSeries(specials, function(box, cb){
+          self.client.openBox(box.path, true, function(err, seqs){
+            if (err) {
+              return cb(err);
+            }
+            if (seqs.messages) {
+              box.meta = seqs.messages;
+            }
+            cb();
+          })
+        }, function(err){
+          if (err) {
+            return reject(err);
+          }
+          resolve(specials)
+        })
       })
     })
   })
