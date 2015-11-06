@@ -131,7 +131,7 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
        - Show no count in Trash box
        - Show total messages in Drafts
       */
-      lodash.some(self.specialBoxes, function(box){
+      window.lodash.some(self.specialBoxes, function(box){
         if (box && box.specialName && box.specialName.indexOf("Trash") > -1) {
           box.meta.count = 0;
         } 
@@ -139,7 +139,7 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
           box.meta.count = box.meta.total;
         } 
       });
-      lodash.some(self.boxes, function(box){
+      window.lodash.some(self.boxes, function(box){
         if (box && box.boxName && box.boxName.indexOf("Trash") > -1) {
           box.meta.count = 0;
         } 
@@ -230,14 +230,14 @@ Message.prototype.listBox = function(boxName, opts, canceler){
     self.isDraft = false;
   }
   // Set current box property
-  var special = lodash.some(self.specialBoxes, function(box){
+  var special = window.lodash.some(self.specialBoxes, function(box){
     if (box.path == boxName) {
       self.currentBoxName = box.specialName;
       self.currentBoxPath = box.path;
       return;
     } 
   });
-  var box = lodash.some(self.boxes, function(box){
+  var box = window.lodash.some(self.boxes, function(box){
     if (box.boxName == boxName) {
       self.currentBoxName = box.boxName;
       self.currentBoxPath = box.boxName;
@@ -257,13 +257,13 @@ Message.prototype.listBox = function(boxName, opts, canceler){
       self.currentList = data.data;
       self.currentListMeta = data.meta;
       // Assign message count
-      lodash.some(self.specialBoxes, function(box){
+      window.lodash.some(self.specialBoxes, function(box){
         if (box.specialName == boxName) {
           box.meta.count = data.meta.count;
           return;
         } 
       });
-      lodash.some(self.boxes, function(box){
+      window.lodash.some(self.boxes, function(box){
         if (box.boxName == boxName) {
           box.meta.count = data.meta.count;
           return;
@@ -372,17 +372,18 @@ Message.prototype.retrieveMessage = function(id, boxName, isUnread){
       self.loading.complete();
       // If it is an unread message, decrease unread count in current box
       if (isUnread) {
-        lodash.some(self.specialBoxes, function(box){
+        window.lodash.some(self.specialBoxes, function(box){
           if (box && box.specialName && box.specialName.indexOf(boxName) > -1) {
             box.meta.count--;
           } 
         });
-        lodash.some(self.boxes, function(box){
+        window.lodash.some(self.boxes, function(box){
           if (box && box.boxName && box.boxName.indexOf(boxName) > -1) {
             box.meta.count--;
           } 
         });
-        lodash.some(self.currentList, function(message){
+        // Set as already read
+        window.lodash.some(self.currentList, function(message){
           if (message.seq == id) {
             message.unread = false;
           } 
@@ -416,8 +417,8 @@ Message.prototype.retrieveMessage = function(id, boxName, isUnread){
           for (var i = 0; i < attachments.length;i++) {
             self.currentMessage.parsed.attachments[i].index = i;
             self.currentMessage.parsed.attachments[i].size = self.formatBytes(attachments[i].length);
-            lodash.some(mimeTypes, function(mime){
-              var matched = lodash.some(mime.type, function(type){
+            window.lodash.some(mimeTypes, function(mime){
+              var matched = window.lodash.some(mime.type, function(type){
                 return type === attachments[i].contentType;
               });
               if (matched) {
@@ -510,29 +511,44 @@ Message.prototype.sendMessage = function(msg){
   self.compose = false;
   self.loading.start();
   console.log("send message");
-  self.ImapService.sendMessage(msg)
+  var paths = {};
+  if (self.specialBoxes.Drafts && self.specialBoxes.Drafts.path) {
+    paths.draft = self.specialBoxes.Drafts.path;
+  } else {
+    paths.draft = "Drafts";
+  }
+  if (self.specialBoxes.Sent && self.specialBoxes.Sent.path) {
+    paths.sent = self.specialBoxes.Sent.path;
+  } else {
+    paths.sent = "Sent";
+  }
+  var seq = msg.seq || undefined;
+  self.ImapService.sendMessage(msg, paths, seq)
     .success(function(data){
       console.log(data);
       self.view = "list";
-      if (msg.seq && msg.messageId) {
-        var draftPath;
-        if (self.specialBoxes.Drafts && self.specialBoxes.Drafts.path) {
-          draftPath = self.specialBoxes.Drafts.path;
-        } else {
-          draftPath = "Drafts";
-        }
-        self.ImapService.removeMessage(msg.seq, msg.messageId, draftPath)
-          .success(function(data, status, header){
-            self.listBox(draftPath);
-            self.loading.complete();
-            self.ToastrService.sent();
-          })
-          .error(function(data, status, header){
-            self.loading.complete();
-          })
-      } else {
-        self.loading.complete();
+      self.loading.complete();
+      self.ToastrService.sent();
+      // Remove it immediately from draft scope
+      if (msg.seq) {
+        window.lodash.remove(self.currentList, function(message){
+          return message.seq == msg.seq;
+        });
       }
+      // Decrease draft count
+      window.lodash.some(self.boxes, function(box){
+        if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
+          box.meta.count--;
+          return;
+        } 
+      });
+      window.lodash.some(self.specialBoxes, function(box){
+        if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
+          box.meta.count--;
+          return;
+        } 
+      });
+       
     })
     .error(function(data, status){
       self.loading.complete();
@@ -737,7 +753,7 @@ Message.prototype.uploadFiles = function(files, errFiles) {
         var data = b64[0].split(",")[1];
         self.ImapService.uploadAttachment(data)
           .then(function(result){
-            lodash.some(self.newMessage.attachments, function(attachment){
+            window.lodash.some(self.newMessage.attachments, function(attachment){
               console.log(attachment);
               if (attachment.filename == file.name) {
                 attachment.attachmentId = result.attachmentId;
@@ -747,7 +763,7 @@ Message.prototype.uploadFiles = function(files, errFiles) {
             })
           })
           .catch(function(data){
-            lodash.some(self.newMessage.attachments, function(attachment){
+            window.lodash.some(self.newMessage.attachments, function(attachment){
               if (attachment.filename == file.filename) {
                 attachment.progress = "failed";
               }

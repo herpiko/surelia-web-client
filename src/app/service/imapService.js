@@ -346,10 +346,17 @@ ImapService.prototype.logout = function(username, token) {
   }
   return self.$http(req)
 }
+/**
+ * Send message
+ *
+ */
 
-ImapService.prototype.sendMessage = function(msg) {
+ImapService.prototype.sendMessage = function(msg, paths, seq) {
   var self = this;
-  var path = "/api/1.0/send";
+  var path = "/api/1.0/send?sentPath=" + paths.sent + "&draftPath=" + paths.draft;
+  if (seq) {
+    path += "&seq=" + seq;
+  }
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
   var req = {
