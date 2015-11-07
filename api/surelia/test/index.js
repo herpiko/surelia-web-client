@@ -1,6 +1,7 @@
 require('events').EventEmitter.prototype._maxListeners = 100;
 var server = require(__dirname + "/../../../lib/server");
 var should = require("should");
+var lodash = require("lodash");
 var composer = require("mailcomposer");
 var hoodiecrow = require("hoodiecrow"),
     inspect = require('util').inspect;
@@ -107,13 +108,6 @@ var credentials = {
   host : "localhost",
   port : 1143,
   tls : false
-
-  // Gmail configuration
-  /* user : "someone@gmail.com", */
-  /* password : "justapassword", */
-  /* host : "imap.gmail.com", */
-  /* port : 993, */
-  /* tls : true */
 }
 var mail = new Imap(credentials);
 
@@ -122,7 +116,8 @@ var smtp,
   token, 
   newMailBox, 
   newMailBox2, 
-  draftsPath;
+  draftsPath,
+  trashPath;
 
 var Mailback = require('mailback');
 var onMessage = function(err, message) {
@@ -281,9 +276,10 @@ hoodiecrowServer.listen(1143, function(){
           .then(function(){
             return mail.getBoxes()
           }).then(function(boxes){
-            should(boxes.NEWMAILBOX.delimiter).equal("/");
-            should(boxes.NEWMAILBOX.parent).equal(null);
-            should(boxes.NEWMAILBOX.children).equal(null);
+            var shouldBeTrue = lodash.some(boxes, function(box){
+              return box.boxName == "NEWMAILBOX";
+            })
+            should(shouldBeTrue).equal(true);
             done();
           }).catch(function(err) {
             return done(err);
@@ -294,9 +290,10 @@ hoodiecrowServer.listen(1143, function(){
           .then(function(){
             return mail.getBoxes()
           }).then(function(boxes){
-            should(boxes.NEWBOX.delimiter).equal("/");
-            should(boxes.NEWBOX.parent).equal(null);
-            should(boxes.NEWBOX.children).equal(null);
+            var shouldBeTrue = lodash.some(boxes, function(box){
+              return box.boxName == "NEWBOX";
+            })
+            should(shouldBeTrue).equal(true);
             done();
           }).catch(function(err) {
             return done(err);
@@ -378,16 +375,13 @@ hoodiecrowServer.listen(1143, function(){
         })
       });
       it("should be able to remove a message to Trash", function(done) {
-        mail.removeMessage(1, "INBOX")
+        mail.removeMessage(1, "SOMEBOX")
           .then(function(){
-            return mail.listBox(mail.specials.Trash.path)
-        }).then(function(result){
-            should(result.data[0].attributes.uid).equal(1);
-            should(result.data[0].header.from).equal("sender name <sender@example.com>");
             done();
-        }).catch(function(err) {
-          return done(err);
-        })
+          })
+          .catch(function(err) {
+            return done(err);
+          })
       });
       it("should be able to create new email message in draft box", function(done) {
         var newMail = composer({
@@ -524,7 +518,10 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
-        should(response.result.indexOf("[Gmail]")).greaterThan(-1);
+        var shouldBeTrue = lodash.some(response.result, function(box){
+          return box.boxName == "INBOX";
+        })
+        should(shouldBeTrue).equal(true);
         done();
       })
     })
@@ -543,6 +540,7 @@ hoodiecrowServer.listen(1143, function(){
         should(response.result.Junk.path).equal("[Gmail]/Spam");
         should(response.result.Trash.path).equal("[Gmail]/Trash");
         draftsPath = response.result.Drafts.path;
+        trashPath = response.result.Trash.path;
         done();
       })
     })
@@ -591,7 +589,10 @@ hoodiecrowServer.listen(1143, function(){
             username : process.env.TEST_SMTP_USERNAME
           }
         }, function(response){
-          should(response.result.indexOf(newMailBox)).greaterThan(-1);
+          var shouldBeTrue = lodash.some(response.result, function(box){
+            return box.boxName == newMailBox;
+          })
+          should(shouldBeTrue).equal(true);
           done();
         })
       })
@@ -628,8 +629,14 @@ hoodiecrowServer.listen(1143, function(){
             username : process.env.TEST_SMTP_USERNAME
           }
         }, function(response){
-          should(response.result.indexOf(newMailBox)).equal(-1);
-          should(response.result.indexOf(newMailBox2)).greaterThan(-1);
+          var shouldBeFalse = lodash.some(response.result, function(box){
+            return box.boxName == newMailBox;
+          })
+          should(shouldBeFalse).equal(false);
+          var shouldBeTrue = lodash.some(response.result, function(box){
+            return box.boxName == newMailBox2;
+          })
+          should(shouldBeTrue).equal(true);
           done();
         })
       })
@@ -707,15 +714,36 @@ hoodiecrowServer.listen(1143, function(){
     })
     it("Should be able to remove a message", function(done){
       server.inject({
-        method: "DELETE",
-        url : "/api/1.0/message?seq=1&boxName=" + draftsPath,
+        method: "GET",
+        url : "/api/1.0/list-box?boxName=INBOX",
         headers : {
           token : token,
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
+        console.log(response.result.meta.total);
         should(response.statusCode).equal(200);
-        done();
+        server.inject({
+          method: "DELETE",
+          url : "/api/1.0/message?seq=1&boxName=INBOX",
+          headers : {
+            token : token,
+            username : process.env.TEST_SMTP_USERNAME
+          }
+        }, function(response){
+          should(response.statusCode).equal(200);
+          server.inject({
+            method: "GET",
+            url : "/api/1.0/list-box?boxName=INBOX",
+            headers : {
+              token : token,
+              username : process.env.TEST_SMTP_USERNAME
+            }
+          }, function(response){
+            console.log(response.result.meta.total);
+            done();
+          })
+        })
       })
     })
     it("Should be able to remove existing mail box", function(done){

@@ -195,9 +195,8 @@ Imap.prototype.getBoxes = function() {
             }
             result.push(obj);
             self.client.closeBox(function(err){
-              if (err) {
-                return cb(err);
-              }
+              // do not check closeBox's error
+              // If it does not allowed now, go on
               cb();
             })
           })
@@ -347,9 +346,8 @@ Imap.prototype.listBox = function(name, limit, page, search) {
           }
           var unread = unread.length;
           self.client.closeBox(function(err){
-            if (err) {
-              return reject(err);
-            }
+            // do not check closeBox's error
+            // If it does not allowed now, go on
             result.reverse();
             var obj = {
               data : result,
