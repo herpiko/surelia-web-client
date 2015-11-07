@@ -268,13 +268,19 @@ Message.prototype.listBox = function(boxName, opts, canceler){
       self.currentListMeta = data.meta;
       // Assign message count
       window.lodash.some(self.specialBoxes, function(box){
-        if (box.specialName == boxName) {
+        if (box.specialName == boxName && 
+          boxName.indexOf("Trash") < 0 && 
+          boxName.indexOf("Sent") < 0
+        ) {
           box.meta.count = data.meta.count;
           return;
         } 
       });
       window.lodash.some(self.boxes, function(box){
-        if (box.boxName == boxName) {
+        if (box.boxName == boxName &&
+          boxName.indexOf("Trash") < 0 && 
+          boxName.indexOf("Sent") < 0
+        ) {
           box.meta.count = data.meta.count;
           return;
         } 
@@ -312,7 +318,11 @@ Message.prototype.listBox = function(boxName, opts, canceler){
       } else {
         self.currentListMeta.older = false;
       }
-      self.currentListMeta.listStart = (meta.page * meta.limit) - (meta.limit - 1);
+      if (meta.total > 0) {
+        self.currentListMeta.listStart = (meta.page * meta.limit) - (meta.limit - 1);
+      } else {
+        self.currentListMeta.listStart = 0;
+      }
       if (self.currentListMeta.listStart + meta.limit > meta.total) {
         self.currentListMeta.listEnd = meta.total;
       } else {
