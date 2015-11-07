@@ -404,7 +404,7 @@ Message.prototype.retrieveMessage = function(id, boxName, isUnread){
         var html = "";
         if (self.currentMessage.parsed.html) {
           console.log("html");
-          html = self.currentMessage.parsed.html;
+          html = "<div>" + self.currentMessage.parsed.html + "</div>";
         } else {
           console.log("text");
           html = "<pre>" + self.currentMessage.parsed.text + "</pre>";
@@ -677,14 +677,26 @@ Message.prototype.saveDraft = function(){
         if (msg.seq && msg.messageId) {
           self.ImapService.removeMessage(msg.seq, msg.messageId, draftPath)
             .success(function(data, status, header){
-              self.listBox(draftPath);
-              self.loading.complete();
+              self.listBox(draftPath, {}, true);
             })
             .error(function(data, status, header){
               self.loading.complete();
             })
         } else {
-          self.loading.complete();
+          self.listBox(draftPath, {}, true);
+          // Increase draft count
+          window.lodash.some(self.boxes, function(box){
+            if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
+              box.meta.count++;
+              return;
+            } 
+          });
+          window.lodash.some(self.specialBoxes, function(box){
+            if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
+              box.meta.count++;
+              return;
+            } 
+          });
         }
       })
       .error(function(data, status, header){
