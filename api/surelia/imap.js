@@ -149,7 +149,11 @@ Imap.prototype.getSpecialBoxes = function() {
             if (seqs.messages) {
               box.meta = seqs.messages;
             }
-            cb();
+            self.client.closeBox(function(err){
+              // Do not check closeBox's error
+              // If it does not allowed now, go on
+              cb();
+            })
           })
         }, function(err){
           if (err) {
@@ -195,9 +199,8 @@ Imap.prototype.getBoxes = function() {
             }
             result.push(obj);
             self.client.closeBox(function(err){
-              if (err) {
-                return cb(err);
-              }
+              // Do not check closeBox's error
+              // If it does not allowed now, go on
               cb();
             })
           })
@@ -240,7 +243,7 @@ Imap.prototype.listBox = function(name, limit, page, search) {
       var total = seqs.messages.total;
       unread = seqs.messages.new;
       var start = total - page * limit + 1;
-      if (start < 0) {
+      if (start < 1) {
         start = 1;
       }
       var fetchLimit = seqs.messages.total - (limit*page-limit);
@@ -347,9 +350,8 @@ Imap.prototype.listBox = function(name, limit, page, search) {
           }
           var unread = unread.length;
           self.client.closeBox(function(err){
-            if (err) {
-              return reject(err);
-            }
+            // Do not check closeBox's error
+            // If it does not allowed now, go on
             result.reverse();
             var obj = {
               data : result,
@@ -597,31 +599,37 @@ Imap.prototype.moveMessage = function(id, oldBox, newBox) {
 Imap.prototype.removeMessage = function(id, boxName) {
   var self = this;
   return new Promise(function(resolve, reject){
-    self.client.openBox(boxName, false, function(err){
-      if (err) {
-        return reject(err);
-      }
-      self.getSpecialBoxes()
-        .then(function(specials){
+    self.getSpecialBoxes()
+      .then(function(specials){
+        self.client.openBox(boxName, false, function(err){
+          if (err) {
+            return reject(err);
+          }
           if (specials.Trash && specials.Trash.path) {
             self.client.seq.move(id.toString(), specials.Trash.path, function(err, code){
               if (err) {
                 return reject(err);
               }
-              resolve();
+              self.client.closeBox(function(err){
+                // Do not check closeBox's error, if it does not allowed now, go on
+                resolve();
+              })
             });
           } else {
             self.client.seq.move(id.toString(), "Trash", function(err, code){
               if (err) {
                 return reject(err);
               }
-              resolve();
+              self.client.closeBox(function(err){
+                // Do not check closeBox's error, if it does not allowed now, go on
+                resolve();
+              })
             });
           }
-        })
-        .catch(function(err){
-          return reject(err);
-        })
+      })
+      .catch(function(err){
+        return reject(err);
+      })
     })
   })
 }
