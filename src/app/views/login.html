@@ -1,15 +1,8 @@
 <div ng-controller="LoginCtrl as login">
   <h4>Login</h4>
-  <input ng-model="credential.username" placeholder="username"></input>
-  <br><input ng-model="credential.password" placeholder="password"></input>
-  <!--br>IMAP configuration<br>
-  <br><input ng-model="credential.imapHost" placeholder="host"></input>
-  <br><input ng-model="credential.imapPort" placeholder="port"></input>
-  <br><input ng-model="credential.imapTLS" placeholder="tls"></input>
-  <br>SMTP configuration<br>
-  <input ng-model="credential.smtpHost" placeholder="host"></input><br>
-  <input ng-model="credential.smtpPort" placeholder="port"></input><br>
-  <input ng-model="credential.smtpTLS" placeholder="tls"></input><br>
-  <input ng-model="credential.smtpSecure" placeholder="secure"></input><br-->
-  <br><button ng-click="login.auth(credential)">Login</button>
+  <form ng-click="login.auth(credential)">
+    <input ng-model="credential.username" placeholder="username"></input>
+    <br><input ng-model="credential.password" placeholder="password"></input>
+    <br><button type="submit">Login</button>
+  </form>
 </div>
