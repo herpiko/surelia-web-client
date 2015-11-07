@@ -137,7 +137,16 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
           box.meta.count = 0;
         } 
         if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
-          console.log(box);
+          box.meta.count = box.meta.total;
+        } 
+      });
+      window.lodash.some(self.specialBoxes, function(box){
+        if (box && box.boxName && 
+          (box.boxName.indexOf("Trash") > -1 || box.boxName.indexOf("Sent") > -1 )
+        ) {
+          box.meta.count = 0;
+        } 
+        if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
           box.meta.count = box.meta.total;
         } 
       });
