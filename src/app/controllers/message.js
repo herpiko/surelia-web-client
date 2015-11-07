@@ -383,10 +383,13 @@ Message.prototype.deleteBox = function(boxName){
     })
 }
 
-Message.prototype.retrieveMessage = function(id, boxName, isUnread){
+Message.prototype.retrieveMessage = function(id, boxName){
   var self = this;
   self.loading.start();
   console.log("retrieve message");
+  var isUnread = lodash.some(self.currentList, function(message){
+    return message.seq == id;
+  })
   self.ImapService.retrieveMessage(id, boxName, true)
     .then(function(data){
       self.loading.complete();
@@ -576,7 +579,7 @@ Message.prototype.sendMessage = function(msg){
     })
 }
 
-Message.prototype.removeMessage = function(seq, messageId, boxName, toastr){
+Message.prototype.removeMessage = function(seq, messageId, boxName){
   var self = this;
   self.loading.start();
   console.log("remove message");
@@ -590,9 +593,7 @@ Message.prototype.removeMessage = function(seq, messageId, boxName, toastr){
           self.currentList.splice(i, 1); 
         }
       }
-      if (toastr) {
-        self.ToastrService.deleted();
-      }
+      self.ToastrService.deleted();
       self.view = "list";
       self.listBox("INBOX");
     })
