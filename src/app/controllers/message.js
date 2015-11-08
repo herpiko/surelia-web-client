@@ -1,5 +1,4 @@
 'use strict';
-var lodash = require("lodash");
 var mimeTypes = {
   "word" : {
     icon : "file-word-o",
@@ -124,9 +123,64 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
       self.listBox("INBOX", opts);
       self.currentBoxName = "INBOX";
       self.currentBoxPath = "INBOX";
-      self.getSpecialBoxes();
       self.ErrorHandlerService.parse(data, status);
-      self.boxes = data;
+      // short boxes
+      self.boxes = [];
+      var shortedEnums = ["INBOX", "Draft", "Sent", "Junk", "Trash"];
+      window.async.eachSeries(shortedEnums, function(boxName, cb){
+        lodash.some(data, function(box){
+          if (box.boxName.indexOf(boxName) > -1) {
+            self.boxes.push(box);
+          }
+        })
+        cb();
+      }, function(err){
+        /*
+        Trash, Sent and Drafts has different message count definition.
+         - Show no count in Trash and Sent box
+         - Show total messages in Drafts
+        */
+        window.lodash.some(self.boxes, function(box){
+          if (box && box.boxName && 
+            (box.boxName.indexOf("Trash") > -1 || box.boxName.indexOf("Sent") > -1 )
+          ) {
+            box.meta.count = 0;
+          } 
+          if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
+            box.meta.count = box.meta.total;
+          } 
+        });
+        window.lodash.some(self.specialBoxes, function(box){
+          if (box && box.boxName && 
+            (box.boxName.indexOf("Trash") > -1 || box.boxName.indexOf("Sent") > -1 )
+          ) {
+            box.meta.count = 0;
+          } 
+          if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
+            box.meta.count = box.meta.total;
+          } 
+        });
+      })
+      self.ImapService.getSpecialBoxes()
+        .success(function(data, status){
+          self.loading.complete();
+          self.specialBoxes = data;
+          window.lodash.some(self.specialBoxes, function(box){
+            if (box && box.specialName && 
+              (box.specialName.indexOf("Trash") > -1 || box.specialName.indexOf("Sent") > -1 )
+            ) {
+              box.meta.count = 0;
+            } 
+            if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
+              box.meta.count = box.meta.total;
+            } 
+          });
+        })
+        .error(function(data, status){
+          self.loading.complete();
+          console.log(data, status);
+          self.ErrorHandlerService.parse(data, status);
+        })
     })
     .error(function(data, status){
       self.loading.complete();
@@ -159,18 +213,6 @@ Message.prototype.getBoxes = function(){
       self.ErrorHandlerService.parse(data, status);
     })
 }
-Message.prototype.getSpecialBoxes = function(){
-  var self = this;
-  console.log("special boxes");
-  self.ImapService.getSpecialBoxes()
-    .success(function(data){
-      console.log(data);
-      self.specialBoxes = data;
-    })
-    .error(function(data, status){
-      console.log(data, status);
-    })
-}
 
 Message.prototype.listBoxOlder = function(){
   var self = this;
@@ -198,6 +240,7 @@ Message.prototype.listBoxNewer = function(){
   }
 }
 Message.prototype.listBox = function(boxName, opts, canceler){
+  opts = opts || {};
   var self = this;
   self.loading.start();
   self.view = "list";
@@ -207,17 +250,18 @@ Message.prototype.listBox = function(boxName, opts, canceler){
   } else {
     self.isDraft = false;
   }
-  var special = lodash.some(self.specialBoxes, function(box){
+  // Set current box property
+  var special = window.lodash.some(self.specialBoxes, function(box){
     if (box.path == boxName) {
       self.currentBoxName = box.specialName;
       self.currentBoxPath = box.path;
       return;
     } 
   });
-  var box = lodash.some(self.boxes, function(box){
-    if (box == boxName) {
-      self.currentBoxName = box;
-      self.currentBoxPath = box;
+  var box = window.lodash.some(self.boxes, function(box){
+    if (box.boxName == boxName) {
+      self.currentBoxName = box.boxName;
+      self.currentBoxPath = box.boxName;
       return;
     } 
   });
@@ -233,7 +277,27 @@ Message.prototype.listBox = function(boxName, opts, canceler){
       console.log(data);
       self.currentList = data.data;
       self.currentListMeta = data.meta;
-      // generate avatar
+      // Assign message count
+      window.lodash.some(self.specialBoxes, function(box){
+        if (box.specialName == boxName && 
+          boxName.indexOf("Trash") < 0 && 
+          boxName.indexOf("Sent") < 0
+        ) {
+          box.meta.count = data.meta.count;
+          return;
+        } 
+      });
+      window.lodash.some(self.boxes, function(box){
+        if (box.boxName == boxName &&
+          boxName.indexOf("Trash") < 0 && 
+          boxName.indexOf("Sent") < 0
+        ) {
+          box.meta.count = data.meta.count;
+          return;
+        } 
+      });
+
+      // generate avatar, unread status
       opts.limit = opts.limit || 10;
       var colors = window.randomcolor({count:opts.limit, luminosity : "dark"});
       var assignedColor = [];
@@ -247,7 +311,11 @@ Message.prototype.listBox = function(boxName, opts, canceler){
         } else {
           self.currentList[i].color = colors[assignedColor.indexOf(hash)];
         }
-
+        self.currentList[i].unread = false;
+        console.log(self.currentList[i].attributes.flags.indexOf("\\Seen"));
+        if (self.currentList[i].attributes.flags.indexOf("\\Seen") < 0) {
+          self.currentList[i].unread = true;
+        }
       }
       // calculate pagination nav
       var meta = self.currentListMeta;
@@ -261,7 +329,11 @@ Message.prototype.listBox = function(boxName, opts, canceler){
       } else {
         self.currentListMeta.older = false;
       }
-      self.currentListMeta.listStart = (meta.page * meta.limit) - (meta.limit - 1);
+      if (meta.total > 0) {
+        self.currentListMeta.listStart = (meta.page * meta.limit) - (meta.limit - 1);
+      } else {
+        self.currentListMeta.listStart = 0;
+      }
       if (self.currentListMeta.listStart + meta.limit > meta.total) {
         self.currentListMeta.listEnd = meta.total;
       } else {
@@ -326,9 +398,31 @@ Message.prototype.retrieveMessage = function(id, boxName){
   var self = this;
   self.loading.start();
   console.log("retrieve message");
+  var isUnread = lodash.some(self.currentList, function(message){
+    return (message.seq == id && message.unread);
+  })
   self.ImapService.retrieveMessage(id, boxName, true)
     .then(function(data){
       self.loading.complete();
+      // If it is an unread message, decrease unread count in current box
+      if (isUnread) {
+        window.lodash.some(self.specialBoxes, function(box){
+          if (box && box.specialName && box.specialName.indexOf(boxName) > -1) {
+            box.meta.count--;
+          } 
+        });
+        window.lodash.some(self.boxes, function(box){
+          if (box && box.boxName && box.boxName.indexOf(boxName) > -1) {
+            box.meta.count--;
+          } 
+        });
+        // Set as already read
+        window.lodash.some(self.currentList, function(message){
+          if (message.seq == id) {
+            message.unread = false;
+          } 
+        });
+      }
       console.log(data);
       if (boxName.indexOf("Drafts") > -1) {
         console.log("This is a draft");
@@ -343,7 +437,7 @@ Message.prototype.retrieveMessage = function(id, boxName){
         var html = "";
         if (self.currentMessage.parsed.html) {
           console.log("html");
-          html = self.currentMessage.parsed.html;
+          html = "<div>" + self.currentMessage.parsed.html + "</div>";
         } else {
           console.log("text");
           html = "<pre>" + self.currentMessage.parsed.text + "</pre>";
@@ -357,8 +451,8 @@ Message.prototype.retrieveMessage = function(id, boxName){
           for (var i = 0; i < attachments.length;i++) {
             self.currentMessage.parsed.attachments[i].index = i;
             self.currentMessage.parsed.attachments[i].size = self.formatBytes(attachments[i].length);
-            lodash.some(mimeTypes, function(mime){
-              var matched = lodash.some(mime.type, function(type){
+            window.lodash.some(mimeTypes, function(mime){
+              var matched = window.lodash.some(mime.type, function(type){
                 return type === attachments[i].contentType;
               });
               if (matched) {
@@ -451,29 +545,44 @@ Message.prototype.sendMessage = function(msg){
   self.compose = false;
   self.loading.start();
   console.log("send message");
-  self.ImapService.sendMessage(msg)
+  var paths = {};
+  if (self.specialBoxes.Drafts && self.specialBoxes.Drafts.path) {
+    paths.draft = self.specialBoxes.Drafts.path;
+  } else {
+    paths.draft = "Drafts";
+  }
+  if (self.specialBoxes.Sent && self.specialBoxes.Sent.path) {
+    paths.sent = self.specialBoxes.Sent.path;
+  } else {
+    paths.sent = "Sent";
+  }
+  var seq = msg.seq || undefined;
+  self.ImapService.sendMessage(msg, paths, seq)
     .success(function(data){
       console.log(data);
       self.view = "list";
-      if (msg.seq && msg.messageId) {
-        var draftPath;
-        if (self.specialBoxes.Drafts && self.specialBoxes.Drafts.path) {
-          draftPath = self.specialBoxes.Drafts.path;
-        } else {
-          draftPath = "Drafts";
-        }
-        self.ImapService.removeMessage(msg.seq, msg.messageId, draftPath)
-          .success(function(data, status, header){
-            self.listBox(draftPath);
-            self.loading.complete();
-            self.ToastrService.sent();
-          })
-          .error(function(data, status, header){
-            self.loading.complete();
-          })
-      } else {
-        self.loading.complete();
+      self.loading.complete();
+      self.ToastrService.sent();
+      // Remove it immediately from draft scope
+      if (msg.seq) {
+        window.lodash.remove(self.currentList, function(message){
+          return message.seq == msg.seq;
+        });
       }
+      // Decrease draft count
+      window.lodash.some(self.boxes, function(box){
+        if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
+          box.meta.count--;
+          return;
+        } 
+      });
+      window.lodash.some(self.specialBoxes, function(box){
+        if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
+          box.meta.count--;
+          return;
+        } 
+      });
+       
     })
     .error(function(data, status){
       self.loading.complete();
@@ -481,7 +590,7 @@ Message.prototype.sendMessage = function(msg){
     })
 }
 
-Message.prototype.removeMessage = function(seq, messageId, boxName, toastr){
+Message.prototype.removeMessage = function(seq, messageId, boxName){
   var self = this;
   self.loading.start();
   console.log("remove message");
@@ -495,9 +604,7 @@ Message.prototype.removeMessage = function(seq, messageId, boxName, toastr){
           self.currentList.splice(i, 1); 
         }
       }
-      if (toastr) {
-        self.ToastrService.deleted();
-      }
+      self.ToastrService.deleted();
       self.view = "list";
       self.listBox("INBOX");
     })
@@ -601,14 +708,26 @@ Message.prototype.saveDraft = function(){
         if (msg.seq && msg.messageId) {
           self.ImapService.removeMessage(msg.seq, msg.messageId, draftPath)
             .success(function(data, status, header){
-              self.listBox(draftPath);
-              self.loading.complete();
+              self.listBox(draftPath, {}, true);
             })
             .error(function(data, status, header){
               self.loading.complete();
             })
         } else {
-          self.loading.complete();
+          self.listBox(draftPath, {}, true);
+          // Increase draft count
+          window.lodash.some(self.boxes, function(box){
+            if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
+              box.meta.count++;
+              return;
+            } 
+          });
+          window.lodash.some(self.specialBoxes, function(box){
+            if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
+              box.meta.count++;
+              return;
+            } 
+          });
         }
       })
       .error(function(data, status, header){
@@ -678,7 +797,7 @@ Message.prototype.uploadFiles = function(files, errFiles) {
         var data = b64[0].split(",")[1];
         self.ImapService.uploadAttachment(data)
           .then(function(result){
-            lodash.some(self.newMessage.attachments, function(attachment){
+            window.lodash.some(self.newMessage.attachments, function(attachment){
               console.log(attachment);
               if (attachment.filename == file.name) {
                 attachment.attachmentId = result.attachmentId;
@@ -688,7 +807,7 @@ Message.prototype.uploadFiles = function(files, errFiles) {
             })
           })
           .catch(function(data){
-            lodash.some(self.newMessage.attachments, function(attachment){
+            window.lodash.some(self.newMessage.attachments, function(attachment){
               if (attachment.filename == file.filename) {
                 attachment.progress = "failed";
               }

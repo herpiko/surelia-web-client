@@ -16,6 +16,8 @@ window.rangy.saveSelection = require("rangy/lib/rangy-selectionsaverestore");
 require("textangular/dist/textAngular-sanitize.min");
 require("textangular");
 window.objectHash = require("object-hash");
+window.lodash = require("lodash");
+window.async = require("async");
 
 // Load service and controllers
 require("./service/index");

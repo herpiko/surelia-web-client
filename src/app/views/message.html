@@ -11,11 +11,14 @@
         <input ng-model="msg.searchString" placeholder="search..."></input>
       </form>
       <ul>
-              <li ng-repeat="box in msg.boxes" ng-click="msg.listBox(box,{},true)" style="cursor:pointer">
-              {{box}} <span ng-show="msg.currentBoxName==box"> *</span>
+              <li ng-repeat="box in msg.boxes" ng-click="msg.listBox(box.boxName,{},true)" style="cursor:pointer">
+              {{box.boxName}} 
+              <span ng-show="box.meta.count > 0"> ({{box.meta.count}})</span>
+              <span ng-show="msg.currentBoxName==box.boxName"> *</span>
               </li>
               <li ng-repeat="special in msg.specialBoxes" ng-click="msg.listBox(special.path, {}, true)" style="cursor:pointer">
               {{special.specialName}} <span ng-show="msg.currentBoxName==special.specialName"> *</span>
+              <span ng-show="special.meta.count > 0"> ({{special.meta.count}})</span>
               </li>
       </ul> 
     </div>
@@ -26,12 +29,13 @@
             {{msg.currentListMeta.listStart}} - {{msg.currentListMeta.listEnd}} / {{msg.currentListMeta.total}}
       <button ng-click="msg.listBoxNewer()">newer</button>
       <button ng-click="msg.listBoxOlder()">older</button>
-      <div ng-repeat="message in msg.currentList" ng-click="msg.retrieveMessage(message.seq, message.boxName)"i style="cursor:pointer;margin-top:3px;background:#ECECEC">
-              <span style="background:{{message.color}};padding:2px;">{{message.avatar}} -</span>
+      <div ng-repeat="message in msg.currentList" ng-click="msg.retrieveMessage(message.seq, message.boxName, message.unread)"i style="cursor:pointer;margin-top:3px;background:#ECECEC">
+        <span ng-show="message.unread">* </span>
+        <span style="background:{{message.color}};padding:2px;">{{message.avatar}} -</span>
         <span>{{message.seq}} -</span>
+        <span>{{message.header.subject}} -</span>
         <span ng-hide="msg.isDraft">{{message.header.from}} -</span>
         <span ng-show="msg.isDraft"><span ng-repeat="to in message.header.to">{{to}} </span> -</span>
-        <span>{{message.header.subject}} -</span>
         <span>{{message.header.date}} -</span>
         <span ng-show="message.hasAttachments">[attachment]</span>
       </div>

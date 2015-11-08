@@ -183,6 +183,18 @@ ImapAPI.prototype.send = function(request, reply) {
       }
       smtp.send(msg.from, msg.to, message)
         .then(function(info){
+          if (info.accepted.length > 0) {
+            var realFunc = function(client, request, reply) {
+              // Move to Sent
+              client.newMessage(message, request.query.sentPath)
+              // Remove from Drafts
+              if (request.query.seq) {
+                client.removeMessage(request.query.seq, request.query.draftPath)
+              }
+            }
+            checkPool(request, reply, realFunc)
+          }
+          // But do not wait
           reply(info).type("application/json");
         })
         .catch(function(err){
@@ -551,12 +563,10 @@ ImapAPI.prototype.getBoxes = function(request, reply) {
   var realFunc = function(client, request, reply) {
     client.getBoxes()
       .then(function(boxes){
-        // Circular object, need to be simplified
-        var boxes = Object.keys(boxes);
         reply(boxes);
       })
       .catch(function(err){
-        reply(err);
+        reply(err.message);
       })
   }
   
@@ -575,7 +585,7 @@ ImapAPI.prototype.getSpecialBoxes = function(request, reply) {
         reply(specials);
       })
       .catch(function(err){
-        return reply(err);
+        return reply(err.message);
       })
   }
 
