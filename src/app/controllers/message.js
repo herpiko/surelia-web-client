@@ -399,7 +399,7 @@ Message.prototype.retrieveMessage = function(id, boxName){
   self.loading.start();
   console.log("retrieve message");
   var isUnread = lodash.some(self.currentList, function(message){
-    return message.seq == id;
+    return (message.seq == id && message.unread);
   })
   self.ImapService.retrieveMessage(id, boxName, true)
     .then(function(data){
