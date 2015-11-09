@@ -542,6 +542,9 @@ Message.prototype.logout = function(){
 
 Message.prototype.sendMessage = function(msg){
   var self = this;
+  if (!msg.recipients) {
+    return self.ToastrService.emptyRecipients();
+  }
   self.compose = false;
   self.loading.start();
   console.log("send message");

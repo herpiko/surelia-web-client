@@ -13,6 +13,11 @@ ToastrService.prototype.invalidCredentials = function(){
   self.toastr.error("Invalid credentials");
 }
 
+ToastrService.prototype.emptyRecipients = function(){
+  var self = this;
+  self.toastr.error("Recipients should not be empty");
+}
+
 ToastrService.prototype.sent = function() {
   var self = this;
   self.toastr.success("Your message was sent successfully");
