@@ -208,6 +208,7 @@ hoodiecrowServer.listen(1143, function(){
               url : "/api/1.0/auth",
               payload : data,
             }, function(response){
+              console.log(response.result);
               token = response.result.token;
               var data = {
                 // Envelope
@@ -226,6 +227,7 @@ hoodiecrowServer.listen(1143, function(){
                   username : process.env.TEST_SMTP_USERNAME
                 }
               }, function(response){
+                console.log(response.result);
                 should(response.result.accepted.length).equal(1);
                 done();
               })
@@ -918,7 +920,6 @@ hoodiecrowServer.listen(1143, function(){
               filename : "hello.txt",
               contentType : "text/plain",
               encoding : "base64",
-              progress : "uploaded",
               attachmentId : response.result.attachmentId 
             }
           ]
@@ -932,6 +933,7 @@ hoodiecrowServer.listen(1143, function(){
             username : process.env.TEST_SMTP_USERNAME
           }
         }, function(response){
+          console.log(response.result);
           should(response.result.accepted.length).equal(1);
           // Email with attachment has been sent, wait a bit
           setTimeout(function(){

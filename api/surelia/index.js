@@ -7,6 +7,7 @@ var forge = require("node-forge");
 var config = require('../../conf/prod/surelia');
 var async = require("async");
 var moment = require("moment");
+var Joi = require("joi");
 
 var ImapAPI = function(server, options, next) {
   this.server = server;
@@ -21,6 +22,26 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/send",
     handler : function(request, reply){
       self.send(request, reply);
+    },
+    config : {
+      validate : {
+        payload : {
+          from : Joi.string(),
+          recipients : Joi.string().required(),
+          sender : Joi.string(),
+          subject : Joi.string(),
+          cc : Joi.string(),
+          bcc : Joi.string(),
+          html : Joi.string(),
+          attachments : Joi.array().items(Joi.object().keys({
+            filename : Joi.string(),
+            contentType : Joi.string(),
+            encoding : Joi.string(),
+            progress : Joi.string(),
+            attachmentId : Joi.string(),
+          }))
+        }  
+      }
     }
   })
   self.server.route({
@@ -28,6 +49,21 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/auth",
     handler : function(request, reply){
       self.auth(request, reply);
+    },
+    config : {
+      validate : {
+        payload : {
+          username : Joi.string().required(),
+          password : Joi.string().required(),
+          imapHost : Joi.string(),
+          imapPort : Joi.string(),
+          imapTLS : Joi.boolean(),
+          smtpHost : Joi.string(),
+          smtpPort : Joi.string(),
+          smtpTLS : Joi.boolean(),
+          smtpSecure : Joi.boolean(),
+        }  
+      }
     }
   })
   self.server.route({
@@ -119,6 +155,13 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/attachment",
     handler : function(request, reply){
       self.uploadAttachment(request, reply);
+    },
+    config : {
+      validate : {
+        payload : {
+          content : Joi.string().required(),
+        }  
+      }
     }
   })
   self.server.route({
@@ -134,6 +177,26 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/draft",
     handler : function(request, reply){
       self.saveDraft(request, reply);
+    },
+    config : {
+      validate : {
+        payload : {
+          from : Joi.string(),
+          recipients : Joi.string().required(),
+          sender : Joi.string(),
+          subject : Joi.string(),
+          cc : Joi.string(),
+          bcc : Joi.string(),
+          html : Joi.string(),
+          attachments : Joi.array().items(Joi.object().keys({
+            filename : Joi.string(),
+            contentType : Joi.string(),
+            encoding : Joi.string(),
+            progress : Joi.string(),
+            attachmentId : Joi.string(),
+          }))
+        }  
+      }
     }
   })
 
