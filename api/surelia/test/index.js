@@ -208,7 +208,6 @@ hoodiecrowServer.listen(1143, function(){
               url : "/api/1.0/auth",
               payload : data,
             }, function(response){
-              console.log(response.result);
               token = response.result.token;
               var data = {
                 // Envelope
@@ -227,7 +226,6 @@ hoodiecrowServer.listen(1143, function(){
                   username : process.env.TEST_SMTP_USERNAME
                 }
               }, function(response){
-                console.log(response.result);
                 should(response.result.accepted.length).equal(1);
                 done();
               })
@@ -449,6 +447,50 @@ hoodiecrowServer.listen(1143, function(){
       }, function(response){
         should(response.statusCode).equal(401);
         should(response.result.err).equal("Invalid credentials");
+        done();
+      })
+    })
+    it("Should be fail to login because of missing required payload key", function(done){
+      var data = {
+        imapHost : "imap.gmail.com",
+        imapPort : "993",
+        imapTLS : true,
+        smtpHost : "smtp.gmail.com",
+        smtpPort : "465",
+        smtpTLS : true,
+        smtpSecure : true,
+        password : "wrongpassword",
+      }
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/auth",
+        payload : data,
+      }, function(response){
+        should(response.result.validation.source).equal("payload");
+        should(response.result.validation.keys[0]).equal("username");
+        done();
+      })
+    })
+    it("Should be fail to login because of invalid payload key", function(done){
+      var data = {
+        imapHost : "imap.gmail.com",
+        imapPort : "993",
+        imapTLS : true,
+        smtpHost : "smtp.gmail.com",
+        smtpPort : "465",
+        smtpTLS : true,
+        smtpSecure : true,
+        username : "someusername",
+        password : "wrongpassword",
+        invalid : "invalid",
+      }
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/auth",
+        payload : data,
+      }, function(response){
+        should(response.result.validation.source).equal("payload");
+        should(response.result.validation.keys[0]).equal("invalid");
         done();
       })
     })
@@ -898,6 +940,41 @@ hoodiecrowServer.listen(1143, function(){
         done();
       })
     })
+    it("Should be fail to save attachment because of invalid key", function(done){
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/attachment",
+        payload : {
+          content: "aGVsbG8K",
+          invalid: "aGVsbG8K",
+        },
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        should(response.result.validation.source).equal("payload");
+        should(response.result.validation.keys[0]).equal("invalid");
+        done();
+      })
+    })
+    it("Should be fail to save attachment because of missing required key", function(done){
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/attachment",
+        payload : {
+          invalid: "aGVsbG8K",
+        },
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        should(response.result.validation.source).equal("payload");
+        should(response.result.validation.keys[0]).equal("content");
+        done();
+      })
+    })
     it("Should be able to send a message with an attachment", function(done){
       server.inject({
         method: "POST",
@@ -933,7 +1010,6 @@ hoodiecrowServer.listen(1143, function(){
             username : process.env.TEST_SMTP_USERNAME
           }
         }, function(response){
-          console.log(response.result);
           should(response.result.accepted.length).equal(1);
           // Email with attachment has been sent, wait a bit
           setTimeout(function(){
