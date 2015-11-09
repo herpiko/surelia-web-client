@@ -26,13 +26,16 @@ ImapAPI.prototype.registerEndPoints = function(){
     config : {
       validate : {
         payload : {
+          recipients : Joi.array().items(Joi.string().email()).required(),
+          cc : Joi.array().items(Joi.string().email()).allow(""),
+          bcc : Joi.array().items(Joi.string().email()).allow(""),
           from : Joi.string(),
-          recipients : Joi.string().required(),
           sender : Joi.string(),
-          subject : Joi.string(),
-          cc : Joi.string(),
-          bcc : Joi.string(),
-          html : Joi.string(),
+          subject : Joi.string().allow(""),
+          html : Joi.string().allow(""),
+          isDraft : Joi.boolean().allow(""),
+          seq : Joi.number().allow(""),
+          messageId : Joi.string().allow(""),
           attachments : Joi.array().items(Joi.object().keys({
             filename : Joi.string(),
             contentType : Joi.string(),
@@ -53,7 +56,7 @@ ImapAPI.prototype.registerEndPoints = function(){
     config : {
       validate : {
         payload : {
-          username : Joi.string().required(),
+          username : Joi.string().email().required(),
           password : Joi.string().required(),
           imapHost : Joi.string(),
           imapPort : Joi.string(),
@@ -181,13 +184,16 @@ ImapAPI.prototype.registerEndPoints = function(){
     config : {
       validate : {
         payload : {
-          from : Joi.string(),
-          recipients : Joi.string().required(),
-          sender : Joi.string(),
-          subject : Joi.string(),
-          cc : Joi.string(),
-          bcc : Joi.string(),
-          html : Joi.string(),
+          recipients : Joi.array().items(Joi.string()).allow(""),
+          cc : Joi.array().items(Joi.string()).allow(""),
+          bcc : Joi.array().items(Joi.string()).allow(""),
+          from : Joi.string().allow(""),
+          sender : Joi.string().allow(""),
+          subject : Joi.string().allow(""),
+          html : Joi.string().allow(""),
+          isDraft : Joi.boolean().allow(""),
+          seq : Joi.number().allow(""),
+          messageId : Joi.string().allow(""),
           attachments : Joi.array().items(Joi.object().keys({
             filename : Joi.string(),
             contentType : Joi.string(),
@@ -306,19 +312,18 @@ ImapAPI.prototype.send = function(request, reply) {
             })
             .then(function(){
               var payload = request.payload;
-              var recipients = payload.recipients.split(";");
               var msg = {
                 from : payload.from,
-                to : recipients,
+                to : payload.recipients,
                 sender : payload.sender,
                 subject : payload.subject,
                 html : payload.html
               }
               if (payload.bcc) {
-                msg.bcc = payload.bcc.split(";");
+                msg.bcc = payload.bcc;
               }
               if (payload.cc) {
-                msg.cc = payload.cc.split(";");
+                msg.cc = payload.cc;
               }
               if (payload.attachments && payload.attachments.length > 0) {
                 msg.attachments = [];
@@ -892,19 +897,18 @@ ImapAPI.prototype.saveDraft = function(request, reply) {
   }
   
   var realFunc = function(client, request, reply) {
-    var recipients = request.payload.recipients.split(";");
     var msg = {
       from : request.payload.from,
-      to : recipients,
+      to : request.payload.recipients,
       sender : request.payload.sender,
       subject : request.payload.subject,
       html : request.payload.html
     }
     if (request.payload.bcc) {
-      msg.bcc = request.payload.bcc.split(";");
+      msg.bcc = request.payload.bcc;
     }
     if (request.payload.cc) {
-      msg.cc = request.payload.cc.split(";");
+      msg.cc = request.payload.cc;
     }
     if (request.payload.attachments && request.payload.attachments.length > 0) {
       msg.attachments = [];

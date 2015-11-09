@@ -162,7 +162,7 @@ hoodiecrowServer.listen(1143, function(){
       })
       it("Should be able to send mail to SMTP server", function(done){
         var sender = "email1@example.com";
-        var recipients = "email2@example.com";
+        var recipients = ["email2@example.com"];
         var newMail = composer({
           to : recipients,
           from : sender,
@@ -208,12 +208,11 @@ hoodiecrowServer.listen(1143, function(){
               url : "/api/1.0/auth",
               payload : data,
             }, function(response){
-              console.log(response.result);
               token = response.result.token;
               var data = {
                 // Envelope
                 from : process.env.TEST_SMTP_USERNAME,
-                recipients : process.env.TEST_SMTP_USERNAME,
+                recipients : [process.env.TEST_SMTP_USERNAME],
                 sender : "Surelia",
                 subject : "Subject of the message",
                 html : "Content of the message"
@@ -227,7 +226,6 @@ hoodiecrowServer.listen(1143, function(){
                   username : process.env.TEST_SMTP_USERNAME
                 }
               }, function(response){
-                console.log(response.result);
                 should(response.result.accepted.length).equal(1);
                 done();
               })
@@ -452,6 +450,52 @@ hoodiecrowServer.listen(1143, function(){
         done();
       })
     })
+    it("Should be fail to login because of missing required payload key", function(done){
+      var data = {
+        imapHost : "imap.gmail.com",
+        imapPort : "993",
+        imapTLS : true,
+        smtpHost : "smtp.gmail.com",
+        smtpPort : "465",
+        smtpTLS : true,
+        smtpSecure : true,
+        password : "wrongpassword",
+      }
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/auth",
+        payload : data,
+      }, function(response){
+        should(response.statusCode).equal(400);
+        should(response.result.validation.source).equal("payload");
+        should(response.result.validation.keys[0]).equal("username");
+        done();
+      })
+    })
+    it("Should be fail to login because of invalid payload key", function(done){
+      var data = {
+        imapHost : "imap.gmail.com",
+        imapPort : "993",
+        imapTLS : true,
+        smtpHost : "smtp.gmail.com",
+        smtpPort : "465",
+        smtpTLS : true,
+        smtpSecure : true,
+        username : "someusername@domain.com",
+        password : "wrongpassword",
+        invalid : "invalid",
+      }
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/auth",
+        payload : data,
+      }, function(response){
+        should(response.statusCode).equal(400);
+        should(response.result.validation.source).equal("payload");
+        should(response.result.validation.keys[0]).equal("invalid");
+        done();
+      })
+    })
     it("Should be fail to login because of wrong credentials : the username is not an email address", function(done){
       var data = {
         imapHost : "imap.gmail.com",
@@ -469,8 +513,9 @@ hoodiecrowServer.listen(1143, function(){
         url : "/api/1.0/auth",
         payload : data,
       }, function(response){
-        should(response.statusCode).equal(401);
-        should(response.result.err).equal("Invalid credentials");
+        should(response.statusCode).equal(400);
+        should(response.result.validation.source).equal("payload");
+        should(response.result.validation.keys[0]).equal("username");
         done();
       })
     })
@@ -676,7 +721,7 @@ hoodiecrowServer.listen(1143, function(){
     it("Should be able to create new message as draft", function(done){
       var msg = {
         from : process.env.TEST_SMTP_USERNAME,
-        recipients : process.env.TEST_SMTP_USERNAME,
+        recipients : [process.env.TEST_SMTP_USERNAME],
         sender : "Surelia",
         subject : randomString(),
         html : randomString()
@@ -834,7 +879,7 @@ hoodiecrowServer.listen(1143, function(){
       var data = {
         // Envelope
         from : process.env.TEST_SMTP_USERNAME,
-        recipients : process.env.TEST_SMTP_USERNAME,
+        recipients : [process.env.TEST_SMTP_USERNAME],
         sender : "Surelia",
         subject : "Subject of the message",
         html : "Content of the message"
@@ -852,15 +897,61 @@ hoodiecrowServer.listen(1143, function(){
         done();
       })
     })
+    it("Should be able to send a message to multiple email address", function(done){
+      var data = {
+        // Envelope
+        from : process.env.TEST_SMTP_USERNAME,
+        recipients : [process.env.TEST_SMTP_USERNAME, "somethingemailthat@doesntexist.com"],
+        sender : "Surelia",
+        subject : "Subject of the message",
+        html : "Content of the message"
+      }
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/send",
+        payload : data,
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        should(response.result.accepted.length).equal(2);
+        done();
+      })
+    })
+    it("Should be fail to send a message because of invalid recipients string is not an email address", function(done){
+      var data = {
+        // Envelope
+        from : process.env.TEST_SMTP_USERNAME,
+        recipients : ["invalidemailaddress"],
+        sender : "Surelia",
+        subject : "Subject of the message",
+        html : "Content of the message"
+      }
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/send",
+        payload : data,
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        should(response.statusCode).equal(400);
+        should(response.result.validation.source).equal("payload");
+        should(response.result.validation.keys[0]).equal("recipients.0");
+        done();
+      })
+    })
     it("Should be able to send a message with cc", function(done){
       var data = {
         // Envelope
         from : process.env.TEST_SMTP_USERNAME,
-        recipients : process.env.TEST_SMTP_USERNAME,
+        recipients : [process.env.TEST_SMTP_USERNAME],
         sender : "Surelia",
         subject : "Subject of the message. Testing CC",
         html : "Content of the message",
-        cc : process.env.TEST_SMTP_USERNAME,
+        cc : [process.env.TEST_SMTP_USERNAME],
       }
       server.inject({
         method: "POST",
@@ -879,11 +970,11 @@ hoodiecrowServer.listen(1143, function(){
       var data = {
         // Envelope
         from : process.env.TEST_SMTP_USERNAME,
-        recipients : process.env.TEST_SMTP_USERNAME,
+        recipients : [process.env.TEST_SMTP_USERNAME],
         sender : "Surelia",
         subject : "Subject of the message. Testing BCC",
         html : "Content of the message",
-        bcc : process.env.TEST_SMTP_USERNAME,
+        bcc : [process.env.TEST_SMTP_USERNAME],
       }
       server.inject({
         method: "POST",
@@ -895,6 +986,43 @@ hoodiecrowServer.listen(1143, function(){
         }
       }, function(response){
         should(response.result.accepted.length).equal(2);
+        done();
+      })
+    })
+    it("Should be fail to save attachment because of invalid key", function(done){
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/attachment",
+        payload : {
+          content: "aGVsbG8K",
+          invalid: "aGVsbG8K",
+        },
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        should(response.statusCode).equal(400);
+        should(response.result.validation.source).equal("payload");
+        should(response.result.validation.keys[0]).equal("invalid");
+        done();
+      })
+    })
+    it("Should be fail to save attachment because of missing required key", function(done){
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/attachment",
+        payload : {
+          invalid: "aGVsbG8K",
+        },
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        should(response.statusCode).equal(400);
+        should(response.result.validation.source).equal("payload");
+        should(response.result.validation.keys[0]).equal("content");
         done();
       })
     })
@@ -911,7 +1039,7 @@ hoodiecrowServer.listen(1143, function(){
         var data = {
           // Envelope
           from : process.env.TEST_SMTP_USERNAME,
-          recipients : process.env.TEST_SMTP_USERNAME,
+          recipients : [process.env.TEST_SMTP_USERNAME],
           sender : "Surelia",
           subject : "Subject of the message.",
           html : "Content of the message",
@@ -933,7 +1061,6 @@ hoodiecrowServer.listen(1143, function(){
             username : process.env.TEST_SMTP_USERNAME
           }
         }, function(response){
-          console.log(response.result);
           should(response.result.accepted.length).equal(1);
           // Email with attachment has been sent, wait a bit
           setTimeout(function(){
