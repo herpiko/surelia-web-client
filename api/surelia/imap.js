@@ -660,21 +660,25 @@ Imap.prototype.newMessage = function(messageData, draftPath) {
 Imap.prototype.quotaInfo = function() {
   var self = this;
   return new Promise(function(resolve, reject){
-    self.client.getQuota("", function(err, info){
+    self.client.getQuotaRoot("INBOX", function(err, entries){
       if (err) {
         return reject(err);
       }
       var quotaInfo;
-      if (info && 
-          info.resources && 
-          info.resources.storage &&
-          info.resources.storage.usage) { // no check on limits as it could be unlimited, not specified in the RFC, though
-        quotaInfo = {
-          usage: info.resources.storage.usage,
-          limit: info.resources.storage.limit
+      for (var entry in entries) {
+        // take only the first entry
+        var info = entries[entry];
+        if (info && 
+            info.storage) { // no check on limits as it could be unlimited, not specified in the RFC, though
+          quotaInfo = {
+            usage: info.storage.usage,
+            limit: info.storage.limit,
+            percentage: parseInt((info.storage.usage/info.storage.limit)*100) + "%"
+          }
+          break;
+        } else {
+          reject(new Error('malformed quota info'));
         }
-      } else {
-        reject(new Error('malformed quota info'));
       }
       resolve(quotaInfo);
     })

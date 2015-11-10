@@ -187,16 +187,21 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
       console.log(data, status);
       self.ErrorHandlerService.parse(data, status);
     })
-  self.formatBytes = function(bytes) {
-      if(bytes < 1024) return bytes + " Bytes";
-      else if(bytes < 1048576) return(bytes / 1024).toFixed(3) + " KB";
-      else if(bytes < 1073741824) return(bytes / 1048576).toFixed(3) + " MB";
-      else return(bytes / 1073741824).toFixed(3) + " GB";
-  };
   self.isValidEmail = function(emailString){
     var regExp = /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))){2,6}$/i;
     return regExp.test(emailString);
   }
+
+  self.quota = {
+    usage: -1,
+    limit: -1
+  }
+  self.ImapService.quotaInfo()
+    .success(function(data, status) {
+      self.quota.usage = data.usage;
+      self.quota.limit = data.limit;
+      self.quota.percentage = data.percentage;
+    });
 }
 
 
@@ -454,7 +459,7 @@ Message.prototype.retrieveMessage = function(id, boxName){
           var attachments = self.currentMessage.parsed.attachments;
           for (var i = 0; i < attachments.length;i++) {
             self.currentMessage.parsed.attachments[i].index = i;
-            self.currentMessage.parsed.attachments[i].size = self.formatBytes(attachments[i].length);
+            self.currentMessage.parsed.attachments[i].size = attachments[i].length;
             window.lodash.some(mimeTypes, function(mime){
               var matched = window.lodash.some(mime.type, function(type){
                 return type === attachments[i].contentType;

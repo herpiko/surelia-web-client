@@ -388,6 +388,22 @@ ImapService.prototype.saveDraft= function(msg, draftPath) {
   return self.$http(req)
 }
 
+ImapService.prototype.quotaInfo = function(boxName) {
+  var self = this;
+  var path = "/api/1.0/quota-info";
+  var token = self.localStorageService.get("token"); 
+  var username = self.localStorageService.get("username"); 
+  var req = {
+    method: "GET",
+    url : path,
+    headers : {
+      token : token,
+      username : username
+    }
+  }
+  return self.$http(req)
+}
+
 ImapService.inject = ["$http", "localStorageService", "$rootScope", "$state", "$q"];
 
 var module = require("./index");
