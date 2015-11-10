@@ -288,7 +288,7 @@ Message.prototype.listBox = function(boxName, opts, canceler){
       self.currentListMeta = data.meta;
       // Assign message count
       window.lodash.some(self.specialBoxes, function(box){
-        if (box.specialName == boxName && 
+        if (box.specialName.indexOf(boxName) >= 0 && 
           boxName.indexOf("Trash") < 0 && 
           boxName.indexOf("Sent") < 0
         ) {
@@ -297,7 +297,7 @@ Message.prototype.listBox = function(boxName, opts, canceler){
         } 
       });
       window.lodash.some(self.boxes, function(box){
-        if (box.boxName == boxName &&
+        if (box.boxName.indexOf(boxName) >= 0 &&
           boxName.indexOf("Trash") < 0 && 
           boxName.indexOf("Sent") < 0
         ) {
@@ -653,8 +653,9 @@ Message.prototype.removeMessage = function(seq, messageId, boxName){
     })
 }
 
-Message.prototype.composeMessage = function(msg){
+Message.prototype.composeMessage = function(message, action){
   var self = this;
+  var msg = angular.copy(message);
   self.compose = true;
   self.cc = false;
   self.bcc = false;
@@ -668,54 +669,82 @@ Message.prototype.composeMessage = function(msg){
     html : "",
     attachments : []
   };
-  // If there is a parameter, then it is an existing draft
   if (msg) {
     console.log(msg);
-    self.newMessage.isDraft = true;
     self.newMessage.seq = msg.seq;
     self.newMessage.messageId = msg.parsed.messageId;
-    if (msg.parsed.subject) {
-      self.newMessage.subject = msg.parsed.subject;
-    }
-    if (msg.parsed.html) {
-      self.newMessage.html = msg.parsed.html;
-    }
-    if (msg.parsed.attachments && msg.parsed.attachments.length > 0) {
-      for(var i in msg.parsed.attachments) {
-        var a = {
-          filename : msg.parsed.attachments[i].fileName,
-          contentType : msg.parsed.attachments[i].contentType,
-          encoding : "base64",
-          progress : "uploaded",
-          attachmentId : msg.parsed.attachments[i].attachmentId
-        }
-        self.newMessage.attachments.push(a);
+    // If there is a msg parameter and an action, then it is a reply / reply all / forward
+    if (action && (action === "reply" || action === "all" || action === "forward")) {
+      if (msg.parsed.html) {
+        self.newMessage.html = "<div>" + msg.parsed.date + " " + msg.parsed.from[0].address + " :</div><div style=\"display: block; -webkit-margin-before: 1em; -webkit-margin-after: 1em; -webkit-margin-start: 40px; -webkit-margin-end: 40px;margin: 0 0 0 .8ex; border-left: 1px #ccc solid; padding-left: 1ex;\">" + msg.parsed.html + "</div><br>";
       }
-    }
-    if (msg.parsed.to && msg.parsed.to.length > 0) {
-      for(var i in msg.parsed.to) {
-        if (self.newMessage.recipients.length > 0) {
-          self.newMessage.recipients += ",";
+      if (msg.parsed.subject && action == "forward") {
+        self.newMessage.subject = "Fwd: " + msg.parsed.subject;
+      } else {
+        self.newMessage.subject = "Re: " + msg.parsed.subject;
+        if (msg.parsed.from && msg.parsed.from.length > 0) {
+          for(var i in msg.parsed.from) {
+            if (self.newMessage.recipients.length > 0) {
+              self.newMessage.recipients += ",";
+            }
+            self.newMessage.recipients += msg.parsed.from[i].address; 
+          }
+          if (action == "all") {
+            for(var i in msg.parsed.cc) {
+              if (self.newMessage.recipients.length > 0) {
+                self.newMessage.recipients += ",";
+              }
+              self.newMessage.recipients += msg.parsed.cc[i].address; 
+            }
+          }
         }
-        self.newMessage.recipients += msg.parsed.to[i].address; 
       }
-    }
-    if (msg.parsed.cc && msg.parsed.cc.length > 0) {
-      self.cc = true;
-      for(var i in msg.parsed.cc) {
-        if (self.newMessage.cc.length > 0) {
-          self.newMessage.cc += ",";
-        }
-        self.newMessage.cc += msg.parsed.cc[i].address; 
+    // Or a draft
+    } else {
+      if (msg.parsed.html) {
+        self.newMessage.html = msg.parsed.html;
       }
-    }
-    if (msg.parsed.bcc && msg.parsed.bcc.length > 0) {
-      self.bcc = true;
-      for(var i in msg.parsed.bcc) {
-        if (self.newMessage.bcc.length > 0) {
-          self.newMessage.bcc += ",";
+      if (msg.parsed.subject) {
+        self.newMessage.subject = msg.parsed.subject;
+      }
+      self.newMessage.isDraft = true;
+      if (msg.parsed.to && msg.parsed.to.length > 0) {
+        for(var i in msg.parsed.to) {
+          if (self.newMessage.recipients.length > 0) {
+            self.newMessage.recipients += ",";
+          }
+          self.newMessage.recipients += msg.parsed.to[i].address; 
         }
-        self.newMessage.bcc += msg.parsed.bcc[i].address; 
+      }
+      if (msg.parsed.cc && msg.parsed.cc.length > 0) {
+        self.cc = true;
+        for(var i in msg.parsed.cc) {
+          if (self.newMessage.cc.length > 0) {
+            self.newMessage.cc += ",";
+          }
+          self.newMessage.cc += msg.parsed.cc[i].address; 
+        }
+      }
+      if (msg.parsed.bcc && msg.parsed.bcc.length > 0) {
+        self.bcc = true;
+        for(var i in msg.parsed.bcc) {
+          if (self.newMessage.bcc.length > 0) {
+            self.newMessage.bcc += ",";
+          }
+          self.newMessage.bcc += msg.parsed.bcc[i].address; 
+        }
+      }
+      if (msg.parsed.attachments && msg.parsed.attachments.length > 0) {
+        for(var i in msg.parsed.attachments) {
+          var a = {
+            filename : msg.parsed.attachments[i].fileName,
+            contentType : msg.parsed.attachments[i].contentType,
+            encoding : "base64",
+            progress : "uploaded",
+            attachmentId : msg.parsed.attachments[i].attachmentId
+          }
+          self.newMessage.attachments.push(a);
+        }
       }
     }
   }
@@ -795,7 +824,7 @@ Message.prototype.discardDraft = function(id){
     }
   }
   // If it's an existing draft, remove it
-  if (self.newMessage.seq && self.newMessage.messageId) {
+  if (self.newMessage.seq && self.newMessage.messageId && self.newMessage.isDraft) {
     self.loading.start();
     var draftPath;
     if (self.specialBoxes.Drafts && self.specialBoxes.Drafts.path) {
