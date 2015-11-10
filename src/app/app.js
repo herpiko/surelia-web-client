@@ -22,6 +22,7 @@ window.async = require("async");
 
 // Load service and controllers
 require("./service/index");
+require("./filters/index");
 require("./controllers/index");
 require("./js/templates");
 
@@ -34,6 +35,7 @@ var app = angular.module("App", [
   "templates",
   "LocalStorageModule",
   "app.services",
+  "app.filters",
   "app.controllers",
   "ngProgress",
   "toastr",

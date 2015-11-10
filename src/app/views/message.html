@@ -2,7 +2,7 @@
   <div style="width:100%;background:#ECECEC;padding:10px">
     <button ng-click="msg.composeMessage()">compose</button>
     <button ng-click="msg.logout()">logout</button>
-    <span>Quota: {{msg.quota.usage}}/{{msg.quota.limit}}</span>
+    <span>Quota: {{msg.quota.usage | SizeFilter }}/{{msg.quota.limit | SizeFilter }}</span>
     <br>
   </div>
   <div>
@@ -60,7 +60,7 @@
             <div>
               <ul>
                   <li ng-repeat="attachment in msg.currentMessage.parsed.attachments" class="{{attachment.icon}}">
-                  <span style="cursor:pointer" ng-click="msg.getAttachment(msg.currentMessage.parsed.messageId, attachment.index)">{{attachment.fileName}} - {{attachment.size}}</span>
+                  <span style="cursor:pointer" ng-click="msg.getAttachment(msg.currentMessage.parsed.messageId, attachment.index)">{{attachment.fileName}} - {{attachment.size | SizeFilter }}</span>
                 </li>
               </ul>
             </div>
