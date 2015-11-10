@@ -81,7 +81,7 @@ var mimeTypes = {
     ]
   }
 }
-var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService){
+var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -95,6 +95,7 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.$timeout = $timeout;
   this.Upload = Upload;
   this.ToastrService = ToastrService;
+  this.$templateCache = $templateCache;
   var self = this;
   self.compose = false;
   self.composeMode = "corner";
@@ -676,7 +677,11 @@ Message.prototype.composeMessage = function(message, action){
     // If there is a msg parameter and an action, then it is a reply / reply all / forward
     if (action && (action === "reply" || action === "all" || action === "forward")) {
       if (msg.parsed.html) {
-        self.newMessage.html = "<div>" + msg.parsed.date + " " + msg.parsed.from[0].address + " :</div><div style=\"display: block; -webkit-margin-before: 1em; -webkit-margin-after: 1em; -webkit-margin-start: 40px; -webkit-margin-end: 40px;margin: 0 0 0 .8ex; border-left: 1px #ccc solid; padding-left: 1ex;\">" + msg.parsed.html + "</div><br>";
+        var trimmed = self.$templateCache.get("trimmed-message.html");
+        console.log(trimmed);
+        self.newMessage.html = trimmed.replace("CONTENT", msg.parsed.html)
+                                .replace("DATE", msg.parsed.date)
+                                .replace("ADDRESS", msg.parsed.from[0].address);
       }
       if (msg.parsed.subject && action == "forward") {
         self.newMessage.subject = "Fwd: " + msg.parsed.subject;
