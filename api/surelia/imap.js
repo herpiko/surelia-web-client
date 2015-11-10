@@ -334,10 +334,10 @@ Imap.prototype.listBox = function(name, limit, page, search) {
           })
         });
         f.once("error", function(err) {
-          doneIteratingMessages(err);
+          return doneIteratingMessages(err);
         })
         f.once("end", function(err) {
-          doneIteratingMessages(err);
+          return doneIteratingMessages(err);
         })
       }, function(err){
         if (err) {

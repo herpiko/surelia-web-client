@@ -604,7 +604,7 @@ Message.prototype.sendMessage = function(msg){
       self.loading.complete();
       self.ToastrService.sent();
       // Remove it immediately from draft scope
-      if (msg.seq) {
+      if (msg.seq && msg.isDraft) {
         window.lodash.remove(self.currentList, function(message){
           return message.seq == msg.seq;
         });
@@ -700,6 +700,12 @@ Message.prototype.composeMessage = function(message, action){
                 self.newMessage.recipients += ",";
               }
               self.newMessage.recipients += msg.parsed.cc[i].address; 
+            }
+            for(var i in msg.parsed.to) {
+              if (self.newMessage.recipients.length > 0) {
+                self.newMessage.recipients += ",";
+              }
+              self.newMessage.recipients += msg.parsed.to[i].address; 
             }
           }
         }
@@ -846,6 +852,7 @@ Message.prototype.discardDraft = function(id){
         self.loading.complete();
       })
   }
+  self.newMessage = {};
 }
 
 Message.prototype.resizeCompose = function(mode){

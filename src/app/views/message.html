@@ -54,7 +54,8 @@
             </div>
             <div><b>{{msg.currentMessage.parsed.subject}}</b></div>
             <div>From : {{msg.currentMessage.parsed.headers.from}}</div>
-            <div>To : {{msg.currentMessage.parsed.headers.to}}</div>
+            <div>To : {{msg.currentMessage.parsed.headers.to}}<span ng-show="msg.currentMessage.parsed.headers.cc">, {{msg.currentMessage.parsed.headers.cc}}</span>
+            </div>
             <div>
               <span am-time-ago="msg.currentMessage.parsed.date"></span>
                ({{msg.currentMessage.parsed.date | amDateFormat:'dddd, DD MMMM YYYY, HH:mm'}})</div>
