@@ -36,7 +36,7 @@
         <span>{{message.header.subject}} -</span>
         <span ng-hide="msg.isDraft">{{message.header.from}} -</span>
         <span ng-show="msg.isDraft"><span ng-repeat="to in message.header.to">{{to}} </span> -</span>
-        <span>{{message.header.date}} -</span>
+        <span am-time-ago="message.header.date"></span>
         <span ng-show="message.hasAttachments">[attachment]</span>
       </div>
     </div>
@@ -47,8 +47,11 @@
               <button ng-click="msg.removeMessage(msg.currentMessage.seq, msg.currentMessage.parsed.messageId, msg.currentMessage.boxName, true)">Delete</button>
             </div>
             <div><b>{{msg.currentMessage.parsed.subject}}</b></div>
-            <div>{{msg.currentMessage.parsed.from[0].address}}</div>
-            <div>{{msg.currentMessage.parsed.date}}</div>
+            <div>From : {{msg.currentMessage.parsed.headers.from}}</div>
+            <div>To : {{msg.currentMessage.parsed.headers.to}}</div>
+            <div>
+              <span am-time-ago="msg.currentMessage.parsed.date"></span>
+               ({{msg.currentMessage.parsed.date | amDateFormat:'dddd, DD MMMM YYYY, HH:mm'}})</div>
             <hr>
             <div id="messageContent"></div>
             <hr>

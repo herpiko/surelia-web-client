@@ -7,6 +7,7 @@ var forge = require("node-forge");
 var config = require('../../conf/prod/surelia');
 var async = require("async");
 var moment = require("moment");
+var Joi = require("joi");
 
 var ImapAPI = function(server, options, next) {
   this.server = server;
@@ -21,6 +22,29 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/send",
     handler : function(request, reply){
       self.send(request, reply);
+    },
+    config : {
+      validate : {
+        payload : {
+          recipients : Joi.array().items(Joi.string().email()).required(),
+          cc : Joi.array().items(Joi.string().email()).allow(""),
+          bcc : Joi.array().items(Joi.string().email()).allow(""),
+          from : Joi.string(),
+          sender : Joi.string(),
+          subject : Joi.string().allow(""),
+          html : Joi.string().allow(""),
+          isDraft : Joi.boolean().allow(""),
+          seq : Joi.number().allow(""),
+          messageId : Joi.string().allow(""),
+          attachments : Joi.array().items(Joi.object().keys({
+            filename : Joi.string(),
+            contentType : Joi.string(),
+            encoding : Joi.string(),
+            progress : Joi.string(),
+            attachmentId : Joi.string(),
+          }))
+        }  
+      }
     }
   })
   self.server.route({
@@ -28,6 +52,21 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/auth",
     handler : function(request, reply){
       self.auth(request, reply);
+    },
+    config : {
+      validate : {
+        payload : {
+          username : Joi.string().email().required(),
+          password : Joi.string().required(),
+          imapHost : Joi.string(),
+          imapPort : Joi.string(),
+          imapTLS : Joi.boolean(),
+          smtpHost : Joi.string(),
+          smtpPort : Joi.string(),
+          smtpTLS : Joi.boolean(),
+          smtpSecure : Joi.boolean(),
+        }  
+      }
     }
   })
   self.server.route({
@@ -119,6 +158,13 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/attachment",
     handler : function(request, reply){
       self.uploadAttachment(request, reply);
+    },
+    config : {
+      validate : {
+        payload : {
+          content : Joi.string().required(),
+        }  
+      }
     }
   })
   self.server.route({
@@ -134,6 +180,29 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/draft",
     handler : function(request, reply){
       self.saveDraft(request, reply);
+    },
+    config : {
+      validate : {
+        payload : {
+          recipients : Joi.array().items(Joi.string()).allow(""),
+          cc : Joi.array().items(Joi.string()).allow(""),
+          bcc : Joi.array().items(Joi.string()).allow(""),
+          from : Joi.string().allow(""),
+          sender : Joi.string().allow(""),
+          subject : Joi.string().allow(""),
+          html : Joi.string().allow(""),
+          isDraft : Joi.boolean().allow(""),
+          seq : Joi.number().allow(""),
+          messageId : Joi.string().allow(""),
+          attachments : Joi.array().items(Joi.object().keys({
+            filename : Joi.string(),
+            contentType : Joi.string(),
+            encoding : Joi.string(),
+            progress : Joi.string(),
+            attachmentId : Joi.string(),
+          }))
+        }  
+      }
     }
   })
 
@@ -243,19 +312,18 @@ ImapAPI.prototype.send = function(request, reply) {
             })
             .then(function(){
               var payload = request.payload;
-              var recipients = payload.recipients.split(";");
               var msg = {
                 from : payload.from,
-                to : recipients,
+                to : payload.recipients,
                 sender : payload.sender,
                 subject : payload.subject,
                 html : payload.html
               }
               if (payload.bcc) {
-                msg.bcc = payload.bcc.split(";");
+                msg.bcc = payload.bcc;
               }
               if (payload.cc) {
-                msg.cc = payload.cc.split(";");
+                msg.cc = payload.cc;
               }
               if (payload.attachments && payload.attachments.length > 0) {
                 msg.attachments = [];
@@ -829,19 +897,18 @@ ImapAPI.prototype.saveDraft = function(request, reply) {
   }
   
   var realFunc = function(client, request, reply) {
-    var recipients = request.payload.recipients.split(";");
     var msg = {
       from : request.payload.from,
-      to : recipients,
+      to : request.payload.recipients,
       sender : request.payload.sender,
       subject : request.payload.subject,
       html : request.payload.html
     }
     if (request.payload.bcc) {
-      msg.bcc = request.payload.bcc.split(";");
+      msg.bcc = request.payload.bcc;
     }
     if (request.payload.cc) {
-      msg.cc = request.payload.cc.split(";");
+      msg.cc = request.payload.cc;
     }
     if (request.payload.attachments && request.payload.attachments.length > 0) {
       msg.attachments = [];

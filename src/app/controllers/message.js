@@ -193,6 +193,10 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
       else if(bytes < 1073741824) return(bytes / 1048576).toFixed(3) + " MB";
       else return(bytes / 1073741824).toFixed(3) + " GB";
   };
+  self.isValidEmail = function(emailString){
+    var regExp = /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))){2,6}$/i;
+    return regExp.test(emailString);
+  }
 }
 
 
@@ -542,8 +546,11 @@ Message.prototype.logout = function(){
 
 Message.prototype.sendMessage = function(msg){
   var self = this;
-  self.compose = false;
-  self.loading.start();
+  var msg = angular.copy(msg);
+  // Recipients should not be empty
+  if (!msg.recipients) {
+    return self.ToastrService.emptyRecipients();
+  }
   console.log("send message");
   var paths = {};
   if (self.specialBoxes.Drafts && self.specialBoxes.Drafts.path) {
@@ -557,6 +564,33 @@ Message.prototype.sendMessage = function(msg){
     paths.sent = "Sent";
   }
   var seq = msg.seq || undefined;
+  // convert comma separated string to array, then check if they are a valid email
+  if (msg.recipients && msg.recipients.length > 0) {
+    msg.recipients = msg.recipients.replace(" ", "").split(",");
+    for (var i in msg.recipients) {
+      if (!self.isValidEmail(msg.recipients[i])) {
+        return self.ToastrService.invalidEmailAddress(msg.recipients[i]);
+      }
+    }
+  }
+  if (msg.bcc && msg.bcc.length > 0) {
+    msg.bcc = msg.bcc.replace(" ", "").split(",");
+    for (var i in msg.bcc) {
+      if (!self.isValidEmail(msg.bcc[i])) {
+        return self.ToastrService.invalidEmailAddress(msg.bcc[i]);
+      }
+    }
+  }
+  if (msg.cc && msg.cc.length > 0) {
+    msg.cc = msg.cc.replace(" ", "").split(",");
+    for (var i in msg.cc) {
+      if (!self.isValidEmail(msg.cc[i])) {
+        return self.ToastrService.invalidEmailAddress(msg.cc[i]);
+      }
+    }
+  }
+  self.compose = false;
+  self.loading.start();
   self.ImapService.sendMessage(msg, paths, seq)
     .success(function(data){
       console.log(data);
@@ -656,7 +690,7 @@ Message.prototype.composeMessage = function(msg){
     if (msg.parsed.to && msg.parsed.to.length > 0) {
       for(var i in msg.parsed.to) {
         if (self.newMessage.recipients.length > 0) {
-          self.newMessage.recipients += ";";
+          self.newMessage.recipients += ",";
         }
         self.newMessage.recipients += msg.parsed.to[i].address; 
       }
@@ -665,7 +699,7 @@ Message.prototype.composeMessage = function(msg){
       self.cc = true;
       for(var i in msg.parsed.cc) {
         if (self.newMessage.cc.length > 0) {
-          self.newMessage.cc += ";";
+          self.newMessage.cc += ",";
         }
         self.newMessage.cc += msg.parsed.cc[i].address; 
       }
@@ -674,7 +708,7 @@ Message.prototype.composeMessage = function(msg){
       self.bcc = true;
       for(var i in msg.parsed.bcc) {
         if (self.newMessage.bcc.length > 0) {
-          self.newMessage.bcc += ";";
+          self.newMessage.bcc += ",";
         }
         self.newMessage.bcc += msg.parsed.bcc[i].address; 
       }
@@ -688,7 +722,7 @@ Message.prototype.composeMessage = function(msg){
 Message.prototype.saveDraft = function(){
   var self = this;
   self.compose = false;
-  var msg = self.newMessage;
+  var msg = angular.copy(self.newMessage);
   // Save as draft if it has modified
   console.log(window.objectHash(self.newMessage));
   var newHash = window.objectHash(self.newMessage);
@@ -700,6 +734,16 @@ Message.prototype.saveDraft = function(){
       draftPath = self.specialBoxes.Drafts.path;
     } else {
       draftPath = "Drafts";
+    }
+    // convert comma separated string to array
+    if (msg.recipients && msg.recipients.length > 0) {
+      msg.recipients = msg.recipients.replace(" ", "").split(",");
+    }
+    if (msg.bcc && msg.recipients.length > 0) {
+      msg.bcc = msg.bcc.replace(" ", "").split(",");
+    }
+    if (msg.cc && msg.recipients.length > 0) {
+      msg.cc = msg.cc.replace(" ", "").split(",");
     }
     self.ImapService.saveDraft(msg, draftPath)
       .success(function(data, status, header){

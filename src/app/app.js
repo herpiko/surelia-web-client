@@ -10,6 +10,7 @@ require("angular-file-upload");
 require("ngprogress-npm");
 require("angular-toastr");
 require("ng-file-upload");
+require("angular-moment");
 window.rangy = require("rangy/lib/rangy-core");
 window.randomcolor = require("randomcolor");
 window.rangy.saveSelection = require("rangy/lib/rangy-selectionsaverestore");
@@ -37,6 +38,7 @@ var app = angular.module("App", [
   "ngProgress",
   "toastr",
   "ngFileUpload",
+  "angularMoment"
 ])
 .config(function($stateProvider) {
   $stateProvider
