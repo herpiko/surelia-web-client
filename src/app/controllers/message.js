@@ -200,6 +200,7 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
     .success(function(data, status) {
       self.quota.usage = data.usage;
       self.quota.limit = data.limit;
+      self.quota.percentage = data.percentage;
     });
 }
 

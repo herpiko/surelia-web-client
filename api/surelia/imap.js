@@ -672,7 +672,8 @@ Imap.prototype.quotaInfo = function() {
             info.storage) { // no check on limits as it could be unlimited, not specified in the RFC, though
           quotaInfo = {
             usage: info.storage.usage,
-            limit: info.storage.limit
+            limit: info.storage.limit,
+            percentage: parseInt((info.storage.usage/info.storage.limit)*100) + "%"
           }
           break;
         } else {

@@ -2,7 +2,7 @@
   <div style="width:100%;background:#ECECEC;padding:10px">
     <button ng-click="msg.composeMessage()">compose</button>
     <button ng-click="msg.logout()">logout</button>
-    <span>Quota: {{msg.quota.usage | SizeFilter }}/{{msg.quota.limit | SizeFilter }}</span>
+    <span>Quota: {{msg.quota.usage | SizeFilter }}/{{msg.quota.limit | SizeFilter }}  ({{msg.quota.percentage}})</span>
     <br>
   </div>
   <div>
