@@ -39,6 +39,7 @@
         <span ng-show="msg.isDraft"><span ng-repeat="to in message.header.to">{{to}} </span> -</span>
         <span am-time-ago="message.header.date"></span>
         <span ng-show="message.hasAttachments">[attachment]</span>
+        <span ng-show="message.answered">[answered]</span>
       </div>
     </div>
     
