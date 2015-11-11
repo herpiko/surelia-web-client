@@ -625,6 +625,15 @@ Message.prototype.sendMessage = function(msg){
           return;
         } 
       });
+      // Set answered flag
+      if (msg.isReply) {
+        lodash.some(self.currentList, function(message){
+          if (message.seq == msg.seq) {
+            message.answered = true;
+            return;
+          }
+        });
+      }
        
     })
     .error(function(data, status){
