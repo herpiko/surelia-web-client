@@ -454,6 +454,31 @@ Imap.prototype.renameBox = function(oldName, newName) {
 }
 
 
+/**
+ * Add flags
+ *
+ */
+
+Imap.prototype.addFlag = function(id, boxName, flag) {
+  var self = this;
+  var flag = "\\" + flag;
+  return new Promise(function(resolve, reject){
+    self.client.openBox(boxName, false, function(err, box){
+      if (err) {
+        return reject(err);
+      }
+      self.client.seq.addFlags(id.toString(), [flag], function(err){
+        if (err) {
+          console.log(err);
+          return reject(err);
+        }
+        self.client.closeBox(function(){
+          resolve();
+        });
+      }); 
+    })
+  })
+}
 
 /**
  * Retrieves an email message
@@ -541,12 +566,15 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
                 resolve(mail);
               }); 
             } else {
-              self.client.seq.addFlags(id.toString(), ["\\Seen"], function(err){
-                if (err) {
-                  return reject(err);
-                }
-                resolve(mail);
-              }); 
+              self.addFlag(id, boxName, "Seen")
+                .then(function(){
+                  resolve(mail);
+                })
+                .catch(function(err){
+                  if (err) {
+                    return reject(err);
+                  }
+                });
             }
           })
           mailparser.write(mail.original);
