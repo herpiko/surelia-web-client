@@ -322,9 +322,12 @@ Message.prototype.listBox = function(boxName, opts, canceler){
           self.currentList[i].color = colors[assignedColor.indexOf(hash)];
         }
         self.currentList[i].unread = false;
-        console.log(self.currentList[i].attributes.flags.indexOf("\\Seen"));
+        self.currentList[i].answered = false;
         if (self.currentList[i].attributes.flags.indexOf("\\Seen") < 0) {
           self.currentList[i].unread = true;
+        }
+        if (self.currentList[i].attributes.flags.indexOf("\\Answered") >= 0) {
+          self.currentList[i].answered = true;
         }
       }
       // calculate pagination nav
