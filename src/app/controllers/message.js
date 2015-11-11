@@ -569,7 +569,7 @@ Message.prototype.sendMessage = function(msg){
   } else {
     paths.sent = "Sent";
   }
-  var seq = msg.seq || undefined;
+  msg.seq = msg.seq || undefined;
   // convert comma separated string to array, then check if they are a valid email
   if (msg.recipients && msg.recipients.length > 0) {
     msg.recipients = msg.recipients.replace(" ", "").split(",");
@@ -597,7 +597,7 @@ Message.prototype.sendMessage = function(msg){
   }
   self.compose = false;
   self.loading.start();
-  self.ImapService.sendMessage(msg, paths, seq)
+  self.ImapService.sendMessage(msg, paths)
     .success(function(data){
       console.log(data);
       self.view = "list";
@@ -685,6 +685,19 @@ Message.prototype.composeMessage = function(message, action){
       }
       if (msg.parsed.subject && action == "forward") {
         self.newMessage.subject = "Fwd: " + msg.parsed.subject;
+        // If there are attachments, 
+        if (msg.parsed.attachments && msg.parsed.attachments.length > 0) {
+          for(var i in msg.parsed.attachments) {
+            var a = {
+              filename : msg.parsed.attachments[i].fileName,
+              contentType : msg.parsed.attachments[i].contentType,
+              encoding : "base64",
+              progress : "uploaded",
+              attachmentId : msg.parsed.attachments[i].attachmentId
+            }
+            self.newMessage.attachments.push(a);
+          }
+        }
       } else {
         self.newMessage.subject = "Re: " + msg.parsed.subject;
         if (msg.parsed.from && msg.parsed.from.length > 0) {
@@ -696,17 +709,25 @@ Message.prototype.composeMessage = function(message, action){
           }
           if (action == "all") {
             for(var i in msg.parsed.cc) {
-              if (self.newMessage.recipients.length > 0) {
-                self.newMessage.recipients += ",";
+              if (msg.parsed.cc[i].address !== self.$rootScope.currentUsername) {
+                if (self.newMessage.recipients.length > 0) {
+                  self.newMessage.recipients += ",";
+                }
+                self.newMessage.recipients += msg.parsed.cc[i].address; 
               }
-              self.newMessage.recipients += msg.parsed.cc[i].address; 
             }
             for(var i in msg.parsed.to) {
-              if (self.newMessage.recipients.length > 0) {
-                self.newMessage.recipients += ",";
+              if (msg.parsed.to[i].address !== self.$rootScope.currentUsername) {
+                if (self.newMessage.recipients.length > 0) {
+                  self.newMessage.recipients += ",";
+                }
+                self.newMessage.recipients += msg.parsed.to[i].address; 
               }
-              self.newMessage.recipients += msg.parsed.to[i].address; 
             }
+          } else {
+            // This variables are needed in the backend to flag the current replied message as Answered
+            self.newMessage.isReply = true;
+            self.newMessage.boxName = msg.boxName;
           }
         }
       }
@@ -745,6 +766,7 @@ Message.prototype.composeMessage = function(message, action){
           self.newMessage.bcc += msg.parsed.bcc[i].address; 
         }
       }
+      // Prepare the attachments
       if (msg.parsed.attachments && msg.parsed.attachments.length > 0) {
         for(var i in msg.parsed.attachments) {
           var a = {
