@@ -176,9 +176,11 @@ hoodiecrowServer.listen(1143, function(){
           }
           smtp.send(sender, recipients, message)
             .then(function(info){
+              console.log(info);
               done();
             })
             .catch(function(err){
+              console.log(err);
               return done(err);
             })
         })
@@ -230,6 +232,10 @@ hoodiecrowServer.listen(1143, function(){
                 done();
               })
             })
+        })
+        .catch(function(err){
+          console.log(err);
+          done(err);
         })
     })
     describe("IMAP", function() {
