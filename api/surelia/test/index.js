@@ -228,6 +228,7 @@ hoodiecrowServer.listen(1143, function(){
                   username : process.env.TEST_SMTP_USERNAME
                 }
               }, function(response){
+                console.log(response.result);
                 should(response.result.accepted.length).equal(1);
                 done();
               })
