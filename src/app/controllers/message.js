@@ -672,7 +672,6 @@ Message.prototype.removeMessage = function(seq, messageId, boxName, opt){
       } else {
         self.ToastrService.deleted();
       }
-      self.ToastrService.deleted();
       self.view = "list";
       self.listBox("INBOX");
     })
