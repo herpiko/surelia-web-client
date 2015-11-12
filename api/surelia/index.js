@@ -286,6 +286,8 @@ ImapAPI.prototype.send = function(request, reply) {
   // This token is a public key that encrypt credential password which has been stored in db
   // Get the public key's pair (private key) in purpose to decrypt password
   keyModel().findOne({publicKey : request.headers.token}).select().lean().exec(function(err, keyPair){
+    console.log("find key pair");
+    console.log(keyPair);
     if (err) {
       return reply(err);
     } else if (!keyPair) {
@@ -293,6 +295,8 @@ ImapAPI.prototype.send = function(request, reply) {
     } else {
       var privateKey = forge.pki.privateKeyFromPem(keyPair.privateKey);
       model().findOne({publicKey : request.headers.token}).select().lean().exec(function(err, result) {
+        console.log("find credential");
+        console.log(result);
         if (err) {
           return reply(err);
         } else if (!keyPair) {
@@ -448,6 +452,8 @@ var checkPool = function(request, reply, realFunc) {
         // This token is a public key that encrypt credential password which has been stored in db
         // Get the public key's pair (private key) in purpose to decrypt password
         keyModel().findOne({publicKey : request.headers.token}).select().lean().exec(function(err, keyPair){
+          console.log("checkpool, find credential");
+          console.log(keyPair);
           if (err) {
             return reply(err);
           } else if (!keyPair) {
@@ -455,6 +461,8 @@ var checkPool = function(request, reply, realFunc) {
           } else {
             var privateKey = forge.pki.privateKeyFromPem(keyPair.privateKey);
             model().findOne({publicKey : request.headers.token}).select().lean().exec(function(err, result) {
+              console.log("checkpool, find credential");
+              console.log(keyPair);
               if (err) {
                 return reply(err);
               } else if (!keyPair) {
