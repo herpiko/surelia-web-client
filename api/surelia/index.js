@@ -265,7 +265,7 @@ ImapAPI.prototype.send = function(request, reply) {
               }
               // Flag as answered
               if (obj.meta.seq && obj.meta.isReply && obj.meta.boxName) {
-                client.addFlag(obj.meta.seq, obj.meta.boxName, "Answered");
+                client.addFlag(obj.meta.seq, "Answered", obj.meta.boxName);
               }
             }
             checkPool(request, reply, realFunc)
@@ -833,7 +833,11 @@ ImapAPI.prototype.moveMessage = function(request, reply) {
  */
 ImapAPI.prototype.removeMessage = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    client.removeMessage(request.query.seq, request.query.boxName)
+    var opt = {};
+    if (request.query.permanentDelete) {
+      opt.permanentDelete = true;
+    }
+    client.removeMessage(request.query.seq, request.query.boxName, opt)
       .then(function(){
         attachmentModel().remove({messageId : decodeURIComponent(request.query.messageId)}).exec();
         // Do not wait

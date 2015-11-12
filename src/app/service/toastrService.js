@@ -42,6 +42,11 @@ ToastrService.prototype.deleted = function() {
   self.toastr.success("Your message was deleted");
 }
 
+ToastrService.prototype.permanentlyDeleted = function() {
+  var self = this;
+  self.toastr.success("Your message was permanently deleted");
+}
+
 ToastrService.prototype.parse = function(data, status) {
   var self = this;
   if ( data && data.err &&  data.err == "Invalid credentials") {
