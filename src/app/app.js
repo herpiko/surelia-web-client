@@ -16,9 +16,13 @@ window.randomcolor = require("randomcolor");
 window.rangy.saveSelection = require("rangy/lib/rangy-selectionsaverestore");
 require("textangular/dist/textAngular-sanitize.min");
 require("textangular");
+require("angular-translate");
 window.objectHash = require("object-hash");
 window.lodash = require("lodash");
 window.async = require("async");
+var conf = require("../../conf/prod/surelia.js");
+var id = require("./localization/id.js");
+var en = require("./localization/en.js");
 
 // Load service and controllers
 require("./service/index");
@@ -40,8 +44,14 @@ var app = angular.module("App", [
   "ngProgress",
   "toastr",
   "ngFileUpload",
-  "angularMoment"
+  "angularMoment",
+  "pascalprecht.translate"
 ])
+.config(function ($translateProvider) {
+  $translateProvider.translations('en', en);
+  $translateProvider.translations('id', id);
+  $translateProvider.preferredLanguage(conf.lang);
+})
 .config(function($stateProvider) {
   $stateProvider
   .state("Login", {
