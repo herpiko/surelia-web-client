@@ -623,18 +623,20 @@ Message.prototype.sendMessage = function(msg){
         });
       }
       // Decrease draft count
-      window.lodash.some(self.boxes, function(box){
-        if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
-          box.meta.count--;
-          return;
-        } 
-      });
-      window.lodash.some(self.specialBoxes, function(box){
-        if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
-          box.meta.count--;
-          return;
-        } 
-      });
+      if (msg.isDraft) {
+        window.lodash.some(self.boxes, function(box){
+          if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
+            box.meta.count--;
+            return;
+          } 
+        });
+        window.lodash.some(self.specialBoxes, function(box){
+          if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
+            box.meta.count--;
+            return;
+          } 
+        });
+      }
       // Set answered flag
       if (msg.isReply) {
         lodash.some(self.currentList, function(message){
