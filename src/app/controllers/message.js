@@ -321,13 +321,18 @@ Message.prototype.listBox = function(boxName, opts, canceler){
         } else {
           self.currentList[i].color = colors[assignedColor.indexOf(hash)];
         }
+        // Set flag state
         self.currentList[i].unread = false;
         self.currentList[i].answered = false;
+        self.currentList[i].deleted = false;
         if (self.currentList[i].attributes.flags.indexOf("\\Seen") < 0) {
           self.currentList[i].unread = true;
         }
         if (self.currentList[i].attributes.flags.indexOf("\\Answered") >= 0) {
           self.currentList[i].answered = true;
+        }
+        if (self.currentList[i].attributes.flags.indexOf("\\Deleted") >= 0) {
+          self.currentList[i].deleted = true;
         }
       }
       // calculate pagination nav
@@ -445,6 +450,11 @@ Message.prototype.retrieveMessage = function(id, boxName){
         self.view = "message";
         self.currentMessage = data;
         self.currentMessage.seq = id;
+        // Set flag state
+        self.currentMessage.deleted = false;
+        if (self.currentMessage.attributes.flags.indexOf("\\Deleted") >= 0) {
+          self.currentMessage.deleted = true;
+        }
         var e = angular.element(document.querySelector("#messageContent"));
         e.empty();
         var html = "";
@@ -642,11 +652,12 @@ Message.prototype.sendMessage = function(msg){
     })
 }
 
-Message.prototype.removeMessage = function(seq, messageId, boxName){
+Message.prototype.removeMessage = function(seq, messageId, boxName, opt){
   var self = this;
+  opt = opt || {};
   self.loading.start();
   console.log("remove message");
-  self.ImapService.removeMessage(seq, messageId, boxName)
+  self.ImapService.removeMessage(seq, messageId, boxName, opt)
     .success(function(data){
       self.loading.complete();
       console.log(data);
@@ -655,6 +666,11 @@ Message.prototype.removeMessage = function(seq, messageId, boxName){
         if (self.currentList[i].seq == seq) {
           self.currentList.splice(i, 1); 
         }
+      }
+      if (opt && opt.permanentDelete) {
+        self.ToastrService.permanentlyDeleted();
+      } else {
+        self.ToastrService.deleted();
       }
       self.ToastrService.deleted();
       self.view = "list";

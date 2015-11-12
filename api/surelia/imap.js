@@ -333,9 +333,6 @@ Imap.prototype.listBox = function(name, limit, page, search) {
             result.push(mail);
           })
         });
-        f.once("error", function(err) {
-          return doneIteratingMessages(err);
-        })
         f.once("end", function(err) {
           return doneIteratingMessages(err);
         })
@@ -456,27 +453,38 @@ Imap.prototype.renameBox = function(oldName, newName) {
 
 /**
  * Add flags
- *
+ * The third parameter is required if the box need to be closed at the end
  */
 
-Imap.prototype.addFlag = function(id, boxName, flag) {
+
+Imap.prototype.addFlag = function(id, flag, boxName) {
   var self = this;
   var flag = "\\" + flag;
   return new Promise(function(resolve, reject){
-    self.client.openBox(boxName, false, function(err, box){
-      if (err) {
-        return reject(err);
-      }
+    if (boxName) {
+      self.client.openBox(boxName, false, function(err, box){
+        if (err) {
+          return reject(err);
+        }
+        self.client.seq.addFlags(id.toString(), [flag], function(err){
+          if (err) {
+            console.log(err);
+            return reject(err);
+          }
+          self.client.closeBox(function(){
+            resolve();
+          });
+        }); 
+      })
+    } else {
       self.client.seq.addFlags(id.toString(), [flag], function(err){
         if (err) {
           console.log(err);
           return reject(err);
         }
-        self.client.closeBox(function(){
-          resolve();
-        });
+        resolve();
       }); 
-    })
+    }
   })
 }
 
@@ -566,7 +574,7 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
                 resolve(mail);
               }); 
             } else {
-              self.addFlag(id, boxName, "Seen")
+              self.addFlag(id, "Seen", boxName)
                 .then(function(){
                   resolve(mail);
                 })
@@ -624,7 +632,7 @@ Imap.prototype.moveMessage = function(id, oldBox, newBox) {
  * @param {String} boxName - The name of the box which the message is being removed from
  * @returns {Promise}
  */
-Imap.prototype.removeMessage = function(id, boxName) {
+Imap.prototype.removeMessage = function(id, boxName, opt) {
   var self = this;
   return new Promise(function(resolve, reject){
     self.getSpecialBoxes()
@@ -633,26 +641,47 @@ Imap.prototype.removeMessage = function(id, boxName) {
           if (err) {
             return reject(err);
           }
-          if (specials.Trash && specials.Trash.path) {
-            self.client.seq.move(id.toString(), specials.Trash.path, function(err, code){
+          if (opt && opt.permanentDelete) {
+            var trashPath = (specials.Trash && specials.Trash.path) ? specials.Trash.path : "Trash";
+            self.client.openBox(trashPath, false, function(err){
               if (err) {
                 return reject(err);
               }
-              self.client.closeBox(function(err){
-                // Do not check closeBox's error, if it does not allowed now, go on
+              self.client.expunge(id.toString(), function(){
                 resolve();
               })
             });
           } else {
-            self.client.seq.move(id.toString(), "Trash", function(err, code){
-              if (err) {
-                return reject(err);
-              }
-              self.client.closeBox(function(err){
-                // Do not check closeBox's error, if it does not allowed now, go on
-                resolve();
+            self.addFlag(id, "Deleted")
+              .then(function(){
+                if (specials.Trash && specials.Trash.path) {
+                  self.client.seq.move(id.toString(), specials.Trash.path, function(err, code){
+                    if (err) {
+                      return reject(err);
+                    }
+                    self.client.closeBox(function(err){
+                      // Do not check closeBox's error, if it does not allowed now, go on
+                      resolve();
+                    })
+                  });
+                } else {
+                  self.client.seq.move(id.toString(), "Trash", function(err, code){
+                    if (err) {
+                      return reject(err);
+                    }
+                    self.client.closeBox(function(err){
+                      // Do not check closeBox's error, if it does not allowed now, go on
+                      resolve();
+                    })
+                  });
+                }
               })
-            });
+              .catch(function(err){
+                console.log(err);
+                if (err) {
+                  return reject(err);
+                }
+              });
           }
       })
       .catch(function(err){
