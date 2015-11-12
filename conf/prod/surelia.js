@@ -6,7 +6,8 @@ var config = {
   smtp: {
     host: 'smtp.gmail.com',
     port: 465 
-  }
+  },
+  lang : "id"
 }
 
 module.exports = config;
