@@ -287,6 +287,12 @@ Message.prototype.listBox = function(boxName, opts, canceler){
       console.log(data);
       self.currentList = data.data;
       self.currentListMeta = data.meta;
+      // Simplify 
+      window.lodash.some(self.currentList, function(msg){
+        if (typeof msg.header.subject == "object") {
+          msg.header.subject = msg.header.subject[0];
+        }
+      })
       // Assign message count
       window.lodash.some(self.specialBoxes, function(box){
         if (box.specialName.indexOf(boxName) >= 0 && 
