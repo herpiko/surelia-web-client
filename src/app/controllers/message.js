@@ -654,12 +654,11 @@ Message.prototype.sendMessage = function(msg){
     })
 }
 
-Message.prototype.removeMessage = function(seq, messageId, boxName, opt){
+Message.prototype.removeMessage = function(seq, messageId, boxName){
   var self = this;
-  opt = opt || {};
   self.loading.start();
   console.log("remove message");
-  self.ImapService.removeMessage(seq, messageId, boxName, opt)
+  self.ImapService.removeMessage(seq, messageId, boxName)
     .success(function(data){
       self.loading.complete();
       console.log(data);
@@ -669,7 +668,7 @@ Message.prototype.removeMessage = function(seq, messageId, boxName, opt){
           self.currentList.splice(i, 1); 
         }
       }
-      if (opt && opt.permanentDelete) {
+      if (boxName.indexOf("Trash") > -1) {
         self.ToastrService.permanentlyDeleted();
       } else {
         self.ToastrService.deleted();

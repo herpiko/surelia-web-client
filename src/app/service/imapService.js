@@ -300,12 +300,9 @@ ImapService.prototype.moveMessage = function(id, boxName, newBoxName) {
   return self.$http(req)
 }
 
-ImapService.prototype.removeMessage = function(seq, messageId, boxName, opt) {
+ImapService.prototype.removeMessage = function(seq, messageId, boxName) {
   var self = this;
   var path = "/api/1.0/message?seq=" + seq + "&messageId=" + encodeURIComponent(messageId) + "&boxName=" + boxName;
-  if (opt && opt.permanentDelete) {
-    path += "&permanentDelete=true";
-  }
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
   var req = {

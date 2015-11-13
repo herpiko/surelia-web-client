@@ -378,7 +378,7 @@ Imap.prototype.listBox = function(name, limit, page, search) {
         return reject(err);
       }
       if (isSearch) {
-        self.client.search([["OR",["SUBJECT", search],["FROM", search]]], function(err, result){
+        self.client.seq.search([["OR",["SUBJECT", search],["FROM", search]]], function(err, result){
           if (err) {
             return reject(err);
           }
@@ -632,8 +632,11 @@ Imap.prototype.moveMessage = function(id, oldBox, newBox) {
  * @param {String} boxName - The name of the box which the message is being removed from
  * @returns {Promise}
  */
-Imap.prototype.removeMessage = function(id, boxName, opt) {
+Imap.prototype.removeMessage = function(id, boxName) {
   var self = this;
+  if (boxName == "search") {
+    boxName = "INBOX";
+  }
   return new Promise(function(resolve, reject){
     self.getSpecialBoxes()
       .then(function(specials){
@@ -641,47 +644,50 @@ Imap.prototype.removeMessage = function(id, boxName, opt) {
           if (err) {
             return reject(err);
           }
-          if (opt && opt.permanentDelete) {
+          if (boxName.indexOf("Trash") > -1) {
             var trashPath = (specials.Trash && specials.Trash.path) ? specials.Trash.path : "Trash";
             self.client.openBox(trashPath, false, function(err){
               if (err) {
                 return reject(err);
               }
-              self.client.expunge(id.toString(), function(){
-                resolve();
-              })
+              self.addFlag(id, "Deleted")
+                .then(function(){
+                  self.client.expunge(function(err){
+                    if (err) {
+                      return reject(err);
+                    }
+                    resolve();
+                  })
+                })
+                .catch(function(err){
+                  if (err) {
+                    return reject(err);
+                  }
+                });
             });
           } else {
-            self.addFlag(id, "Deleted")
-              .then(function(){
-                if (specials.Trash && specials.Trash.path) {
-                  self.client.seq.move(id.toString(), specials.Trash.path, function(err, code){
-                    if (err) {
-                      return reject(err);
-                    }
-                    self.client.closeBox(function(err){
-                      // Do not check closeBox's error, if it does not allowed now, go on
-                      resolve();
-                    })
-                  });
-                } else {
-                  self.client.seq.move(id.toString(), "Trash", function(err, code){
-                    if (err) {
-                      return reject(err);
-                    }
-                    self.client.closeBox(function(err){
-                      // Do not check closeBox's error, if it does not allowed now, go on
-                      resolve();
-                    })
-                  });
-                }
-              })
-              .catch(function(err){
-                console.log(err);
+            console.log("just delete it");
+            if (specials.Trash && specials.Trash.path) {
+              self.client.seq.move(id.toString(), specials.Trash.path, function(err, code){
                 if (err) {
                   return reject(err);
                 }
+                self.client.closeBox(function(err){
+                  // Do not check closeBox's error, if it does not allowed now, go on
+                  resolve();
+                })
               });
+            } else {
+              self.client.seq.move(id.toString(), "Trash", function(err, code){
+                if (err) {
+                  return reject(err);
+                }
+                self.client.closeBox(function(err){
+                  // Do not check closeBox's error, if it does not allowed now, go on
+                  resolve();
+                })
+              });
+            }
           }
       })
       .catch(function(err){
