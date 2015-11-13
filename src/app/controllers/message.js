@@ -758,11 +758,10 @@ Message.prototype.composeMessage = function(message, action){
                 self.newMessage.recipients += msg.parsed.to[i].address; 
               }
             }
-          } else {
-            // This variables are needed in the backend to flag the current replied message as Answered
-            self.newMessage.isReply = true;
-            self.newMessage.boxName = msg.boxName;
           }
+          // This variables are needed in the backend to flag the current replied message as Answered
+          self.newMessage.isReply = true;
+          self.newMessage.boxName = msg.boxName;
         }
       }
     // Or a draft
