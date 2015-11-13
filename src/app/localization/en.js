@@ -7,5 +7,7 @@ module.exports = {
   "TOASTR_SENT_SUCCESSFULLY" : "Your message sent successfully",
   "TOASTR_DRAFT_SAVED" : "Your draft has been saved",
   "TOASTR_MESSAGE_DELETED" : "Your message has been deleted",
-  "TOASTR_MESSAGE_PERMANENTLY_DELETED" : "Your mesage has been permanently deleted"
+  "TOASTR_MESSAGE_PERMANENTLY_DELETED" : "Your mesage has been permanently deleted",
+  "TOASTR_CONNECTION_ERROR" : "There is a connection problem. Please check your internet connection and try again",
+  "TOASTR_ERROR_500" : "An error occured"
 }

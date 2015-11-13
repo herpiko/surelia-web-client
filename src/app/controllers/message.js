@@ -178,14 +178,14 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
           });
         })
         .error(function(data, status){
-          self.loading.complete();
           console.log(data, status);
+          self.loading.complete();
           self.ErrorHandlerService.parse(data, status);
         })
     })
     .error(function(data, status){
-      self.loading.complete();
       console.log(data, status);
+      self.loading.complete();
       self.ErrorHandlerService.parse(data, status);
     })
   self.isValidEmail = function(emailString){
@@ -218,8 +218,8 @@ Message.prototype.getBoxes = function(){
       self.boxes = data;
     })
     .error(function(data, status){
-      self.loading.complete();
       console.log(data, status);
+      self.loading.complete();
       self.ErrorHandlerService.parse(data, status);
     })
 }
@@ -366,6 +366,7 @@ Message.prototype.listBox = function(boxName, opts, canceler){
     })
     .catch(function(data, status){
       self.loading.complete();
+      self.ToastrService.parse(data, status);
       console.log(data, status);
     })
 }
@@ -381,8 +382,9 @@ Message.prototype.addBox = function(boxName){
       alert("Success");
     })
     .error(function(data, status){
-      self.loading.complete();
       console.log(data, status);
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
     })
 }
 
@@ -397,8 +399,9 @@ Message.prototype.renameBox = function(boxName, newBoxName){
       alert("Success");
     })
     .error(function(data, status){
-      self.loading.complete();
       console.log(data, status);
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
     })
 }
 
@@ -413,8 +416,9 @@ Message.prototype.deleteBox = function(boxName){
       alert("Success");
     })
     .error(function(data, status){
-      self.loading.complete();
       console.log(data, status);
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
     })
 }
 
@@ -497,6 +501,7 @@ Message.prototype.retrieveMessage = function(id, boxName){
     })
     .catch(function(data, status){
       self.loading.complete();
+      self.ToastrService.parse(data, status);
       console.log(data, status);
     })
 }
@@ -533,6 +538,7 @@ Message.prototype.getAttachment = function(messageId, index) {
     })
     .catch(function(data, status){
       self.loading.complete();
+      self.ToastrService.parse(data, status);
     })
     
 }
@@ -550,6 +556,7 @@ Message.prototype.moveMessage = function(id, boxName, newBoxName){
     .error(function(data, status){
       self.loading.complete();
       console.log(data, status);
+      self.ToastrService.parse(data, status);
     })
 }
 
@@ -655,8 +662,9 @@ Message.prototype.sendMessage = function(msg){
        
     })
     .error(function(data, status){
-      self.loading.complete();
       console.log(data, status);
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
     })
 }
 
@@ -683,8 +691,9 @@ Message.prototype.removeMessage = function(seq, messageId, boxName){
       self.listBox("INBOX");
     })
     .error(function(data, status){
-      self.loading.complete();
       console.log(data, status);
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
     })
 }
 
@@ -856,6 +865,7 @@ Message.prototype.saveDraft = function(){
             })
             .error(function(data, status, header){
               self.loading.complete();
+              self.ToastrService.parse(data, status);
             })
         } else {
           self.listBox(draftPath, {}, true);
@@ -876,6 +886,7 @@ Message.prototype.saveDraft = function(){
       })
       .error(function(data, status, header){
         self.loading.complete();
+        self.ToastrService.parse(data, status);
       })
   }
 }
@@ -905,6 +916,7 @@ Message.prototype.discardDraft = function(id){
       })
       .error(function(data, status, header){
         self.loading.complete();
+        self.ToastrService.parse(data, status);
       })
   }
   self.newMessage = {};

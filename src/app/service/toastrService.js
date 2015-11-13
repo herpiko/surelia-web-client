@@ -9,6 +9,16 @@ var ToastrService = function($http, localStorageService, $rootScope, $state, $q,
   this.$filter = $filter;
 }
 
+ToastrService.prototype.error500 = function(){
+  var self = this;
+  self.toastr.error(self.$filter("translate")("TOASTR_ERROR_500"));
+}
+
+ToastrService.prototype.connectionError = function(){
+  var self = this;
+  self.toastr.error(self.$filter("translate")("TOASTR_CONNECTION_ERROR"));
+}
+
 ToastrService.prototype.invalidCredentials = function(){
   var self = this;
   self.toastr.error(self.$filter("translate")("TOASTR_INVALID_CREDENTIALS"));
@@ -17,7 +27,7 @@ ToastrService.prototype.invalidCredentials = function(){
 ToastrService.prototype.invalidEmailAddress = function(emailString){
   var self = this;
   if (emailString) {
-    self.toastr.error(emailString + self.$filter("translate")("TOASTR_INVALID_EMAIL"));
+    self.toastr.error(emailString + self.$filter("translate")("TOASTR__INVALID_EMAIL"));
   } else {
     self.toastr.error(self.$filter("translate")("TOASTR_INVALID_EMAIL"));
   }
@@ -48,18 +58,18 @@ ToastrService.prototype.permanentlyDeleted = function() {
   self.toastr.success(self.$filter("translate")("TOASTR_MESSAGE_PERMANENTLY_DELETED"));
 }
 
+// This function intended to parse a request error
+// so we could just simply put it in each .catch() / .error() scope
+// instead of writing a bunch of toastr functions.
 ToastrService.prototype.parse = function(data, status) {
   var self = this;
   if ( data && data.err &&  data.err == "Invalid credentials") {
     self.invalidCredentials();
-  }
-}
-
-
-ToastrService.prototype.parse = function(data, status) {
-  var self = this;
-  if ( data && data.err &&  data.err == "Invalid credentials") {
-    self.invalidCredentials();
+  } else if (status == 500) {
+    self.error500();
+  } else if (data == null && status == undefined) {
+    // If this point reached, it must be a connection error / timeout / no response
+    self.connectionError();
   }
 }
 
