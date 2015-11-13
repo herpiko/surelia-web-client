@@ -176,9 +176,11 @@ hoodiecrowServer.listen(1143, function(){
           }
           smtp.send(sender, recipients, message)
             .then(function(info){
+              console.log(info);
               done();
             })
             .catch(function(err){
+              console.log(err);
               return done(err);
             })
         })
@@ -226,10 +228,15 @@ hoodiecrowServer.listen(1143, function(){
                   username : process.env.TEST_SMTP_USERNAME
                 }
               }, function(response){
+                console.log(response.result);
                 should(response.result.accepted.length).equal(1);
                 done();
               })
             })
+        })
+        .catch(function(err){
+          console.log(err);
+          done(err);
         })
     })
     describe("IMAP", function() {
@@ -763,7 +770,7 @@ hoodiecrowServer.listen(1143, function(){
         })
       })
     })
-    it("Should be able to remove a message", function(done){
+    it("Should be able to remove a message to trash, then remove it permanently from trash", function(done){
       var trashTotal;
       server.inject({
         method: "GET",
@@ -793,7 +800,28 @@ hoodiecrowServer.listen(1143, function(){
             }
           }, function(response){
             should(response.result.meta.total).equal(trashTotal + 1);
-            done();
+            trashTotal = response.result.meta.total;
+            server.inject({
+              method: "DELETE",
+              url : "/api/1.0/message?seq=1&boxName=" + trashPath,
+              headers : {
+                token : token,
+                username : process.env.TEST_SMTP_USERNAME
+              }
+            }, function(response){
+              should(response.statusCode).equal(200);
+              server.inject({
+                method: "GET",
+                url : "/api/1.0/list-box?boxName=" + trashPath,
+                headers : {
+                  token : token,
+                  username : process.env.TEST_SMTP_USERNAME
+                }
+              }, function(response){
+                should(response.result.meta.total).equal(trashTotal - 1);
+                done();
+              })
+            })
           })
         })
       })

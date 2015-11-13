@@ -81,7 +81,7 @@ var mimeTypes = {
     ]
   }
 }
-var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService){
+var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -95,6 +95,7 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.$timeout = $timeout;
   this.Upload = Upload;
   this.ToastrService = ToastrService;
+  this.$templateCache = $templateCache;
   var self = this;
   self.compose = false;
   self.composeMode = "corner";
@@ -288,7 +289,7 @@ Message.prototype.listBox = function(boxName, opts, canceler){
       self.currentListMeta = data.meta;
       // Assign message count
       window.lodash.some(self.specialBoxes, function(box){
-        if (box.specialName == boxName && 
+        if (box.specialName.indexOf(boxName) >= 0 && 
           boxName.indexOf("Trash") < 0 && 
           boxName.indexOf("Sent") < 0
         ) {
@@ -297,7 +298,7 @@ Message.prototype.listBox = function(boxName, opts, canceler){
         } 
       });
       window.lodash.some(self.boxes, function(box){
-        if (box.boxName == boxName &&
+        if (box.boxName.indexOf(boxName) >= 0 &&
           boxName.indexOf("Trash") < 0 && 
           boxName.indexOf("Sent") < 0
         ) {
@@ -320,10 +321,18 @@ Message.prototype.listBox = function(boxName, opts, canceler){
         } else {
           self.currentList[i].color = colors[assignedColor.indexOf(hash)];
         }
+        // Set flag state
         self.currentList[i].unread = false;
-        console.log(self.currentList[i].attributes.flags.indexOf("\\Seen"));
+        self.currentList[i].answered = false;
+        self.currentList[i].deleted = false;
         if (self.currentList[i].attributes.flags.indexOf("\\Seen") < 0) {
           self.currentList[i].unread = true;
+        }
+        if (self.currentList[i].attributes.flags.indexOf("\\Answered") >= 0) {
+          self.currentList[i].answered = true;
+        }
+        if (self.currentList[i].attributes.flags.indexOf("\\Deleted") >= 0) {
+          self.currentList[i].deleted = true;
         }
       }
       // calculate pagination nav
@@ -441,6 +450,11 @@ Message.prototype.retrieveMessage = function(id, boxName){
         self.view = "message";
         self.currentMessage = data;
         self.currentMessage.seq = id;
+        // Set flag state
+        self.currentMessage.deleted = false;
+        if (self.currentMessage.attributes.flags.indexOf("\\Deleted") >= 0) {
+          self.currentMessage.deleted = true;
+        }
         var e = angular.element(document.querySelector("#messageContent"));
         e.empty();
         var html = "";
@@ -568,7 +582,7 @@ Message.prototype.sendMessage = function(msg){
   } else {
     paths.sent = "Sent";
   }
-  var seq = msg.seq || undefined;
+  msg.seq = msg.seq || undefined;
   // convert comma separated string to array, then check if they are a valid email
   if (msg.recipients && msg.recipients.length > 0) {
     msg.recipients = msg.recipients.replace(" ", "").split(",");
@@ -596,31 +610,42 @@ Message.prototype.sendMessage = function(msg){
   }
   self.compose = false;
   self.loading.start();
-  self.ImapService.sendMessage(msg, paths, seq)
+  self.ImapService.sendMessage(msg, paths)
     .success(function(data){
       console.log(data);
       self.view = "list";
       self.loading.complete();
       self.ToastrService.sent();
       // Remove it immediately from draft scope
-      if (msg.seq) {
+      if (msg.seq && msg.isDraft) {
         window.lodash.remove(self.currentList, function(message){
           return message.seq == msg.seq;
         });
       }
       // Decrease draft count
-      window.lodash.some(self.boxes, function(box){
-        if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
-          box.meta.count--;
-          return;
-        } 
-      });
-      window.lodash.some(self.specialBoxes, function(box){
-        if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
-          box.meta.count--;
-          return;
-        } 
-      });
+      if (msg.isDraft) {
+        window.lodash.some(self.boxes, function(box){
+          if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
+            box.meta.count--;
+            return;
+          } 
+        });
+        window.lodash.some(self.specialBoxes, function(box){
+          if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
+            box.meta.count--;
+            return;
+          } 
+        });
+      }
+      // Set answered flag
+      if (msg.isReply) {
+        lodash.some(self.currentList, function(message){
+          if (message.seq == msg.seq) {
+            message.answered = true;
+            return;
+          }
+        });
+      }
        
     })
     .error(function(data, status){
@@ -629,11 +654,12 @@ Message.prototype.sendMessage = function(msg){
     })
 }
 
-Message.prototype.removeMessage = function(seq, messageId, boxName){
+Message.prototype.removeMessage = function(seq, messageId, boxName, opt){
   var self = this;
+  opt = opt || {};
   self.loading.start();
   console.log("remove message");
-  self.ImapService.removeMessage(seq, messageId, boxName)
+  self.ImapService.removeMessage(seq, messageId, boxName, opt)
     .success(function(data){
       self.loading.complete();
       console.log(data);
@@ -643,7 +669,11 @@ Message.prototype.removeMessage = function(seq, messageId, boxName){
           self.currentList.splice(i, 1); 
         }
       }
-      self.ToastrService.deleted();
+      if (opt && opt.permanentDelete) {
+        self.ToastrService.permanentlyDeleted();
+      } else {
+        self.ToastrService.deleted();
+      }
       self.view = "list";
       self.listBox("INBOX");
     })
@@ -653,8 +683,9 @@ Message.prototype.removeMessage = function(seq, messageId, boxName){
     })
 }
 
-Message.prototype.composeMessage = function(msg){
+Message.prototype.composeMessage = function(message, action){
   var self = this;
+  var msg = angular.copy(message);
   self.compose = true;
   self.cc = false;
   self.bcc = false;
@@ -668,54 +699,114 @@ Message.prototype.composeMessage = function(msg){
     html : "",
     attachments : []
   };
-  // If there is a parameter, then it is an existing draft
   if (msg) {
     console.log(msg);
-    self.newMessage.isDraft = true;
     self.newMessage.seq = msg.seq;
     self.newMessage.messageId = msg.parsed.messageId;
-    if (msg.parsed.subject) {
-      self.newMessage.subject = msg.parsed.subject;
-    }
-    if (msg.parsed.html) {
-      self.newMessage.html = msg.parsed.html;
-    }
-    if (msg.parsed.attachments && msg.parsed.attachments.length > 0) {
-      for(var i in msg.parsed.attachments) {
-        var a = {
-          filename : msg.parsed.attachments[i].fileName,
-          contentType : msg.parsed.attachments[i].contentType,
-          encoding : "base64",
-          progress : "uploaded",
-          attachmentId : msg.parsed.attachments[i].attachmentId
-        }
-        self.newMessage.attachments.push(a);
+    // If there is a msg parameter and an action, then it is a reply / reply all / forward
+    if (action && (action === "reply" || action === "all" || action === "forward")) {
+      if (msg.parsed.html) {
+        var trimmed = self.$templateCache.get("trimmed-message.html");
+        console.log(trimmed);
+        self.newMessage.html = trimmed.replace("CONTENT", msg.parsed.html)
+                                .replace("DATE", msg.parsed.date)
+                                .replace("ADDRESS", msg.parsed.from[0].address);
       }
-    }
-    if (msg.parsed.to && msg.parsed.to.length > 0) {
-      for(var i in msg.parsed.to) {
-        if (self.newMessage.recipients.length > 0) {
-          self.newMessage.recipients += ",";
+      if (msg.parsed.subject && action == "forward") {
+        self.newMessage.subject = "Fwd: " + msg.parsed.subject;
+        // If there are attachments, 
+        if (msg.parsed.attachments && msg.parsed.attachments.length > 0) {
+          for(var i in msg.parsed.attachments) {
+            var a = {
+              filename : msg.parsed.attachments[i].fileName,
+              contentType : msg.parsed.attachments[i].contentType,
+              encoding : "base64",
+              progress : "uploaded",
+              attachmentId : msg.parsed.attachments[i].attachmentId
+            }
+            self.newMessage.attachments.push(a);
+          }
         }
-        self.newMessage.recipients += msg.parsed.to[i].address; 
+      } else {
+        self.newMessage.subject = "Re: " + msg.parsed.subject;
+        if (msg.parsed.from && msg.parsed.from.length > 0) {
+          for(var i in msg.parsed.from) {
+            if (self.newMessage.recipients.length > 0) {
+              self.newMessage.recipients += ",";
+            }
+            self.newMessage.recipients += msg.parsed.from[i].address; 
+          }
+          if (action == "all") {
+            for(var i in msg.parsed.cc) {
+              if (msg.parsed.cc[i].address !== self.$rootScope.currentUsername) {
+                if (self.newMessage.recipients.length > 0) {
+                  self.newMessage.recipients += ",";
+                }
+                self.newMessage.recipients += msg.parsed.cc[i].address; 
+              }
+            }
+            for(var i in msg.parsed.to) {
+              if (msg.parsed.to[i].address !== self.$rootScope.currentUsername) {
+                if (self.newMessage.recipients.length > 0) {
+                  self.newMessage.recipients += ",";
+                }
+                self.newMessage.recipients += msg.parsed.to[i].address; 
+              }
+            }
+          } else {
+            // This variables are needed in the backend to flag the current replied message as Answered
+            self.newMessage.isReply = true;
+            self.newMessage.boxName = msg.boxName;
+          }
+        }
       }
-    }
-    if (msg.parsed.cc && msg.parsed.cc.length > 0) {
-      self.cc = true;
-      for(var i in msg.parsed.cc) {
-        if (self.newMessage.cc.length > 0) {
-          self.newMessage.cc += ",";
-        }
-        self.newMessage.cc += msg.parsed.cc[i].address; 
+    // Or a draft
+    } else {
+      if (msg.parsed.html) {
+        self.newMessage.html = msg.parsed.html;
       }
-    }
-    if (msg.parsed.bcc && msg.parsed.bcc.length > 0) {
-      self.bcc = true;
-      for(var i in msg.parsed.bcc) {
-        if (self.newMessage.bcc.length > 0) {
-          self.newMessage.bcc += ",";
+      if (msg.parsed.subject) {
+        self.newMessage.subject = msg.parsed.subject;
+      }
+      self.newMessage.isDraft = true;
+      if (msg.parsed.to && msg.parsed.to.length > 0) {
+        for(var i in msg.parsed.to) {
+          if (self.newMessage.recipients.length > 0) {
+            self.newMessage.recipients += ",";
+          }
+          self.newMessage.recipients += msg.parsed.to[i].address; 
         }
-        self.newMessage.bcc += msg.parsed.bcc[i].address; 
+      }
+      if (msg.parsed.cc && msg.parsed.cc.length > 0) {
+        self.cc = true;
+        for(var i in msg.parsed.cc) {
+          if (self.newMessage.cc.length > 0) {
+            self.newMessage.cc += ",";
+          }
+          self.newMessage.cc += msg.parsed.cc[i].address; 
+        }
+      }
+      if (msg.parsed.bcc && msg.parsed.bcc.length > 0) {
+        self.bcc = true;
+        for(var i in msg.parsed.bcc) {
+          if (self.newMessage.bcc.length > 0) {
+            self.newMessage.bcc += ",";
+          }
+          self.newMessage.bcc += msg.parsed.bcc[i].address; 
+        }
+      }
+      // Prepare the attachments
+      if (msg.parsed.attachments && msg.parsed.attachments.length > 0) {
+        for(var i in msg.parsed.attachments) {
+          var a = {
+            filename : msg.parsed.attachments[i].fileName,
+            contentType : msg.parsed.attachments[i].contentType,
+            encoding : "base64",
+            progress : "uploaded",
+            attachmentId : msg.parsed.attachments[i].attachmentId
+          }
+          self.newMessage.attachments.push(a);
+        }
       }
     }
   }
@@ -795,7 +886,7 @@ Message.prototype.discardDraft = function(id){
     }
   }
   // If it's an existing draft, remove it
-  if (self.newMessage.seq && self.newMessage.messageId) {
+  if (self.newMessage.seq && self.newMessage.messageId && self.newMessage.isDraft) {
     self.loading.start();
     var draftPath;
     if (self.specialBoxes.Drafts && self.specialBoxes.Drafts.path) {
@@ -812,6 +903,7 @@ Message.prototype.discardDraft = function(id){
         self.loading.complete();
       })
   }
+  self.newMessage = {};
 }
 
 Message.prototype.resizeCompose = function(mode){

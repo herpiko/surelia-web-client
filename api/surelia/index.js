@@ -34,7 +34,9 @@ ImapAPI.prototype.registerEndPoints = function(){
           subject : Joi.string().allow(""),
           html : Joi.string().allow(""),
           isDraft : Joi.boolean().allow(""),
+          isReply : Joi.boolean().allow(""),
           seq : Joi.number().allow(""),
+          boxName : Joi.string().allow(""),
           messageId : Joi.string().allow(""),
           attachments : Joi.array().items(Joi.object().keys({
             filename : Joi.string(),
@@ -238,7 +240,8 @@ ImapAPI.prototype.registerEndPoints = function(){
  */
 
 ImapAPI.prototype.send = function(request, reply) {
-  var realSend = function(request, reply, smtp, msg){
+  var realSend = function(request, reply, smtp, obj){
+    var msg = obj.msg;
     var newMessage = composer(msg)
     newMessage.build(function(err, message){
       if (err) {
@@ -257,8 +260,12 @@ ImapAPI.prototype.send = function(request, reply) {
               // Move to Sent
               client.newMessage(message, request.query.sentPath)
               // Remove from Drafts
-              if (request.query.seq) {
-                client.removeMessage(request.query.seq, request.query.draftPath)
+              if (obj.meta.seq && obj.meta.isDraft) {
+                client.removeMessage(obj.meta.seq, request.query.draftPath)
+              }
+              // Flag as answered
+              if (obj.meta.seq && obj.meta.isReply && obj.meta.boxName) {
+                client.addFlag(obj.meta.seq, "Answered", obj.meta.boxName);
               }
             }
             checkPool(request, reply, realFunc)
@@ -325,8 +332,26 @@ ImapAPI.prototype.send = function(request, reply) {
               if (payload.cc) {
                 msg.cc = payload.cc;
               }
+              var meta = {};
+              if (request.payload.seq) {
+                meta.seq = request.payload.seq;
+              }
+              if (request.payload.isDraft) {
+                meta.isDraft = request.payload.isDraft;
+              }
+              if (request.payload.isReply) {
+                meta.isReply = request.payload.isReply;
+              }
+              if (request.payload.boxName) {
+                meta.boxName = request.payload.boxName;
+              }
+              // Wrap msg and meta to object
+              var obj = {
+                msg : msg,
+                meta : meta
+              }
               if (payload.attachments && payload.attachments.length > 0) {
-                msg.attachments = [];
+                obj.msg.attachments = [];
                 // Check for attachmentId,
                 // if any, grab them from temporary attachment collection
                 async.eachSeries(payload.attachments, function(attachment, cb){
@@ -340,16 +365,16 @@ ImapAPI.prototype.send = function(request, reply) {
                       }
                       attachment.content = result.content;
                       delete(attachment.progress);
-                      msg.attachments.push(attachment);
+                      obj.msg.attachments.push(attachment);
                       // Remove temporary attachment, but do not wait
                       uploadAttachmentModel().remove({_id : attachment.attachmentId});
                       cb(); 
                     })
                 }, function(err){
-                  realSend(request, reply, smtp, msg);
+                  realSend(request, reply, smtp, obj);
                 })
               } else {
-                realSend(request, reply, smtp, msg);
+                realSend(request, reply, smtp, obj);
               }
             })
             .catch(function(err){
@@ -724,34 +749,31 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
     client.retrieveMessage(request.query.id, request.query.boxName)
       .then(function(message){
         delete(message.original);
-        if (!message.hasAttachments && !message.parsed.attachments) {
-          return reply(message);
-        } else {
-        }
         if (request.query.boxName.indexOf("Drafts") > -1) {
           message.isDraft = true;
-          async.eachSeries(message.parsed.attachments, function(attachment, cb){
-            var a = {
-              content : attachment.content.toString("base64"),
-              timestamp : new Date()
-            }
-            uploadAttachmentModel().create(a, function(err, result){
-              if (err) {
-                return reply(err).code(500);
-              }
-              attachment.attachmentId = result._id;
-              attachment.attachmentId = result._id;
-              delete(attachment.content);
-              cb();
-            })
-          }, function(err){
+        }
+        if (!message.hasAttachments && !message.parsed.attachments) {
+          return reply(message);
+        }
+        // Save attachments to uploadAttachment collection in purpose of drafts and forward
+        async.eachSeries(message.parsed.attachments, function(attachment, cb){
+          var a = {
+            content : attachment.content.toString("base64"),
+            timestamp : new Date()
+          }
+          uploadAttachmentModel().create(a, function(err, result){
             if (err) {
-              return reply({err : err.message}).code(500);
+              return reply(err).code(500);
             }
-            reply(message);
-          }) 
-        } else {
-          // This message has attachment, cut and save them to db
+            // This attachmentId is used to refetch attachments from db if the message is going to send
+            attachment.attachmentId = result._id;
+            cb();
+          })
+        }, function(err){
+          if (err) {
+            return reply({err : err.message}).code(500);
+          }
+          // Cut and save attachments to attachment collection in purpose of separated attachment download.
           var attachments = {
             attachments : message.parsed.attachments,
             messageId : message.parsed.messageId,
@@ -768,6 +790,7 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
                   return reply(err).code(500);
                 }
                 for (var i = 0; i < message.parsed.attachments.length;i++) {
+                  // Remove the attachment content
                   message.parsed.attachments[i].content = "";
                 }
                 reply(message);
@@ -776,7 +799,7 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
               reply(message);
             }
           })
-        }
+        }) 
       })
       .catch(function(err){
         reply({err : err.message}).code(500);
@@ -810,7 +833,11 @@ ImapAPI.prototype.moveMessage = function(request, reply) {
  */
 ImapAPI.prototype.removeMessage = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    client.removeMessage(request.query.seq, request.query.boxName)
+    var opt = {};
+    if (request.query.permanentDelete) {
+      opt.permanentDelete = true;
+    }
+    client.removeMessage(request.query.seq, request.query.boxName, opt)
       .then(function(){
         attachmentModel().remove({messageId : decodeURIComponent(request.query.messageId)}).exec();
         // Do not wait
