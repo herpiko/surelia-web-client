@@ -849,7 +849,7 @@ Message.prototype.saveDraft = function(){
       .success(function(data, status, header){
         self.ToastrService.savedAsDraft();
         // If it's an existing draft, remove the old one
-        if (msg.seq && msg.messageId) {
+        if (msg.seq && msg.messageId && !msg.isReply) {
           self.ImapService.removeMessage(msg.seq, msg.messageId, draftPath)
             .success(function(data, status, header){
               self.listBox(draftPath, {}, true);
