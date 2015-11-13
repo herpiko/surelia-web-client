@@ -666,7 +666,6 @@ Imap.prototype.removeMessage = function(id, boxName) {
               })
             });
           } else {
-            console.log("just delete it");
             if (specials.Trash && specials.Trash.path) {
               self.client.seq.move(id.toString(), specials.Trash.path, function(err, code){
                 if (err) {

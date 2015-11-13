@@ -194,6 +194,8 @@ ImapAPI.prototype.registerEndPoints = function(){
           subject : Joi.string().allow(""),
           html : Joi.string().allow(""),
           isDraft : Joi.boolean().allow(""),
+          isReply : Joi.boolean().allow(""),
+          boxName : Joi.string().allow(""),
           seq : Joi.number().allow(""),
           messageId : Joi.string().allow(""),
           attachments : Joi.array().items(Joi.object().keys({
