@@ -429,7 +429,7 @@ var checkPool = function(request, reply, realFunc) {
     var id = request.headers.username;
     // Check if the pool is exist
     if (pool.map[id]) {
-      if (pool.map[id].obj.client.state == "disconnected") {
+      if (pool.map[id].obj.client.state === "disconnected") {
         var client = pool.get(id);
         client.connect()
           .then(function(){
@@ -570,10 +570,10 @@ var checkPool = function(request, reply, realFunc) {
               pool.map[credential.user].expire = (new Date()).valueOf() - 10000;
               pool.destroy();
               if (err) {
-                if ( err.message == "Invalid credentials (Failure)"
+                if ( err.message === "Invalid credentials (Failure)"
                   || err.message.indexOf("Lookup failed") > -1
-                  || err.type.toLowerCase() == "no" 
-                  || err.type.toLowerCase() == "bad" 
+                  || err.type.toLowerCase() === "no" 
+                  || err.type.toLowerCase() === "bad" 
                 ) {
                    var err = new Error("Invalid credentials")
                    return reply({err : err.message}).code(401);
@@ -629,7 +629,7 @@ ImapAPI.prototype.auth = function(request, reply) {
  */
 ImapAPI.prototype.listBox = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    if (!request.query.boxName || request.query.boxName == undefined) {
+    if (!request.query.boxName || request.query.boxName === undefined) {
       var err = new Error("Missing query parameter : boxName");
       return reply({err : err.message}).code(500);
     }
@@ -648,7 +648,7 @@ ImapAPI.prototype.listBox = function(request, reply) {
         reply(result);
       })
       .catch(function(err){
-        if (err && err.message && err.message == "Nothing to fetch") {
+        if (err && err.message && err.message === "Nothing to fetch") {
           return reply({err : err.message}).code(404);
         }
         reply({err : err.message}).code(500);
@@ -794,7 +794,7 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
             if (err) {
               return reply(err).code(500);
             }
-            if (result && result.length == 0) {
+            if (result && result.length === 0) {
               attachmentModel().create(attachments, function(err, result){
                 if (err) {
                   return reply(err).code(500);

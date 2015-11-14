@@ -96,7 +96,7 @@ Imap.prototype.getSpecialBoxes = function() {
             var children = Object.keys(mboxes[index].children);
             async.each(children, function iterator(child, doneIteratingChildrens){
               var currentSpecialUse = mboxes[index].children[child].special_use_attrib; 
-              if (currentSpecialUse == "\\" + special) {
+              if (currentSpecialUse === "\\" + special) {
                 specials[special] = {
                   path : index + mboxes[index].delimiter + child,
                   specialName : special
@@ -106,7 +106,7 @@ Imap.prototype.getSpecialBoxes = function() {
               doneIteratingCildrens(err);
             })
           } else {
-            if (mboxes[index].special_use_attribs == "\\" + special || mboxes[index].attribs.indexOf("\\" + special) == 0) {
+            if (mboxes[index].special_use_attribs === "\\" + special || mboxes[index].attribs.indexOf("\\" + special) === 0) {
               specials[special] = {
                 path : index
               }
@@ -124,10 +124,10 @@ Imap.prototype.getSpecialBoxes = function() {
         var essentialBoxes = ["Drafts", "Sent", "Trash"];
         lodash.some(essentialBoxes, function(box) {
           var isMatched = lodash.some(specials, function(s){
-              return s.specialName == box;
+              return s.specialName === box;
             })
           var isExists = lodash.some(boxes, function(b){
-              return b == box;
+              return b === box;
             })
           if (!isMatched && !isExists) {
             
@@ -255,14 +255,14 @@ Imap.prototype.listBox = function(name, limit, page, opts) {
           if (seqs.messages.seqArray[i]) {
             seqArray.push(seqs.messages.seqArray[i]);
           }
-          if (seqArray.length == limit) {
+          if (seqArray.length === limit) {
             break;
           }
         }
       } else {
         for (var i = start; i <= fetchLimit; i++) {
           seqArray.push(i);
-          if (seqArray.length == limit) {
+          if (seqArray.length === limit) {
             break;
           }
         }
@@ -312,8 +312,8 @@ Imap.prototype.listBox = function(name, limit, page, opts) {
                 if (attrs.struct[i]
                   && attrs.struct[i][0]
                   && attrs.struct[i][0].disposition
-                  && (attrs.struct[i][0].disposition.type == "ATTACHMENT"
-                  || attrs.struct[i][0].disposition.type == "attachment")
+                  && (attrs.struct[i][0].disposition.type === "ATTACHMENT"
+                  || attrs.struct[i][0].disposition.type === "attachment")
                 ) {
                   mail.hasAttachments = true;
                   break;
@@ -363,7 +363,7 @@ Imap.prototype.listBox = function(name, limit, page, opts) {
         })
       })
     }
-    if (name == "search" && opts.search && opts.search !== undefined) {
+    if (name === "search" && opts.search && opts.search !== undefined) {
       name = "INBOX";
       isSearch = true;
     } else {
@@ -524,7 +524,7 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
     var result = [];
     var isSearch = false;
     var isSearch = false;
-    if (boxName == "search") {
+    if (boxName === "search") {
       boxName = "INBOX";
       isSearch = true;
     }
@@ -572,8 +572,8 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
               if (attrs.struct[i]
                 && attrs.struct[i][0]
                 && attrs.struct[i][0].disposition
-                && (attrs.struct[i][0].disposition.type == "ATTACHMENT"
-                || attrs.struct[i][0].disposition.type == "attachment")
+                && (attrs.struct[i][0].disposition.type === "ATTACHMENT"
+                || attrs.struct[i][0].disposition.type === "attachment")
               ) {
                 mail.hasAttachments = true;
                 break;
@@ -655,7 +655,7 @@ Imap.prototype.moveMessage = function(id, oldBox, newBox) {
  */
 Imap.prototype.removeMessage = function(id, boxName) {
   var self = this;
-  if (boxName == "search") {
+  if (boxName === "search") {
     boxName = "INBOX";
   }
   return new Promise(function(resolve, reject){
