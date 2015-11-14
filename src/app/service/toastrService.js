@@ -67,7 +67,7 @@ ToastrService.prototype.parse = function(data, status) {
     self.invalidCredentials();
   } else if (status == 500) {
     self.error500();
-  } else if (data == null && status == undefined) {
+  } else if (data == null && (status == undefined || status < 0)) {
     // If this point reached, it must be a connection error / timeout / no response
     self.connectionError();
   }
