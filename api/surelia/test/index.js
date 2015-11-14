@@ -749,7 +749,12 @@ hoodiecrowServer.listen(1143, function(){
     it("Should be able to move message to another box", function(done){
       server.inject({
         method: "POST",
-        url : "/api/1.0/move-message?id=1&boxName=INBOX&newBoxName=" + newMailBox2,
+        url : "/api/1.0/move-message",
+        payload : {
+          seqs : [1],
+          oldBoxName : "INBOX",
+          boxName : newMailBox2
+        },
         headers : {
           token : token,
           username : process.env.TEST_SMTP_USERNAME
@@ -759,7 +764,12 @@ hoodiecrowServer.listen(1143, function(){
         // Move it back
         server.inject({
           method: "POST",
-          url : "/api/1.0/move-message?id=1&boxName=" + newMailBox2 + "&newBoxName=INBOX",
+          url : "/api/1.0/move-message",
+          payload : {
+            seqs : [1],
+            oldBoxName : newMailBox2,
+            boxName : "INBOX"
+          },
           headers : {
             token : token,
             username : process.env.TEST_SMTP_USERNAME
@@ -785,7 +795,7 @@ hoodiecrowServer.listen(1143, function(){
         should(response.statusCode).equal(200);
         server.inject({
           method: "DELETE",
-          url : "/api/1.0/message?seq=1&boxName=INBOX",
+          url : "/api/1.0/message?seqs=1&boxName=INBOX",
           headers : {
             token : token,
             username : process.env.TEST_SMTP_USERNAME
@@ -806,7 +816,7 @@ hoodiecrowServer.listen(1143, function(){
             trashTotal = response.result.meta.total;
             server.inject({
               method: "DELETE",
-              url : "/api/1.0/message?seq=1&boxName=" + trashPath,
+              url : "/api/1.0/message?seqs=1&boxName=" + trashPath,
               headers : {
                 token : token,
                 username : process.env.TEST_SMTP_USERNAME

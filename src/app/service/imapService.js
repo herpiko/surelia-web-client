@@ -291,14 +291,21 @@ ImapService.prototype.removeAttachment = function(attachmentId, canceler) {
 }
 
 
-ImapService.prototype.moveMessage = function(id, boxName, newBoxName) {
+ImapService.prototype.moveMessage = function(seqs, oldBoxName, boxName) {
   var self = this;
-  var path = "/api/1.0/move-message?id=" + id + "&boxName=" + boxName + "&newBoxName=" + newBoxName;;
+  // Convert to comma separated string
+  var data = {
+    seqs : seqs,
+    oldBoxName : oldBoxName,
+    boxName : boxName
+  }
+  var path = "/api/1.0/move-message";
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
   var req = {
     method: "POST",
     url : path,
+    data : data,
     headers : {
       token : token,
       username : username
@@ -309,7 +316,7 @@ ImapService.prototype.moveMessage = function(id, boxName, newBoxName) {
 
 ImapService.prototype.removeMessage = function(seq, messageId, boxName) {
   var self = this;
-  var path = "/api/1.0/message?seq=" + seq + "&messageId=" + encodeURIComponent(messageId) + "&boxName=" + boxName;
+  var path = "/api/1.0/message?seqs=" + seq + "&messageId=" + encodeURIComponent(messageId) + "&boxName=" + boxName;
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
   var req = {

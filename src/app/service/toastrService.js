@@ -9,6 +9,14 @@ var ToastrService = function($http, localStorageService, $rootScope, $state, $q,
   this.$filter = $filter;
 }
 
+ToastrService.prototype.couldntMoveToSameBox = function(){
+  var self = this;
+  self.toastr.error(self.$filter("translate")("TOASTR_COULDNT_MOVE_TO_SAME_BOX"));
+}
+ToastrService.prototype.messageSelectionEmpty = function(){
+  var self = this;
+  self.toastr.error(self.$filter("translate")("TOASTR_MESSAGE_SELECTION_SHOULDNT_EMPTY"));
+}
 ToastrService.prototype.error500 = function(){
   var self = this;
   self.toastr.error(self.$filter("translate")("TOASTR_ERROR_500"));

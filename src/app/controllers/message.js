@@ -102,8 +102,11 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.cc = false;;
   self.bcc = false;
   self.newMessage = {};
-  self.sortBy = "DATE";
+  self.sortBy = null;
   self.sortImportance = "ascending";
+  // This array will be used in "Move to" submenu in multiselect action
+  self.moveToBoxes = [];
+  self.flags = ["Read", "Unread"];
   self.isAlpha = function(str) {
     return /^[a-zA-Z()]+$/.test(str);
   }
@@ -148,20 +151,12 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
             (box.boxName.indexOf("Trash") > -1 || box.boxName.indexOf("Sent") > -1 )
           ) {
             box.meta.count = 0;
-          } 
-          if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
+          } else if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
             box.meta.count = box.meta.total;
-          } 
-        });
-        window.lodash.some(self.specialBoxes, function(box){
-          if (box && box.boxName && 
-            (box.boxName.indexOf("Trash") > -1 || box.boxName.indexOf("Sent") > -1 )
-          ) {
-            box.meta.count = 0;
-          } 
-          if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
-            box.meta.count = box.meta.total;
-          } 
+          } else {
+            // Add everything except Trash, Sent and Drafts
+            self.moveToBoxes.push(box.boxName);
+          }
         });
       })
       self.ImapService.getSpecialBoxes()
@@ -173,9 +168,11 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
               (box.specialName.indexOf("Trash") > -1 || box.specialName.indexOf("Sent") > -1 )
             ) {
               box.meta.count = 0;
-            } 
-            if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
+            } else if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
               box.meta.count = box.meta.total;
+            } else {
+              // Add everything except Trash, Sent and Drafts
+              self.moveToBoxes.push(box.specialName);
             } 
           });
         })
@@ -256,7 +253,8 @@ Message.prototype.listBoxNewer = function(){
   }
 }
 
-Message.prototype.sort = function(sort){
+// @sort enums = ["DATE", "FROM", "SUBJECT", "SIZE"]
+Message.prototype.listSort = function(sort){
   var self = this;
   var opts = {
     limit : self.currentListMeta.limit,
@@ -271,7 +269,7 @@ Message.prototype.sort = function(sort){
 
 
 // @importance "ascending" or "descending"
-Message.prototype.reverse = function(importance){
+Message.prototype.listReverse = function(importance){
   var self = this;
   var opts = {
     limit : self.currentListMeta.limit,
@@ -284,13 +282,25 @@ Message.prototype.reverse = function(importance){
   self.listBox(boxName, opts, true);
 }
 
+Message.prototype.listReload = function(){
+  var self = this;
+  var opts = {
+    limit : self.currentListMeta.limit,
+    page : self.currentListMeta.page,
+  }
+  var boxName = self.searchString ? "search" : self.currentBoxPath;
+  opts.search = self.searchString ? self.searchString : null;
+  opts.sortBy = self.sortBy;
+  opts.sortImportance = self.sortImportance;
+  self.listBox(boxName, opts, true);
+}
+
 Message.prototype.listBox = function(boxName, opts, canceler){
   var self = this;
   var opts = opts || {};
-  console.log("hai");
-  self.sortBy = opts.sortBy = opts.sortBy || self.sortBy;
-  console.log("kamu");
-  self.sortImportance = opts.sortImportance = opts.sortImportance || self.sortImportance;
+  self.currentSelection = [];
+  self.sortBy = opts.sortBy || self.sortBy;
+  self.sortImportance = opts.sortImportance || self.sortImportance;
   self.loading.start();
   self.view = "list";
   console.log("list box content");
@@ -582,23 +592,6 @@ Message.prototype.getAttachment = function(messageId, index) {
     
 }
 
-Message.prototype.moveMessage = function(id, boxName, newBoxName){
-  var self = this;
-  self.loading.start();
-  console.log("move message");
-  self.ImapService.moveMessage(id, boxName, newBoxName)
-    .success(function(data){
-      self.loading.complete();
-      console.log(data);
-      alert(JSON.stringify(data));
-    })
-    .error(function(data, status){
-      self.loading.complete();
-      console.log(data, status);
-      self.ToastrService.parse(data, status);
-    })
-}
-
 Message.prototype.logout = function(){
   var self = this;
   self.loading.start();
@@ -727,7 +720,7 @@ Message.prototype.removeMessage = function(seq, messageId, boxName){
         self.ToastrService.deleted();
       }
       self.view = "list";
-      self.listBox("INBOX");
+      self.listReload();
     })
     .error(function(data, status){
       console.log(data, status);
@@ -1021,6 +1014,38 @@ Message.prototype.checkAll = function(){
   } else {
     self.currentSelection = [];
   }
+}
+
+Message.prototype.moveMessage = function(boxName) {
+  var self = this;
+  // Collect seq number
+  var seqs = [];
+  window.lodash.some(self.currentSelection, function(msg){
+    if (msg.seq) {
+      seqs.push(msg.seq);
+    }
+  });
+  if (self.currentBoxName.indexOf(boxName) > -1) {
+    return self.ToastrService.couldntMoveToSameBox();
+  }
+  if (seqs.length < 1) {
+    return self.ToastrService.messageSelectionEmpty();
+  }
+  self.loading.start();
+  var oldBoxName = self.currentBoxName;
+  console.log(seqs, oldBoxName, boxName);
+  self.ImapService.moveMessage(seqs, oldBoxName, boxName)
+    .then(function(data, status){
+      self.listReload();
+    })
+    .catch(function(data, status){
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
+    })
+}
+
+Message.prototype.flagMessage = function(flag) {
+  var self = this;
 }
 
 Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout", "Upload", "ToastrService"];

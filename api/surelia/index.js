@@ -8,6 +8,7 @@ var config = require('../../conf/prod/surelia');
 var async = require("async");
 var moment = require("moment");
 var Joi = require("joi");
+var lodash = require("lodash");
 
 var ImapAPI = function(server, options, next) {
   this.server = server;
@@ -125,6 +126,15 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/move-message",
     handler : function(request, reply){
       self.moveMessage(request, reply);
+    },
+    config : {
+      validate : {
+        payload : {
+          seqs : Joi.array().items(Joi.number()).required(),
+          boxName : Joi.string().required(),
+          oldBoxName : Joi.string().required(),
+        }  
+      }
     }
   })
   self.server.route({
@@ -263,6 +273,7 @@ ImapAPI.prototype.send = function(request, reply) {
               client.newMessage(message, request.query.sentPath)
               // Remove from Drafts
               if (obj.meta.seq && obj.meta.isDraft) {
+                var seqs = obj.meta.seq.split(",");
                 client.removeMessage(obj.meta.seq, request.query.draftPath)
               }
               // Flag as answered
@@ -825,7 +836,7 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
  */
 ImapAPI.prototype.moveMessage = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    client.moveMessage(request.query.id, request.query.boxName, request.query.newBoxName)
+    client.moveMessage(request.payload.seqs, request.payload.oldBoxName, request.payload.boxName)
       .then(function(){
         reply();
       })
@@ -843,15 +854,23 @@ ImapAPI.prototype.moveMessage = function(request, reply) {
  */
 ImapAPI.prototype.removeMessage = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    client.removeMessage(request.query.seq, request.query.boxName)
-      .then(function(){
-        attachmentModel().remove({messageId : decodeURIComponent(request.query.messageId)}).exec();
-        // Do not wait
-        reply().code(200);
-      })
-      .catch(function(err){
-        reply({err : err.message}).code(500);
-      })
+    var opts = {};
+    var seqs = request.query.seqs.split(",");
+    async.eachSeries(seqs, function(seq, cb){
+      seqs[seqs.indexOf(seq)] = parseInt(seq);
+      cb();
+    }, function(){
+      opts.archive = (request.query.archive && request.query.archive === true) ? true : false;
+      client.removeMessage(seqs, request.query.boxName, opts)
+        .then(function(){
+          attachmentModel().remove({messageId : decodeURIComponent(request.query.messageId)}).exec();
+          // Do not wait
+          reply().code(200);
+        })
+        .catch(function(err){
+          reply({err : err.message}).code(500);
+        })
+    })
   }
   
   checkPool(request, reply, realFunc);

@@ -369,26 +369,26 @@ Imap.prototype.listBox = function(name, limit, page, opts) {
     } else {
       opts.search = "";
     }
-    var sortCriteria = (opts && opts.sortBy) ? [opts.sortBy] : ["DATE"]; 
-    opts.sortImportance = opts.sortImportance || "ascending";
-    if (opts.sortImportance === "ascending") {
-      if (sortCriteria[0] === "DATE") {
-        sortCriteria[0] = sortCriteria[0];
-      } else {
-        sortCriteria[0] = "-" + sortCriteria[0];
-      }
-    } else if (opts.sortImportance === "descending") {
-      if (sortCriteria[0] === "DATE") {
-        sortCriteria[0] = "-" + sortCriteria[0];
-      } else {
-        sortCriteria[0] = sortCriteria[0];
-      }
-    }
     self.client.openBox(name, true, function(err, seqs){
       if (err) {
         return reject(err);
       }
-      if (self.client.serverSupports("SORT")) {
+      if (self.client.serverSupports("SORT") && opts.sortBy) {
+        var sortCriteria = (opts && opts.sortBy) ? [opts.sortBy] : ["DATE"]; 
+        opts.sortImportance = opts.sortImportance || "ascending";
+        if (opts.sortImportance === "ascending") {
+          if (sortCriteria[0] === "DATE") {
+            sortCriteria[0] = sortCriteria[0];
+          } else {
+            sortCriteria[0] = "-" + sortCriteria[0];
+          }
+        } else if (opts.sortImportance === "descending") {
+          if (sortCriteria[0] === "DATE") {
+            sortCriteria[0] = "-" + sortCriteria[0];
+          } else {
+            sortCriteria[0] = sortCriteria[0];
+          }
+        }
         var searchCriteria = [["OR",["SUBJECT", opts.search],["FROM", opts.search]]];
         self.client.seq.sort(sortCriteria, searchCriteria, function(err, result){
           if (err) {
@@ -628,20 +628,39 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
  * @param {String} newBox - The name of the new box
  * @returns {Promise}
  */
-Imap.prototype.moveMessage = function(id, oldBox, newBox) {
+Imap.prototype.moveMessage = function(seqs, oldBox, newBox) {
   var self = this;
   return new Promise(function(resolve, reject){
-    self.client.openBox(oldBox, true, function(err){
-      if (err) {
-        return reject(err);
-      }
-      self.client.move([id.toString()], newBox, function(err){
+    if (newBox.indexOf("Trash") > -1) {
+      // Remove to trash
+      self.removeMessage(seqs, oldBox)
+        .then(function(){
+          resolve();
+        })
+        .catch(function(err){
+          reject(err);
+        });
+    } else if (newBox.indexOf("Archive") > -1) {
+      self.removeMessage(seqs, oldBox, {archive : true})
+        .then(function(){
+          resolve();
+        })
+        .catch(function(err){
+          reject(err);
+        });
+    } else {
+      self.client.openBox(oldBox, false, function(err){
         if (err) {
           return reject(err);
         }
-        resolve();
-      });
-    })
+        self.client.seq.move(seqs, newBox, function(err){
+          if (err) {
+            return reject(err);
+          }
+          resolve();
+        });
+      })
+    }
   })
 }
 
@@ -653,8 +672,9 @@ Imap.prototype.moveMessage = function(id, oldBox, newBox) {
  * @param {String} boxName - The name of the box which the message is being removed from
  * @returns {Promise}
  */
-Imap.prototype.removeMessage = function(id, boxName) {
+Imap.prototype.removeMessage = function(seqs, boxName, opts) {
   var self = this;
+  var opts = opts || {}
   if (boxName === "search") {
     boxName = "INBOX";
   }
@@ -666,12 +686,13 @@ Imap.prototype.removeMessage = function(id, boxName) {
             return reject(err);
           }
           if (boxName.indexOf("Trash") > -1) {
+            // Permanent delete
             var trashPath = (specials.Trash && specials.Trash.path) ? specials.Trash.path : "Trash";
             self.client.openBox(trashPath, false, function(err){
               if (err) {
                 return reject(err);
               }
-              self.addFlag(id, "Deleted")
+              self.addFlag(seqs, "Deleted")
                 .then(function(){
                   self.client.expunge(function(err){
                     if (err) {
@@ -685,26 +706,42 @@ Imap.prototype.removeMessage = function(id, boxName) {
                 });
             });
           } else {
-            if (specials.Trash && specials.Trash.path) {
-              self.client.seq.move(id.toString(), specials.Trash.path, function(err, code){
-                if (err) {
-                  return reject(err);
-                }
-                self.client.closeBox(function(err){
-                  // Do not check closeBox's error, if it does not allowed now, go on
-                  resolve();
+            if (opts.archive) {
+              // Archive it
+              self.addFlag(seqs, "Deleted")
+                .then(function(){
+                  self.client.expunge(function(err){
+                    if (err) {
+                      return reject(err);
+                    }
+                    resolve();
+                  })
                 })
-              });
+                .catch(function(err){
+                  return reject(err);
+                });
             } else {
-              self.client.seq.move(id.toString(), "Trash", function(err, code){
-                if (err) {
-                  return reject(err);
-                }
-                self.client.closeBox(function(err){
-                  // Do not check closeBox's error, if it does not allowed now, go on
-                  resolve();
-                })
-              });
+              if (specials.Trash && specials.Trash.path) {
+                self.client.seq.move(seqs, specials.Trash.path, function(err, code){
+                  if (err) {
+                    return reject(err);
+                  }
+                  self.client.closeBox(function(err){
+                    // Do not check closeBox's error, if it does not allowed now, go on
+                    resolve();
+                  })
+                });
+              } else {
+                self.client.seq.move(seqs, "Trash", function(err, code){
+                  if (err) {
+                    return reject(err);
+                  }
+                  self.client.closeBox(function(err){
+                    // Do not check closeBox's error, if it does not allowed now, go on
+                    resolve();
+                  })
+                });
+              }
             }
           }
       })
