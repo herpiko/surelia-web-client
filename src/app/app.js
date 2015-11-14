@@ -51,6 +51,7 @@ var app = angular.module("App", [
   $translateProvider.translations('en', en);
   $translateProvider.translations('id', id);
   $translateProvider.preferredLanguage(conf.lang);
+  $translateProvider.useSanitizeValueStrategy('sanitize');
 })
 .config(function($stateProvider) {
   $stateProvider
