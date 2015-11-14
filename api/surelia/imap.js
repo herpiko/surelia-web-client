@@ -276,17 +276,10 @@ Imap.prototype.listBox = function(name, limit, page, search) {
       async.each(seqArray, function iterator(seq, doneIteratingMessages) {
         var mail = {}
         try {
-          if (seqs.messages.seqArray) {
-            var f = self.client.fetch(seq, {
-              bodies : bodies,
-              struct : true
-            });
-          } else {
-            var f = self.client.seq.fetch(seq, {
-              bodies : bodies,
-              struct : true
-            });
-          }
+          var f = self.client.seq.fetch(seq, {
+            bodies : bodies,
+            struct : true
+          });
         } catch (err) {
           return reject(err);
         }
