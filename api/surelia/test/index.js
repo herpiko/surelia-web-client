@@ -841,6 +841,92 @@ hoodiecrowServer.listen(1143, function(){
         })
       })
     })
+    it("Should be able to flag a message as unread and read", function(done){
+      // Get a list
+      server.inject({
+        method: "GET",
+        url : "/api/1.0/list-box?boxName=INBOX",
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        // Use the latest sequence number
+        var seq = response.result.data[0].seq;
+        // Retrieve it so it will be flagged as Seen
+        server.inject({
+          method: "GET",
+          url : "/api/1.0/message?boxName=INBOX&id=" + seq,
+          headers : {
+            token : token,
+            username : process.env.TEST_SMTP_USERNAME
+          }
+        }, function(response){
+          should.exist(response.result.parsed);
+          should.exist(response.result.attributes);
+          // Set it as Unread
+          server.inject({
+            method: "POST",
+            url : "/api/1.0/set-flag",
+            payload : {
+              seqs : [seq],
+              flag : "Unread",
+              boxName : "INBOX"
+            },
+            headers : {
+              token : token,
+              username : process.env.TEST_SMTP_USERNAME
+            }
+          }, function(response){
+            // Get list again
+            console.log(response.result);
+            server.inject({
+              method: "GET",
+              url : "/api/1.0/list-box?boxName=INBOX",
+              headers : {
+                token : token,
+                username : process.env.TEST_SMTP_USERNAME
+              }
+            }, function(response){
+              // Should be have no Seen flag
+              console.log(response.result.data[0]);
+              should(response.result.data[0].attributes.flags.indexOf("\\Seen") < 0).equal(true);
+              // Set it as read without retrieve the message
+              server.inject({
+                method: "POST",
+                url : "/api/1.0/set-flag",
+                payload : {
+                  seqs : [seq],
+                  flag : "Read",
+                  boxName : "INBOX"
+                },
+                headers : {
+                  token : token,
+                  username : process.env.TEST_SMTP_USERNAME
+                }
+              }, function(response){
+                // Get list again
+                console.log(response.result);
+                server.inject({
+                  method: "GET",
+                  url : "/api/1.0/list-box?boxName=INBOX",
+                  headers : {
+                    token : token,
+                    username : process.env.TEST_SMTP_USERNAME
+                  }
+                }, function(response){
+                  // Should be have a Seen flag
+                  console.log(response.result.data[0]);
+                  should(response.result.data[0].attributes.flags.indexOf("\\Seen") > -1).equal(true);
+                  done();
+                })
+              })
+            })
+          })
+        })
+      })
+    })
     it("Should be able to remove existing mail box", function(done){
       server.inject({
         method: "DELETE",

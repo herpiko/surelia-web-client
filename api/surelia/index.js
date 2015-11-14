@@ -227,6 +227,23 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.quotaInfo(request, reply);
     }
   })
+  
+  self.server.route({
+    method : "POST",
+    path : "/api/1.0/set-flag",
+    handler : function(request, reply){
+      self.setFlag(request, reply);
+    },
+    config : {
+      validate : {
+        payload : {
+          flag : Joi.string().required(),
+          seqs : Joi.array().items(Joi.number()).required(),
+          boxName : Joi.string().required(),
+        }  
+      }
+    }
+  })
 
 }
 
@@ -917,6 +934,7 @@ ImapAPI.prototype.uploadAttachment = function(request, reply) {
   
   checkPool(request, reply, realFunc);
 }
+
 ImapAPI.prototype.removeAttachment = function(request, reply) {
   var realFunc = function(client, request, reply) {
     uploadAttachmentModel().remove({_id : request.query.attachmentId}, function(err, result){
@@ -1007,6 +1025,31 @@ ImapAPI.prototype.quotaInfo = function(request, reply) {
     })
   }
 
+  checkPool(request, reply, realFunc);
+}
+
+ImapAPI.prototype.setFlag = function(request, reply) {
+  var realFunc = function(client, request, reply) {
+    if (request.payload.flag === "Unread") {
+      return client.removeFlag(request.payload.seqs, "Seen", request.payload.boxName)
+        .then(function(){
+          reply(); 
+        })
+        .catch(function(err){
+          reply({err : err.message}).code(500);
+        })
+    }
+    if (request.payload.flag === "Read") {
+      return client.addFlag(request.payload.seqs, "Seen", request.payload.boxName)
+        .then(function(){
+          reply(); 
+        })
+        .catch(function(err){
+          reply({err : err.message}).code(500);
+        })
+    }
+  }
+  
   checkPool(request, reply, realFunc);
 }
 

@@ -1046,6 +1046,29 @@ Message.prototype.moveMessage = function(boxName) {
 
 Message.prototype.flagMessage = function(flag) {
   var self = this;
+  // Collect seq number
+  var seqs = [];
+  window.lodash.some(self.currentSelection, function(msg){
+    if (msg.seq) {
+      seqs.push(msg.seq);
+    }
+  });
+  if (self.currentBoxName.indexOf(boxName) > -1) {
+    return self.ToastrService.couldntMoveToSameBox();
+  }
+  if (seqs.length < 1) {
+    return self.ToastrService.messageSelectionEmpty();
+  }
+  self.loading.start();
+  var boxName = self.currentBoxName;
+  self.ImapService.flagMessage(seqs, flag, boxName)
+    .then(function(data, status){
+      self.listReload();
+    })
+    .catch(function(data, status){
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
+    })
 }
 
 Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout", "Upload", "ToastrService"];

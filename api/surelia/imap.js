@@ -480,7 +480,7 @@ Imap.prototype.renameBox = function(oldName, newName) {
  */
 
 
-Imap.prototype.addFlag = function(id, flag, boxName) {
+Imap.prototype.addFlag = function(seqs, flag, boxName) {
   var self = this;
   var flag = "\\" + flag;
   return new Promise(function(resolve, reject){
@@ -489,7 +489,7 @@ Imap.prototype.addFlag = function(id, flag, boxName) {
         if (err) {
           return reject(err);
         }
-        self.client.seq.addFlags(id.toString(), [flag], function(err){
+        self.client.seq.addFlags(seqs, [flag], function(err){
           if (err) {
             console.log(err);
             return reject(err);
@@ -500,7 +500,43 @@ Imap.prototype.addFlag = function(id, flag, boxName) {
         }); 
       })
     } else {
-      self.client.seq.addFlags(id.toString(), [flag], function(err){
+      self.client.seq.addFlags(seqs, [flag], function(err){
+        if (err) {
+          console.log(err);
+          return reject(err);
+        }
+        resolve();
+      }); 
+    }
+  })
+}
+
+/**
+ * Remove flags
+ * The third parameter is required if the box need to be closed at the end
+ */
+
+Imap.prototype.removeFlag = function(seqs, flag, boxName) {
+  var self = this;
+  var flag = "\\" + flag;
+  return new Promise(function(resolve, reject){
+    if (boxName) {
+      self.client.openBox(boxName, false, function(err, box){
+        if (err) {
+          return reject(err);
+        }
+        self.client.seq.delFlags(seqs, [flag], function(err){
+          if (err) {
+            console.log(err);
+            return reject(err);
+          }
+          self.client.closeBox(function(){
+            resolve();
+          });
+        }); 
+      })
+    } else {
+      self.client.seq.delFlags(seqs, [flag], function(err){
         if (err) {
           console.log(err);
           return reject(err);

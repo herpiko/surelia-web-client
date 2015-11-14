@@ -415,6 +415,27 @@ ImapService.prototype.quotaInfo = function(boxName) {
   return self.$http(req)
 }
 
+ImapService.prototype.flagMessage = function(seqs, flag, boxName) {
+  var self = this;
+  var path = "/api/1.0/set-flag";
+  var token = self.localStorageService.get("token"); 
+  var username = self.localStorageService.get("username"); 
+  var req = {
+    method: "POST",
+    url : path,
+    data : {
+      seqs : seqs,
+      flag : flag,
+      boxName : boxName
+    },
+    headers : {
+      token : token,
+      username : username
+    }
+  }
+  return self.$http(req)
+}
+
 ImapService.inject = ["$http", "localStorageService", "$rootScope", "$state", "$q"];
 
 var module = require("./index");
