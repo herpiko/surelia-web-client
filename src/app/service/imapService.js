@@ -85,6 +85,13 @@ ImapService.prototype.listBox = function(boxName, opts, canceler) {
   if (opts.search && opts.search !== undefined) {
     path += "&search=" + opts.search;
   }
+  if (opts.sortBy && opts.sortBy !== undefined) {
+    path += "&sortBy=" + opts.sortBy;
+  }
+  if (opts.sortImportance && opts.sortImportance !== undefined) {
+    path += "&sortImportance=" + opts.sortImportance;
+  }
+
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
   var req = {

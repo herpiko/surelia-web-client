@@ -102,6 +102,8 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.cc = false;;
   self.bcc = false;
   self.newMessage = {};
+  self.sortBy = "DATE";
+  self.sortImportance = "ascending";
   self.isAlpha = function(str) {
     return /^[a-zA-Z()]+$/.test(str);
   }
@@ -233,6 +235,8 @@ Message.prototype.listBoxOlder = function(){
     }
     var boxName = self.searchString ? "search" : self.currentBoxPath;
     opts.search = self.searchString ? self.searchString : null;
+    opts.sortBy = self.sortBy;
+    opts.sortImportance = self.sortImportance;
     self.listBox(boxName, opts, true)
   }
 }
@@ -246,12 +250,47 @@ Message.prototype.listBoxNewer = function(){
     }
     var boxName = self.searchString ? "search" : self.currentBoxPath;
     opts.search = self.searchString ? self.searchString : null;
+    opts.sortBy = self.sortBy;
+    opts.sortImportance = self.sortImportance;
     self.listBox(boxName, opts, true)
   }
 }
-Message.prototype.listBox = function(boxName, opts, canceler){
-  opts = opts || {};
+
+Message.prototype.sort = function(sort){
   var self = this;
+  var opts = {
+    limit : self.currentListMeta.limit,
+    page : self.currentListMeta.page,
+  }
+  var boxName = self.searchString ? "search" : self.currentBoxPath;
+  opts.search = self.searchString ? self.searchString : null;
+  opts.sortBy = sort;
+  opts.sortImportance = self.sortImportance;
+  self.listBox(boxName, opts, true);
+}
+
+
+// @importance "ascending" or "descending"
+Message.prototype.reverse = function(importance){
+  var self = this;
+  var opts = {
+    limit : self.currentListMeta.limit,
+    page : self.currentListMeta.page,
+  }
+  var boxName = self.searchString ? "search" : self.currentBoxPath;
+  opts.search = self.searchString ? self.searchString : null;
+  opts.sortBy = self.sortBy;
+  opts.sortImportance = self.sortImportance = importance;
+  self.listBox(boxName, opts, true);
+}
+
+Message.prototype.listBox = function(boxName, opts, canceler){
+  var self = this;
+  var opts = opts || {};
+  console.log("hai");
+  self.sortBy = opts.sortBy = opts.sortBy || self.sortBy;
+  console.log("kamu");
+  self.sortImportance = opts.sortImportance = opts.sortImportance || self.sortImportance;
   self.loading.start();
   self.view = "list";
   console.log("list box content");

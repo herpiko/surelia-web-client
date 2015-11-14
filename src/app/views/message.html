@@ -31,6 +31,14 @@
       <input type="checkbox" ng-model="msg.selectAll" ng-true-value="true" ng-false-value="false" ng-change="msg.checkAll()">
       <button ng-click="msg.listBoxNewer()">newer</button>
       <button ng-click="msg.listBoxOlder()">older</button>
+      <br>
+      Sort by : 
+      <button ng-click="msg.sort('DATE')">Date</button> 
+      <button ng-click="msg.sort('FROM')">From</button> 
+      <button ng-click="msg.sort('SUBJECT')">Subject</button> 
+      <button ng-click="msg.sort('SIZE')">Size</button> | 
+      <button ng-click="msg.reverse('ascending')">Ascending</button> 
+      <button ng-click="msg.reverse('descending')">Descending</button> 
       <div ng-repeat="message in msg.currentList" style="cursor:pointer;margin-top:3px;background:#ECECEC">
         <div style="display:inline-block">
           <input type="checkbox" checklist-model="msg.currentSelection" checklist-value="message"></input>

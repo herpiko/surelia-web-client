@@ -225,8 +225,9 @@ Imap.prototype.getBoxes = function() {
  * @returns {Promise}
  * 
  */
-Imap.prototype.listBox = function(name, limit, page, search) {
+Imap.prototype.listBox = function(name, limit, page, opts) {
   var self = this;
+  var opts = opts || {};
   var limit = limit || 10;
   var page = page || 1;
   var total;
@@ -269,7 +270,7 @@ Imap.prototype.listBox = function(name, limit, page, search) {
       console.log("name" + name);
       console.log("limit" + limit);
       console.log("page" + page);
-      console.log("search" + search);
+      console.log("search" + opts.search);
       console.log("fetchLimit" + fetchLimit);
       console.log("start" + start);
       console.log("seqArray" + seqArray);
@@ -362,16 +363,34 @@ Imap.prototype.listBox = function(name, limit, page, search) {
         })
       })
     }
-    if (name == "search" && search && search !== undefined) {
+    if (name == "search" && opts.search && opts.search !== undefined) {
       name = "INBOX";
       isSearch = true;
+    } else {
+      opts.search = "";
+    }
+    var sortCriteria = (opts && opts.sortBy) ? [opts.sortBy] : ["DATE"]; 
+    opts.sortImportance = opts.sortImportance || "ascending";
+    if (opts.sortImportance === "ascending") {
+      if (sortCriteria[0] === "DATE") {
+        sortCriteria[0] = sortCriteria[0];
+      } else {
+        sortCriteria[0] = "-" + sortCriteria[0];
+      }
+    } else if (opts.sortImportance === "descending") {
+      if (sortCriteria[0] === "DATE") {
+        sortCriteria[0] = "-" + sortCriteria[0];
+      } else {
+        sortCriteria[0] = sortCriteria[0];
+      }
     }
     self.client.openBox(name, true, function(err, seqs){
       if (err) {
         return reject(err);
       }
-      if (isSearch) {
-        self.client.seq.search([["OR",["SUBJECT", search],["FROM", search]]], function(err, result){
+      if (self.client.serverSupports("SORT")) {
+        var searchCriteria = [["OR",["SUBJECT", opts.search],["FROM", opts.search]]];
+        self.client.seq.sort(sortCriteria, searchCriteria, function(err, result){
           if (err) {
             return reject(err);
           }
@@ -380,7 +399,18 @@ Imap.prototype.listBox = function(name, limit, page, search) {
           fetcher(seqs);
         })
       } else {
-        fetcher(seqs);
+        if (isSearch) {
+          self.client.seq.search([["OR",["SUBJECT", opts.search],["FROM", opts.search]]], function(err, result){
+            if (err) {
+              return reject(err);
+            }
+            seqs.messages.total = result.length;
+            seqs.messages.seqArray = result;
+            fetcher(seqs);
+          })
+        } else {
+          fetcher(seqs);
+        }
       }
     })
   })

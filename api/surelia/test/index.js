@@ -780,6 +780,7 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
+        console.log(response.result);
         trashTotal = response.result.meta.total;
         should(response.statusCode).equal(200);
         server.inject({
@@ -790,6 +791,7 @@ hoodiecrowServer.listen(1143, function(){
             username : process.env.TEST_SMTP_USERNAME
           }
         }, function(response){
+          console.log(response.result);
           should(response.statusCode).equal(200);
           server.inject({
             method: "GET",
@@ -799,6 +801,7 @@ hoodiecrowServer.listen(1143, function(){
               username : process.env.TEST_SMTP_USERNAME
             }
           }, function(response){
+            console.log(response.result);
             should(response.result.meta.total).equal(trashTotal + 1);
             trashTotal = response.result.meta.total;
             server.inject({
@@ -809,6 +812,7 @@ hoodiecrowServer.listen(1143, function(){
                 username : process.env.TEST_SMTP_USERNAME
               }
             }, function(response){
+              console.log(response.result);
               should(response.statusCode).equal(200);
               server.inject({
                 method: "GET",
@@ -818,6 +822,7 @@ hoodiecrowServer.listen(1143, function(){
                   username : process.env.TEST_SMTP_USERNAME
                 }
               }, function(response){
+                console.log(response.result);
                 should(response.result.meta.total).equal(trashTotal - 1);
                 done();
               })
