@@ -30,7 +30,7 @@
             {{msg.currentListMeta.listStart}} - {{msg.currentListMeta.listEnd}} / {{msg.currentListMeta.total}}
       <button ng-click="msg.listBoxNewer()">newer</button>
       <button ng-click="msg.listBoxOlder()">older</button>
-      <div ng-repeat="message in msg.currentList" ng-click="msg.retrieveMessage(message.seq, message.boxName, message.unread)"i style="cursor:pointer;margin-top:3px;background:#ECECEC">
+      <div ng-repeat="message in msg.currentList" ng-click="msg.retrieveMessage(message.seq, message.boxName, message.unread)" style="cursor:pointer;margin-top:3px;background:#ECECEC">
         <span ng-show="message.unread">* </span>
         <span style="background:{{message.color}};padding:2px;">{{message.avatar}} -</span>
         <span>{{message.seq}} -</span>
