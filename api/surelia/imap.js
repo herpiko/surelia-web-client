@@ -569,27 +569,16 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
         return reject(err);
       }
       var mail = {}
-      if (isSearch) {
-        try {
-          var f = self.client.fetch(id.toString(), {
-            bodies : "",
-            struct : true
-          });
-        } catch (err) {
-          return reject(err);
-        }
-      } else {
-        if (parseInt(id) > box.messages.total) {
-          return reject(new Error("Nothing to fetch"));
-        }
-        try {
-          var f = self.client.seq.fetch(id.toString(), {
-            bodies : "",
-            struct : true
-          });
-        } catch (err) {
-          return reject(err);
-        }
+      if (parseInt(id) > box.messages.total) {
+        return reject(new Error("Nothing to fetch"));
+      }
+      try {
+        var f = self.client.seq.fetch(id.toString(), {
+          bodies : "",
+          struct : true
+        });
+      } catch (err) {
+        return reject(err);
       }
       f.on("message", function(msg, seqno){
         var prefix = "(#" + seqno + ")";
