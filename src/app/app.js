@@ -11,6 +11,7 @@ require("ngprogress-npm");
 require("angular-toastr");
 require("ng-file-upload");
 require("angular-moment");
+require("checklist-model");
 window.rangy = require("rangy/lib/rangy-core");
 window.randomcolor = require("randomcolor");
 window.rangy.saveSelection = require("rangy/lib/rangy-selectionsaverestore");
@@ -45,7 +46,8 @@ var app = angular.module("App", [
   "toastr",
   "ngFileUpload",
   "angularMoment",
-  "pascalprecht.translate"
+  "pascalprecht.translate",
+  "checklist-model"
 ])
 .config(function ($translateProvider) {
   $translateProvider.translations('en', en);

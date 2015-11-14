@@ -975,6 +975,14 @@ Message.prototype.uploadFiles = function(files, errFiles) {
   });
 }
 
+Message.prototype.checkAll = function(){
+  var self = this;
+  if (self.selectAll) {
+    self.currentSelection = angular.copy(self.currentList);
+  } else {
+    self.currentSelection = [];
+  }
+}
 
 Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout", "Upload", "ToastrService"];
 
