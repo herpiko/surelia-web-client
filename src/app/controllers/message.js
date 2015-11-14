@@ -199,8 +199,8 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   }
   self.ImapService.quotaInfo()
     .success(function(data, status) {
-      self.quota.usage = data.usage;
-      self.quota.limit = data.limit;
+      self.quota.usage = data.usage * 1024;
+      self.quota.limit = data.limit * 1024;
       self.quota.percentage = data.percentage;
     });
 }
