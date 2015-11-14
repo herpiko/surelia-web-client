@@ -436,9 +436,7 @@ var checkPool = function(request, reply, realFunc) {
             realFunc(client, request, reply);
           })
           .catch(function(err){
-            if (err) {
-              return reply({err : err.message}).code(500);
-            }
+            return reply({err : err.message}).code(500);
           })
       } else {
         // Execute real function

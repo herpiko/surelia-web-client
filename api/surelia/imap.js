@@ -602,9 +602,7 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
                   resolve(mail);
                 })
                 .catch(function(err){
-                  if (err) {
-                    return reject(err);
-                  }
+                  return reject(err);
                 });
             }
           })
@@ -683,9 +681,7 @@ Imap.prototype.removeMessage = function(id, boxName) {
                   })
                 })
                 .catch(function(err){
-                  if (err) {
-                    return reject(err);
-                  }
+                  return reject(err);
                 });
             });
           } else {
