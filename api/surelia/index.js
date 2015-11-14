@@ -194,6 +194,8 @@ ImapAPI.prototype.registerEndPoints = function(){
           subject : Joi.string().allow(""),
           html : Joi.string().allow(""),
           isDraft : Joi.boolean().allow(""),
+          isReply : Joi.boolean().allow(""),
+          boxName : Joi.string().allow(""),
           seq : Joi.number().allow(""),
           messageId : Joi.string().allow(""),
           attachments : Joi.array().items(Joi.object().keys({
@@ -833,11 +835,7 @@ ImapAPI.prototype.moveMessage = function(request, reply) {
  */
 ImapAPI.prototype.removeMessage = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    var opt = {};
-    if (request.query.permanentDelete) {
-      opt.permanentDelete = true;
-    }
-    client.removeMessage(request.query.seq, request.query.boxName, opt)
+    client.removeMessage(request.query.seq, request.query.boxName)
       .then(function(){
         attachmentModel().remove({messageId : decodeURIComponent(request.query.messageId)}).exec();
         // Do not wait

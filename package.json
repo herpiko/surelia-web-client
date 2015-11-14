@@ -27,6 +27,7 @@
     "angular-ui-router": "^0.2.15",
     "async": "^1.4.2",
     "bootstrap": "^3.3.5",
+    "checklist-model": "^0.6.0",
     "font-awesome": "^4.4.0",
     "hapi": "^8.6.0",
     "hapi-mongoose-db-connector": "^2.0.1",

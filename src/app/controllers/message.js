@@ -178,14 +178,14 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
           });
         })
         .error(function(data, status){
-          self.loading.complete();
           console.log(data, status);
+          self.loading.complete();
           self.ErrorHandlerService.parse(data, status);
         })
     })
     .error(function(data, status){
-      self.loading.complete();
       console.log(data, status);
+      self.loading.complete();
       self.ErrorHandlerService.parse(data, status);
     })
   self.isValidEmail = function(emailString){
@@ -199,8 +199,8 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   }
   self.ImapService.quotaInfo()
     .success(function(data, status) {
-      self.quota.usage = data.usage;
-      self.quota.limit = data.limit;
+      self.quota.usage = data.usage * 1024;
+      self.quota.limit = data.limit * 1024;
       self.quota.percentage = data.percentage;
     });
 }
@@ -218,8 +218,8 @@ Message.prototype.getBoxes = function(){
       self.boxes = data;
     })
     .error(function(data, status){
-      self.loading.complete();
       console.log(data, status);
+      self.loading.complete();
       self.ErrorHandlerService.parse(data, status);
     })
 }
@@ -287,6 +287,12 @@ Message.prototype.listBox = function(boxName, opts, canceler){
       console.log(data);
       self.currentList = data.data;
       self.currentListMeta = data.meta;
+      // Simplify 
+      window.lodash.some(self.currentList, function(msg){
+        if (typeof msg.header.subject == "object") {
+          msg.header.subject = msg.header.subject[0];
+        }
+      })
       // Assign message count
       window.lodash.some(self.specialBoxes, function(box){
         if (box.specialName.indexOf(boxName) >= 0 && 
@@ -360,6 +366,7 @@ Message.prototype.listBox = function(boxName, opts, canceler){
     })
     .catch(function(data, status){
       self.loading.complete();
+      self.ToastrService.parse(data, status);
       console.log(data, status);
     })
 }
@@ -375,8 +382,9 @@ Message.prototype.addBox = function(boxName){
       alert("Success");
     })
     .error(function(data, status){
-      self.loading.complete();
       console.log(data, status);
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
     })
 }
 
@@ -391,8 +399,9 @@ Message.prototype.renameBox = function(boxName, newBoxName){
       alert("Success");
     })
     .error(function(data, status){
-      self.loading.complete();
       console.log(data, status);
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
     })
 }
 
@@ -407,8 +416,9 @@ Message.prototype.deleteBox = function(boxName){
       alert("Success");
     })
     .error(function(data, status){
-      self.loading.complete();
       console.log(data, status);
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
     })
 }
 
@@ -491,6 +501,7 @@ Message.prototype.retrieveMessage = function(id, boxName){
     })
     .catch(function(data, status){
       self.loading.complete();
+      self.ToastrService.parse(data, status);
       console.log(data, status);
     })
 }
@@ -527,6 +538,7 @@ Message.prototype.getAttachment = function(messageId, index) {
     })
     .catch(function(data, status){
       self.loading.complete();
+      self.ToastrService.parse(data, status);
     })
     
 }
@@ -544,6 +556,7 @@ Message.prototype.moveMessage = function(id, boxName, newBoxName){
     .error(function(data, status){
       self.loading.complete();
       console.log(data, status);
+      self.ToastrService.parse(data, status);
     })
 }
 
@@ -649,17 +662,17 @@ Message.prototype.sendMessage = function(msg){
        
     })
     .error(function(data, status){
-      self.loading.complete();
       console.log(data, status);
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
     })
 }
 
-Message.prototype.removeMessage = function(seq, messageId, boxName, opt){
+Message.prototype.removeMessage = function(seq, messageId, boxName){
   var self = this;
-  opt = opt || {};
   self.loading.start();
   console.log("remove message");
-  self.ImapService.removeMessage(seq, messageId, boxName, opt)
+  self.ImapService.removeMessage(seq, messageId, boxName)
     .success(function(data){
       self.loading.complete();
       console.log(data);
@@ -669,7 +682,7 @@ Message.prototype.removeMessage = function(seq, messageId, boxName, opt){
           self.currentList.splice(i, 1); 
         }
       }
-      if (opt && opt.permanentDelete) {
+      if (boxName.indexOf("Trash") > -1) {
         self.ToastrService.permanentlyDeleted();
       } else {
         self.ToastrService.deleted();
@@ -678,8 +691,9 @@ Message.prototype.removeMessage = function(seq, messageId, boxName, opt){
       self.listBox("INBOX");
     })
     .error(function(data, status){
-      self.loading.complete();
       console.log(data, status);
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
     })
 }
 
@@ -753,11 +767,10 @@ Message.prototype.composeMessage = function(message, action){
                 self.newMessage.recipients += msg.parsed.to[i].address; 
               }
             }
-          } else {
-            // This variables are needed in the backend to flag the current replied message as Answered
-            self.newMessage.isReply = true;
-            self.newMessage.boxName = msg.boxName;
           }
+          // This variables are needed in the backend to flag the current replied message as Answered
+          self.newMessage.isReply = true;
+          self.newMessage.boxName = msg.boxName;
         }
       }
     // Or a draft
@@ -845,13 +858,14 @@ Message.prototype.saveDraft = function(){
       .success(function(data, status, header){
         self.ToastrService.savedAsDraft();
         // If it's an existing draft, remove the old one
-        if (msg.seq && msg.messageId) {
+        if (msg.seq && msg.messageId && !msg.isReply) {
           self.ImapService.removeMessage(msg.seq, msg.messageId, draftPath)
             .success(function(data, status, header){
               self.listBox(draftPath, {}, true);
             })
             .error(function(data, status, header){
               self.loading.complete();
+              self.ToastrService.parse(data, status);
             })
         } else {
           self.listBox(draftPath, {}, true);
@@ -872,6 +886,7 @@ Message.prototype.saveDraft = function(){
       })
       .error(function(data, status, header){
         self.loading.complete();
+        self.ToastrService.parse(data, status);
       })
   }
 }
@@ -901,6 +916,7 @@ Message.prototype.discardDraft = function(id){
       })
       .error(function(data, status, header){
         self.loading.complete();
+        self.ToastrService.parse(data, status);
       })
   }
   self.newMessage = {};
@@ -959,6 +975,14 @@ Message.prototype.uploadFiles = function(files, errFiles) {
   });
 }
 
+Message.prototype.checkAll = function(){
+  var self = this;
+  if (self.selectAll) {
+    self.currentSelection = angular.copy(self.currentList);
+  } else {
+    self.currentSelection = [];
+  }
+}
 
 Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout", "Upload", "ToastrService"];
 

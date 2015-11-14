@@ -28,18 +28,24 @@
     <!--List view-->
     <div ng-show="msg.view=='list'" style="width:60%;display:inline-block;vertical-align:top;">
             {{msg.currentListMeta.listStart}} - {{msg.currentListMeta.listEnd}} / {{msg.currentListMeta.total}}
+      <input type="checkbox" ng-model="msg.selectAll" ng-true-value="true" ng-false-value="false" ng-change="msg.checkAll()">
       <button ng-click="msg.listBoxNewer()">newer</button>
       <button ng-click="msg.listBoxOlder()">older</button>
-      <div ng-repeat="message in msg.currentList" ng-click="msg.retrieveMessage(message.seq, message.boxName, message.unread)"i style="cursor:pointer;margin-top:3px;background:#ECECEC">
-        <span ng-show="message.unread">* </span>
-        <span style="background:{{message.color}};padding:2px;">{{message.avatar}} -</span>
-        <span>{{message.seq}} -</span>
-        <span>{{message.header.subject}} -</span>
-        <span ng-hide="msg.isDraft">{{message.header.from}} -</span>
-        <span ng-show="msg.isDraft"><span ng-repeat="to in message.header.to">{{to}} </span> -</span>
-        <span am-time-ago="message.header.date"></span>
-        <span ng-show="message.hasAttachments">[attachment]</span>
-        <span ng-show="message.answered">[answered]</span>
+      <div ng-repeat="message in msg.currentList" style="cursor:pointer;margin-top:3px;background:#ECECEC">
+        <div style="display:inline-block">
+          <input type="checkbox" checklist-model="msg.currentSelection" checklist-value="message"></input>
+        </div>
+        <div style="display:inline-block" ng-click="msg.retrieveMessage(message.seq, message.boxName, message.unread)">
+          <span ng-show="message.unread">* </span>
+          <span style="background:{{message.color}};padding:2px;">{{message.avatar}} -</span>
+          <span>{{message.seq}} -</span>
+          <span>{{message.header.subject}} -</span>
+          <span ng-hide="msg.isDraft">{{message.header.from}} -</span>
+          <span ng-show="msg.isDraft"><span ng-repeat="to in message.header.to">{{to}} </span> -</span>
+          <span am-time-ago="message.header.date"></span>
+          <span ng-show="message.hasAttachments">[attachment]</span>
+          <span ng-show="message.answered">[answered]</span>
+        </div>
       </div>
     </div>
     
@@ -52,7 +58,7 @@
               <button ng-click="">Archive</button>
               <button ng-click="">Spam</button>
               <button ng-hide="msg.currentMessage.deleted" ng-click="msg.removeMessage(msg.currentMessage.seq, msg.currentMessage.parsed.messageId, msg.currentMessage.boxName)">Delete</button>
-              <button ng-show="msg.currentMessage.deleted" ng-click="msg.removeMessage(msg.currentMessage.seq, msg.currentMessage.parsed.messageId, msg.currentMessage.boxName, { permanentDelete : true })">Delete</button>
+              <button ng-show="msg.currentMessage.deleted" ng-click="msg.removeMessage(msg.currentMessage.attributes.uid, msg.currentMessage.parsed.messageId, msg.currentMessage.boxName, { permanentDelete : true })">Delete</button>
             </div>
             <div><b>{{msg.currentMessage.parsed.subject}}</b></div>
             <div>From : {{msg.currentMessage.parsed.headers.from}}</div>
