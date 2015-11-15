@@ -13,12 +13,12 @@
       </form>
       <ul>
               <li ng-repeat="box in msg.boxes" ng-click="msg.listBox(box.boxName,{},true)" style="cursor:pointer">
-              {{box.boxName}} 
+              {{box.boxName | FirstLetterCapitalize }} 
               <span ng-show="box.meta.count > 0"> ({{box.meta.count}})</span>
               <span ng-show="msg.currentBoxName==box.boxName"> *</span>
               </li>
               <li ng-repeat="special in msg.specialBoxes" ng-click="msg.listBox(special.path, {}, true)" style="cursor:pointer">
-              {{special.specialName}} <span ng-show="msg.currentBoxName==special.specialName"> *</span>
+              {{special.specialName | FirstLetterCapitalize}} <span ng-show="msg.currentBoxName==special.specialName"> *</span>
               <span ng-show="special.meta.count > 0"> ({{special.meta.count}})</span>
               </li>
       </ul>
