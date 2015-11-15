@@ -1,5 +1,5 @@
 'use strict';
-var Login = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ngProgressFactory, ToastrService, conf){
+var Login = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ngProgressFactory, ToastrService, conf, $translate){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -10,7 +10,9 @@ var Login = function ($scope, $rootScope, $state, $window, $stateParams, localSt
   this.ngProgressFactory = ngProgressFactory;
   this.ToastrService = ToastrService;
   this.conf = conf;
+  this.$translate = $translate;
   var self = this;
+
   self.loading = self.ngProgressFactory.createInstance();
 
   if (self.$rootScope.isLoggedIn || self.localStorageService.get("token")) {
@@ -26,6 +28,11 @@ var Login = function ($scope, $rootScope, $state, $window, $stateParams, localSt
     smtpSecure : true,
     rememberMe : false
   }
+}
+
+Login.prototype.switchLang = function(lang) {
+  var self = this;
+  self.$translate.use(lang);
 }
 
 Login.prototype.auth = function(credential){
@@ -46,7 +53,7 @@ Login.prototype.auth = function(credential){
 }
 
 
-Login.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService"];
+Login.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "conf", "$translate"];
 
 var module = require("./index");
 module.controller("LoginCtrl", Login);

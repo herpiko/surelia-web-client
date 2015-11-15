@@ -24,6 +24,7 @@ window.async = require("async");
 var conf = require("../../conf/prod/surelia.js");
 var id = require("./localization/id.js");
 var en = require("./localization/en.js");
+require("moment/locale/id");
 
 // Load service and controllers
 require("./service/index");
@@ -113,9 +114,11 @@ var app = angular.module("App", [
 .controller("AppCtrl", function($scope, $state) {
   $state.go("Login");
 })
-.run([ "$rootScope", "$state", "$stateParams", 
-  function ($rootScope, $state, $stateParams) {
-    
+.run([ "$rootScope", "$state", "$stateParams", "amMoment", 
+  function ($rootScope, $state, $stateParams, amMoment) {
+    if (conf.lang == "id") {
+      amMoment.changeLocale(conf.lang);
+    }
   }
 ])
 
