@@ -81,7 +81,7 @@ var mimeTypes = {
     ]
   }
 }
-var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce){
+var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce, $translate){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -97,6 +97,7 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.ToastrService = ToastrService;
   this.$templateCache = $templateCache;
   this.$sce = $sce;
+  this.$translate = $translate;
   var self = this;
   self.compose = false;
   self.composeMode = "corner";
@@ -221,6 +222,10 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
     });
 }
 
+Message.prototype.switchLang = function(lang) {
+  var self = this;
+  self.$translate.use(lang);
+}
 
 Message.prototype.getBoxes = function(){
   var self = this;

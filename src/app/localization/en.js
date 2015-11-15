@@ -1,5 +1,6 @@
 module.exports = {
-  "LOGIN" : "Login",
+
+  // Toastr message
   "TOASTR_INVALID_CREDENTIALS" : "Invalid username or password",
   "TOASTR_INVALID_EMAIL" : "Invalid email address",
   "TOASTR__INVALID_EMAIL" : " is not a valid email address",
@@ -12,5 +13,44 @@ module.exports = {
   "TOASTR_ERROR_500" : "An error occured",
   "TOASTR_MESSAGE_SELECTION_SHOULDNT_EMPTY" : "Please select minimum one message",
   "TOASTR_COULDNT_MOVE_TO_SAME_BOX" : "You are choosing the same box",
-  "TOASTR_SESSION_EXPIRED" : "Your session is expired. Please try to login again"
+  "TOASTR_SESSION_EXPIRED" : "Your session is expired. Please try to login again",
+
+  // Login
+  "WELCOME" : "Welcome",
+  "LOGIN" : "Login",
+  "LOGIN_EMAIL" : "Email",
+  "LOGIN_PASSWORD" : "Password",
+  "LOGIN_REMEMBER_ME" : "Remember me",
+  "LOGIN_FAQ" : "FAQ",
+  "LOGIN_ABOUT" : "About",
+  "LOGIN_TOS" : "Terms of Service",
+  
+  // Message
+  "COMPOSE" : "Compose message",
+  "QUOTA" : "Quota",
+  "SEARCH_PLACEHOLDER" : "Search...",
+  "RELOAD" : "Reload",
+  "DATE" : "Date",
+  "FROM" : "From",
+  "SUBJECT" : "Subject",
+  "SIZE" : "Size",
+  "ARCHIVE" : "Archive",
+  "TRASH" : "Trash",
+  "UNREAD" : "Unread",
+  "READ" : "Read",
+  "REPLY" : "Reply",
+  "REPLY_ALL" : "Reply All",
+  "FORWARD" : "Forward",
+  "DELETE" : "Delete",
+  "TO" : "To",
+  "DISCARD" : "Discard",
+  "UPLOADING" : "Uploading...",
+  "UPLOAD_FAILED" : "Failed to upload",
+  "SEND" : "Send",
+  "LOGOUT" : "Logout",
+  "SORT_BY" : "Sort by",
+  "MOVE_TO" : "Move to",
+  "FLAG_AS" : "Flag as",
+  "FILTER" : "Filter",
+  "ATTACHMENTS" : "Attachments",
 }
