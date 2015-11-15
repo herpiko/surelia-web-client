@@ -350,8 +350,14 @@ ImapService.prototype.newMessage = function(newMessage) {
   return self.$http(req)
 }
 
-ImapService.prototype.logout = function(username, token) {
+ImapService.prototype.logout = function() {
   var self = this;
+  var username = self.localStorageService.get("username"); 
+  var token = self.localStorageService.get("token"); 
+  self.$rootScope.isLoggedIn = false;
+  self.localStorageService.remove("username"); 
+  self.localStorageService.remove("token");
+  self.$state.go("Login");
   var path = "/api/1.0/logout";
   var req = {
     method: "GET",

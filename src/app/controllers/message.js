@@ -117,13 +117,25 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   if (self.localStorageService.get("username")) {
     self.$rootScope.currentUsername = self.localStorageService.get("username");
   }
-
+  // getBoxes() and getSpecialBoxes are running in async
+  // Make sure loading progress get completed 
+  // if only both of those function are already completed.
+  var loadCompletion = {
+    boxes : false,
+    specialBoxes : false
+  }
+  var loadComplete = function(){
+    if (loadCompletion.boxes && loadCompletion.specialBoxes) {
+      self.loading.complete();
+    }
+  }
   // Load basic information
   self.loading.set(20);
   self.ImapService.getBoxes()
     .success(function(data, status){
       console.log(data);
-      self.loading.set(30);
+      loadCompletion.boxes = true;
+      loadComplete();
       var opts = {
         limit : 10,
         page : 1,
@@ -161,34 +173,37 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
           }
         });
       })
-      self.ImapService.getSpecialBoxes()
-        .success(function(data, status){
-          self.loading.complete();
-          self.specialBoxes = data;
-          window.lodash.some(self.specialBoxes, function(box){
-            if (box && box.specialName && 
-              (box.specialName.indexOf("Trash") > -1 || box.specialName.indexOf("Sent") > -1 )
-            ) {
-              box.meta.count = 0;
-            } else if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
-              box.meta.count = box.meta.total;
-            } else {
-              // Add everything except Trash, Sent and Drafts
-              self.moveToBoxes.push(box.specialName);
-            } 
-          });
-        })
-        .error(function(data, status){
-          console.log(data, status);
-          self.loading.complete();
-          self.ErrorHandlerService.parse(data, status);
-        })
     })
     .error(function(data, status){
       console.log(data, status);
-      self.loading.complete();
+      loadCompletion.boxes = true;
+      loadComplete();
       self.ErrorHandlerService.parse(data, status);
     })
+    self.ImapService.getSpecialBoxes()
+      .success(function(data, status){
+        loadCompletion.boxes = true;
+        loadComplete();
+        self.specialBoxes = data;
+        window.lodash.some(self.specialBoxes, function(box){
+          if (box && box.specialName && 
+            (box.specialName.indexOf("Trash") > -1 || box.specialName.indexOf("Sent") > -1 )
+          ) {
+            box.meta.count = 0;
+          } else if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
+            box.meta.count = box.meta.total;
+          } else {
+            // Add everything except Trash, Sent and Drafts
+            self.moveToBoxes.push(box.specialName);
+          } 
+        });
+      })
+      .error(function(data, status){
+        console.log(data, status);
+        loadCompletion.boxes = true;
+        loadComplete();
+        self.ErrorHandlerService.parse(data, status);
+      })
   self.isValidEmail = function(emailString){
     var regExp = /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))){2,6}$/i;
     return regExp.test(emailString);
@@ -615,18 +630,7 @@ Message.prototype.getAttachment = function(messageId, index) {
 
 Message.prototype.logout = function(){
   var self = this;
-  self.loading.start();
-  var username = self.localStorageService.get("username"); 
-  var token = self.localStorageService.get("token"); 
-  console.log("logout");
-  self.$rootScope.isLoggedIn = false;
-  self.localStorageService.remove("username"); 
-  self.localStorageService.remove("token"); 
-  self.ImapService.logout(username, token)
-  self.$timeout(function(){
-    self.$state.go("Login");
-    self.loading.complete();
-  }, 500)
+  self.ImapService.logout();
 }
 
 Message.prototype.sendMessage = function(msg){
@@ -1017,6 +1021,7 @@ Message.prototype.uploadFiles = function(files, errFiles) {
             })
           })
           .catch(function(data){
+            self.ToastrService.parse(data, status);
             window.lodash.some(self.newMessage.attachments, function(attachment){
               if (attachment.filename == file.filename) {
                 attachment.progress = "failed";

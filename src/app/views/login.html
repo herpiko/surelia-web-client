@@ -3,6 +3,7 @@
   <form ng-submit="login.auth(credential)">
     <input ng-model="credential.username" placeholder="username"></input>
     <br><input ng-model="credential.password" placeholder="password"></input>
+    <br><input type="checkbox" ng-model="credential.rememberMe" ng-true-value="true" ng-false-value="false">
     <br><button type="submit">{{'LOGIN' | translate}}</button>
   </form>
 </div>

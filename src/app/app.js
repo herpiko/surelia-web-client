@@ -49,6 +49,7 @@ var app = angular.module("App", [
   "pascalprecht.translate",
   "checklist-model"
 ])
+.constant("conf", conf)
 .config(function ($translateProvider) {
   $translateProvider.translations('en', en);
   $translateProvider.translations('id', id);
