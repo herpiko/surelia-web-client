@@ -51,6 +51,9 @@
       <button ng-click="msg.moveMessage('Trash')">Trash</button>
       <button ng-repeat="box in msg.moveToBoxes" ng-hide="(box.indexOf(msg.currentBoxName) > -1)" ng-click="msg.moveMessage(box)">{{box}}</button>
       <br>
+      Filter : 
+      <button ng-click="msg.listFilter('UNSEEN')">Unread</button>
+      <br>
       Flag as :
       <button ng-repeat="flag in msg.flags" ng-click="msg.flagMessage(flag)">{{flag}}</button>
       <input type="checkbox" ng-model="msg.selectAll" ng-true-value="true" ng-false-value="false" ng-change="msg.checkAll()">

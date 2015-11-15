@@ -81,7 +81,7 @@ var mimeTypes = {
     ]
   }
 }
-var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache){
+var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -96,12 +96,14 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.Upload = Upload;
   this.ToastrService = ToastrService;
   this.$templateCache = $templateCache;
+  this.$sce = $sce;
   var self = this;
   self.compose = false;
   self.composeMode = "corner";
   self.cc = false;;
   self.bcc = false;
   self.newMessage = {};
+  self.currentMessage = {};
   self.sortBy = null;
   self.sortImportance = "ascending";
   // This array will be used in "Move to" submenu in multiselect action
@@ -234,6 +236,7 @@ Message.prototype.listBoxOlder = function(){
     opts.search = self.searchString ? self.searchString : null;
     opts.sortBy = self.sortBy;
     opts.sortImportance = self.sortImportance;
+    opts.filter = self.filter;
     self.listBox(boxName, opts, true)
   }
 }
@@ -248,6 +251,7 @@ Message.prototype.listBoxNewer = function(){
     var boxName = self.searchString ? "search" : self.currentBoxPath;
     opts.search = self.searchString ? self.searchString : null;
     opts.sortBy = self.sortBy;
+    opts.filter = self.filter;
     opts.sortImportance = self.sortImportance;
     self.listBox(boxName, opts, true)
   }
@@ -262,8 +266,9 @@ Message.prototype.listSort = function(sort){
   }
   var boxName = self.searchString ? "search" : self.currentBoxPath;
   opts.search = self.searchString ? self.searchString : null;
-  opts.sortBy = sort;
+  opts.sortBy = self.sortBy = sort;
   opts.sortImportance = self.sortImportance;
+  opts.filter = self.filter;
   self.listBox(boxName, opts, true);
 }
 
@@ -279,6 +284,21 @@ Message.prototype.listReverse = function(importance){
   opts.search = self.searchString ? self.searchString : null;
   opts.sortBy = self.sortBy;
   opts.sortImportance = self.sortImportance = importance;
+  opts.filter = self.filter;
+  self.listBox(boxName, opts, true);
+}
+
+Message.prototype.listFilter = function(filter){
+  var self = this;
+  var opts = {
+    limit : self.currentListMeta.limit,
+    page : self.currentListMeta.page,
+  }
+  var boxName = self.searchString ? "search" : self.currentBoxPath;
+  opts.search = self.searchString ? self.searchString : null;
+  opts.sortBy = self.sortBy;
+  opts.sortImportance = self.sortImportance;
+  opts.filter = self.filter = filter;
   self.listBox(boxName, opts, true);
 }
 
@@ -292,15 +312,16 @@ Message.prototype.listReload = function(){
   opts.search = self.searchString ? self.searchString : null;
   opts.sortBy = self.sortBy;
   opts.sortImportance = self.sortImportance;
+  opts.filter = self.filter;
   self.listBox(boxName, opts, true);
 }
 
 Message.prototype.listBox = function(boxName, opts, canceler){
   var self = this;
   var opts = opts || {};
+  self.sortBy = opts.sortBy || null;
+  self.filter = opts.filter || null;
   self.currentSelection = [];
-  self.sortBy = opts.sortBy || self.sortBy;
-  self.sortImportance = opts.sortImportance || self.sortImportance;
   self.loading.start();
   self.view = "list";
   console.log("list box content");
@@ -1071,7 +1092,7 @@ Message.prototype.flagMessage = function(flag) {
     })
 }
 
-Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout", "Upload", "ToastrService"];
+Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout", "Upload", "ToastrService", "$sce"];
 
 var module = require("./index");
 module.controller("MessageCtrl", Message);

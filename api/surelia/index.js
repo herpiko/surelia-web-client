@@ -91,6 +91,19 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/list-box",
     handler : function(request, reply){
       self.listBox(request, reply);
+    },
+    config : {
+      validate : {
+        query : {
+          boxName : Joi.string().required(),
+          search : Joi.string().allow(""),
+          sortBy : Joi.string().allow(""),
+          sortImportance : Joi.string().allow(""),
+          filter : Joi.string().allow(""),
+          limit : Joi.string().allow(""),
+          page : Joi.string().allow(""),
+        }  
+      }
     }
   })
   self.server.route({
@@ -671,6 +684,9 @@ ImapAPI.prototype.listBox = function(request, reply) {
     if (request.query.sortImportance) {
       opts.sortImportance = request.query.sortImportance;
     }
+    if (request.query.filter) {
+      opts.filter = request.query.filter;
+    }
     client.listBox(request.query.boxName, request.query.limit, request.query.page, opts)
       .then(function(result){
         reply(result);
@@ -1030,7 +1046,7 @@ ImapAPI.prototype.quotaInfo = function(request, reply) {
 
 ImapAPI.prototype.setFlag = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    if (request.payload.flag === "Unread") {
+    if (request.payload.flag.toUpperCase() === "UNREAD") {
       return client.removeFlag(request.payload.seqs, "Seen", request.payload.boxName)
         .then(function(){
           reply(); 
@@ -1039,7 +1055,7 @@ ImapAPI.prototype.setFlag = function(request, reply) {
           reply({err : err.message}).code(500);
         })
     }
-    if (request.payload.flag === "Read") {
+    if (request.payload.flag.toUpperCase() === "READ") {
       return client.addFlag(request.payload.seqs, "Seen", request.payload.boxName)
         .then(function(){
           reply(); 

@@ -267,13 +267,14 @@ Imap.prototype.listBox = function(name, limit, page, opts) {
           }
         }
       }
-      console.log("name" + name);
-      console.log("limit" + limit);
-      console.log("page" + page);
-      console.log("search" + opts.search);
-      console.log("fetchLimit" + fetchLimit);
-      console.log("start" + start);
-      console.log("seqArray" + seqArray);
+      console.log("name " + name);
+      console.log("limit " + limit);
+      console.log("page " + page);
+      console.log("fetchLimit " + fetchLimit);
+      console.log("start " + start);
+      console.log("seqArray " + seqArray);
+      console.log("options " + JSON.stringify(opts));
+      console.log("search criteria " + searchCriteria);
       async.each(seqArray, function iterator(seq, doneIteratingMessages) {
         var mail = {}
         try {
@@ -369,11 +370,12 @@ Imap.prototype.listBox = function(name, limit, page, opts) {
     } else {
       opts.search = "";
     }
+    var searchCriteria = [["OR",["SUBJECT", opts.search],["FROM", opts.search]]];
     self.client.openBox(name, true, function(err, seqs){
       if (err) {
         return reject(err);
       }
-      if (self.client.serverSupports("SORT") && opts.sortBy) {
+      if (self.client.serverSupports("SORT") && (opts.sortBy || opts.filter)) {
         var sortCriteria = (opts && opts.sortBy) ? [opts.sortBy] : ["DATE"]; 
         opts.sortImportance = opts.sortImportance || "ascending";
         if (opts.sortImportance === "ascending") {
@@ -389,7 +391,30 @@ Imap.prototype.listBox = function(name, limit, page, opts) {
             sortCriteria[0] = sortCriteria[0];
           }
         }
-        var searchCriteria = [["OR",["SUBJECT", opts.search],["FROM", opts.search]]];
+        if (opts.filter) {
+          var validFilter = [
+            "ALL",
+            "ANSWERED",
+            "DELETED",
+            "DRAFT",
+            "FLAGGED",
+            "NEW",
+            "SEEN",
+            "RECENT",
+            "OLD",
+            "UNANSWERED",
+            "UNDELETED",
+            "UNDRAFT",
+            "UNFLAGGED",
+            "UNSEEN",
+          ];
+          var isValidFilter = lodash.some(validFilter, function(filter){
+            return opts.filter.toUpperCase() == filter;
+          })
+          if (isValidFilter) {
+            searchCriteria[1] = opts.filter;
+          } 
+        }
         self.client.seq.sort(sortCriteria, searchCriteria, function(err, result){
           if (err) {
             return reject(err);
@@ -400,7 +425,7 @@ Imap.prototype.listBox = function(name, limit, page, opts) {
         })
       } else {
         if (isSearch) {
-          self.client.seq.search([["OR",["SUBJECT", opts.search],["FROM", opts.search]]], function(err, result){
+          self.client.seq.search(searchCriteria, function(err, result){
             if (err) {
               return reject(err);
             }
