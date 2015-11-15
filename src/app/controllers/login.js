@@ -1,5 +1,5 @@
 'use strict';
-var Login = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ngProgressFactory, ToastrService){
+var Login = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ngProgressFactory, ToastrService, conf){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -9,6 +9,7 @@ var Login = function ($scope, $rootScope, $state, $window, $stateParams, localSt
   this.ImapService = ImapService;
   this.ngProgressFactory = ngProgressFactory;
   this.ToastrService = ToastrService;
+  this.conf = conf;
   var self = this;
   self.loading = self.ngProgressFactory.createInstance();
 
@@ -16,13 +17,14 @@ var Login = function ($scope, $rootScope, $state, $window, $stateParams, localSt
     self.$state.go("Message");
   }
   self.$scope.credential = {
-    imapHost : "imap.gmail.com",
-    imapPort : "993",
+    imapHost : self.conf.imap.host,
+    imapPort : self.conf.imap.port.toString(),
     imapTLS : true,
-    smtpHost : "smtp.gmail.com",
-    smtpPort : "465",
+    smtpHost : self.conf.smtp.host,
+    smtpPort : self.conf.smtp.port.toString(),
     smtpTLS : true,
-    smtpSecure : true
+    smtpSecure : true,
+    rememberMe : false
   }
 }
 

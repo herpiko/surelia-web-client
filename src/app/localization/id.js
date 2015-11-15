@@ -11,5 +11,6 @@ module.exports = {
   "TOASTR_CONNECTION_ERROR" : "Sambungan bermasalah. Silakan periksa kembali koneksi Anda dan coba lagi",
   "TOASTR_ERROR_500" : "Maaf, terjadi kesalahan sistem",
   "TOASTR_MESSAGE_SELECTION_SHOULDNT_EMPTY" : "Pilih minimal satu pesan terlebih dahulu",
-  "TOASTR_COULDNT_MOVE_TO_SAME_BOX" : "Anda memilih kotak surel yang sama."
+  "TOASTR_COULDNT_MOVE_TO_SAME_BOX" : "Anda memilih kotak surel yang sama",
+  "TOASTR_SESSION_EXPIRED" : "Batas waktu sesi Anda telah habis. Silakan coba untuk masuk kembali."
 }

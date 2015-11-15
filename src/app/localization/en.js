@@ -11,5 +11,6 @@ module.exports = {
   "TOASTR_CONNECTION_ERROR" : "There is a connection problem. Please check your internet connection and try again",
   "TOASTR_ERROR_500" : "An error occured",
   "TOASTR_MESSAGE_SELECTION_SHOULDNT_EMPTY" : "Please select minimum one message",
-  "TOASTR_COULDNT_MOVE_TO_SAME_BOX" : "You are choosing the same box"
+  "TOASTR_COULDNT_MOVE_TO_SAME_BOX" : "You are choosing the same box",
+  "TOASTR_SESSION_EXPIRED" : "Your session is expired. Please try to login again"
 }
