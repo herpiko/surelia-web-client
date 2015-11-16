@@ -1008,32 +1008,38 @@ Message.prototype.uploadFiles = function(files, errFiles) {
       filename : file.name,
       contentType : file.type,
       encoding : "base64",
-      progress : "uploading"
+      progress :{
+        status : "uploading",
+      }
     }
     self.newMessage.attachments.push(attachment);
-    self.Upload.base64DataUrl(files)
-      .then(function(b64){
-        var data = b64[0].split(",")[1];
-        self.ImapService.uploadAttachment(data)
-          .then(function(result){
-            window.lodash.some(self.newMessage.attachments, function(attachment){
-              console.log(attachment);
-              if (attachment.filename == file.name) {
-                attachment.attachmentId = result.attachmentId;
-                attachment.progress = "uploaded";
-                console.log(self.newMessage.attachments);
-              }
-            })
-          })
-          .catch(function(data){
-            self.ToastrService.parse(data, status);
-            window.lodash.some(self.newMessage.attachments, function(attachment){
-              if (attachment.filename == file.filename) {
-                attachment.progress = "failed";
-              }
-            })
-            console.log(data);
-          })
+    self.ImapService.uploadAttachment(file, attachment)
+      .then(function(res){
+        console.log("success");
+        console.log(res);
+        var result = res.data;
+        window.lodash.some(self.newMessage.attachments, function(attachment){
+          console.log(attachment);
+          if (attachment.filename == file.name) {
+            attachment.attachmentId = result.attachmentId;
+            attachment.progress.status = "uploaded";
+            console.log(self.newMessage.attachments);
+          }
+        })
+      }, function(res){
+        console.log("err");
+        console.log(res)
+        self.ToastrService.parse(res.data, res.status);
+        window.lodash.some(self.newMessage.attachments, function(attachment){
+          if (attachment.filename == file.filename) {
+            attachment.progress.status = "failed";
+          }
+        })
+        console.log(data);
+      }, function(evt){
+        console.log(evt);
+        attachment.progress.loaded = evt.loaded;
+        attachment.progress.total = evt.total;
       })
   });
 }

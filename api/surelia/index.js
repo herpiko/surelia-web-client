@@ -9,6 +9,9 @@ var async = require("async");
 var moment = require("moment");
 var Joi = require("joi");
 var lodash = require("lodash");
+var Grid = require("gridfs-stream");
+Grid.mongo = mongoose.mongo;
+gfs = Grid(mongoose.connection.db);
 
 var ImapAPI = function(server, options, next) {
   this.server = server;
@@ -43,7 +46,7 @@ ImapAPI.prototype.registerEndPoints = function(){
             filename : Joi.string(),
             contentType : Joi.string(),
             encoding : Joi.string(),
-            progress : Joi.string(),
+            progress : Joi.any(),
             attachmentId : Joi.string(),
           }))
         }  
@@ -183,14 +186,33 @@ ImapAPI.prototype.registerEndPoints = function(){
     method : "POST",
     path : "/api/1.0/attachment",
     handler : function(request, reply){
-      self.uploadAttachment(request, reply);
+      /* self.uploadAttachment(request, reply); */
+      var id = mongoose.Types.ObjectId();
+      var writeStream = gfs.createWriteStream({
+        _id : id,
+        filename : request.payload.content.hapi.filename
+      });
+      writeStream.on("finish", function(){
+        reply({attachmentId : id});
+      });
+      writeStream.on("error", function(err){
+        console.log(err);
+        reply(err);
+      });
+      request.payload.content.pipe(writeStream);
     },
     config : {
       validate : {
         payload : {
-          content : Joi.string().required(),
-        }  
-      }
+          content : Joi.required(),
+        }
+      },
+      payload : {
+        maxBytes: 32457280, 
+        output : "stream",
+        parse : true,
+        allow : "multipart/form-data"
+      }  
     }
   })
   self.server.route({
@@ -399,21 +421,27 @@ ImapAPI.prototype.send = function(request, reply) {
                 // Check for attachmentId,
                 // if any, grab them from temporary attachment collection
                 async.eachSeries(payload.attachments, function(attachment, cb){
-                  uploadAttachmentModel().findOne({_id : attachment.attachmentId})
-                    .exec(function(err, result){
-                      if (err) {
-                        return reply(err).code(500);
-                      } 
-                      if (!result) {
-                        return reply(new Error("Attachments not found").message).code(500);
-                      }
-                      attachment.content = result.content;
-                      delete(attachment.progress);
-                      obj.msg.attachments.push(attachment);
-                      // Remove temporary attachment, but do not wait
-                      uploadAttachmentModel().remove({_id : attachment.attachmentId});
-                      cb(); 
-                    })
+                  gfs.files.find({_id : attachment.attachmentId}, function(err, file){
+                    if (err) {
+                      return reply(err).code(500);
+                    }
+                    console.log(file);
+                  })
+                  /* uploadAttachmentModel().findOne({_id : attachment.attachmentId}) */
+                  /*   .exec(function(err, result){ */
+                  /*     if (err) { */
+                  /*       return reply(err).code(500); */
+                  /*     } */ 
+                  /*     if (!result) { */
+                  /*       return reply(new Error("Attachments not found").message).code(500); */
+                  /*     } */
+                  /*     attachment.content = result.content; */
+                  /*     delete(attachment.progress); */
+                  /*     obj.msg.attachments.push(attachment); */
+                  /*     // Remove temporary attachment, but do not wait */
+                  /*     uploadAttachmentModel().remove({_id : attachment.attachmentId}); */
+                  /*     cb(); */ 
+                  /*   }) */
                 }, function(err){
                   realSend(request, reply, smtp, obj);
                 })
@@ -996,16 +1024,16 @@ ImapAPI.prototype.getAttachment = function(request, reply) {
  */
 ImapAPI.prototype.uploadAttachment = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    var attachment = {
-      content : request.payload.content,
-      timestamp : new Date()
-    }
-    uploadAttachmentModel().create(attachment, function(err, result){
-      if (err) {
-        return reply(err).code(500);
-      }
-      reply({attachmentId : result._id});
-    })
+    /* var attachment = { */
+    /*   content : request.payload.content, */
+    /*   timestamp : new Date() */
+    /* } */
+    /* uploadAttachmentModel().create(attachment, function(err, result){ */
+    /*   if (err) { */
+    /*     return reply(err).code(500); */
+    /*   } */
+    /*   reply({attachmentId : result._id}); */
+    /* }) */
   }
   
   checkPool(request, reply, realFunc);

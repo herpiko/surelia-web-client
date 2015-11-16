@@ -113,7 +113,7 @@
 
     <form ng-show="msg.compose" ng-submit="msg.sendMessage(msg.newMessage)" ng-class="{'compose-container':(msg.composeMode=='corner' || msg.composeMode=='minimaze' ), 'compose-container-maximaze':msg.composeMode=='maximaze'}">
       <div class='compose-header'>{{'COMPOSE' | translate}}
-        <span class="compose-header-button" ng-click="msg.saveDraft()">{{'DISCARD' | translate}}</span>
+        <span class="compose-header-button" ng-click="msg.saveDraft()">X</span>
         <span class="compose-header-button" ng-hide="msg.composeMode=='maximaze' || msg.composeMode=='minimaze'" ng-click="msg.resizeCompose('maximaze')">/</span>
         <span class="compose-header-button" ng-hide="msg.composeMode=='corner'" ng-click="msg.resizeCompose('corner')">[]</span>
         <span class="compose-header-button" ng-click="msg.resizeCompose('minimaze')">-</span>
@@ -158,10 +158,11 @@
            </div>
            <ul>
              <li ng-show="msg.newMessage.attachments.length > 0" ng-repeat="a in msg.newMessage.attachments" class="compose-attachments">
-               {{a.filename}}
-               <span ng-show="a.progress=='uploading'"> - {{'UPLOADING' | translate}}</span>
-               <span ng-show="a.progress=='failed'"> - {{'UPLOAD_FAILED' | translate}} </span>
-               <span ng-show="a.progress=='uploaded'"><i class="fa fa-check"></i></span>
+              {{a.filename}}
+                <span ng-show="a.progress.total">{{a.progress.loaded}} / {{a.progress.total}}</span>
+               <span ng-show="a.progress.status=='uploading'"> - {{'UPLOADING' | translate}}</span>
+               <span ng-show="a.progress.status=='failed'"> - {{'UPLOAD_FAILED' | translate}} </span>
+               <span ng-show="a.progress.status=='uploaded'"><i class="fa fa-check"></i></span>
              </li>
            </ul>
 			  	</div>
