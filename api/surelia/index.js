@@ -8,6 +8,7 @@ var config = require('../../conf/prod/surelia');
 var async = require("async");
 var moment = require("moment");
 var Joi = require("joi");
+var lodash = require("lodash");
 
 var ImapAPI = function(server, options, next) {
   this.server = server;
@@ -90,6 +91,19 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/list-box",
     handler : function(request, reply){
       self.listBox(request, reply);
+    },
+    config : {
+      validate : {
+        query : {
+          boxName : Joi.string().required(),
+          search : Joi.string().allow(""),
+          sortBy : Joi.string().allow(""),
+          sortImportance : Joi.string().allow(""),
+          filter : Joi.string().allow(""),
+          limit : Joi.string().allow(""),
+          page : Joi.string().allow(""),
+        }  
+      }
     }
   })
   self.server.route({
@@ -125,6 +139,15 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/move-message",
     handler : function(request, reply){
       self.moveMessage(request, reply);
+    },
+    config : {
+      validate : {
+        payload : {
+          seqs : Joi.array().items(Joi.number()).required(),
+          boxName : Joi.string().required(),
+          oldBoxName : Joi.string().required(),
+        }  
+      }
     }
   })
   self.server.route({
@@ -217,6 +240,23 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.quotaInfo(request, reply);
     }
   })
+  
+  self.server.route({
+    method : "POST",
+    path : "/api/1.0/set-flag",
+    handler : function(request, reply){
+      self.setFlag(request, reply);
+    },
+    config : {
+      validate : {
+        payload : {
+          flag : Joi.string().required(),
+          seqs : Joi.array().items(Joi.number()).required(),
+          boxName : Joi.string().required(),
+        }  
+      }
+    }
+  })
 
 }
 
@@ -263,6 +303,7 @@ ImapAPI.prototype.send = function(request, reply) {
               client.newMessage(message, request.query.sentPath)
               // Remove from Drafts
               if (obj.meta.seq && obj.meta.isDraft) {
+                var seqs = obj.meta.seq.split(",");
                 client.removeMessage(obj.meta.seq, request.query.draftPath)
               }
               // Flag as answered
@@ -429,16 +470,14 @@ var checkPool = function(request, reply, realFunc) {
     var id = request.headers.username;
     // Check if the pool is exist
     if (pool.map[id]) {
-      if (pool.map[id].obj.client.state == "disconnected") {
+      if (pool.map[id].obj.client.state === "disconnected") {
         var client = pool.get(id);
         client.connect()
           .then(function(){
             realFunc(client, request, reply);
           })
           .catch(function(err){
-            if (err) {
-              return reply({err : err.message}).code(500);
-            }
+            return reply({err : err.message}).code(500);
           })
       } else {
         // Execute real function
@@ -572,10 +611,10 @@ var checkPool = function(request, reply, realFunc) {
               pool.map[credential.user].expire = (new Date()).valueOf() - 10000;
               pool.destroy();
               if (err) {
-                if ( err.message == "Invalid credentials (Failure)"
+                if ( err.message === "Invalid credentials (Failure)"
                   || err.message.indexOf("Lookup failed") > -1
-                  || err.type.toLowerCase() == "no" 
-                  || err.type.toLowerCase() == "bad" 
+                  || err.type.toLowerCase() === "no" 
+                  || err.type.toLowerCase() === "bad" 
                 ) {
                    var err = new Error("Invalid credentials")
                    return reply({err : err.message}).code(401);
@@ -631,16 +670,29 @@ ImapAPI.prototype.auth = function(request, reply) {
  */
 ImapAPI.prototype.listBox = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    if (!request.query.boxName || request.query.boxName == undefined) {
+    if (!request.query.boxName || request.query.boxName === undefined) {
       var err = new Error("Missing query parameter : boxName");
       return reply({err : err.message}).code(500);
     }
-    client.listBox(request.query.boxName, request.query.limit, request.query.page, request.query.search)
+    var opts = {}
+    if (request.query.search) {
+      opts.search = request.query.search;
+    }
+    if (request.query.sortBy) {
+      opts.sortBy = request.query.sortBy;
+    }
+    if (request.query.sortImportance) {
+      opts.sortImportance = request.query.sortImportance;
+    }
+    if (request.query.filter) {
+      opts.filter = request.query.filter;
+    }
+    client.listBox(request.query.boxName, request.query.limit, request.query.page, opts)
       .then(function(result){
         reply(result);
       })
       .catch(function(err){
-        if (err && err.message && err.message == "Nothing to fetch") {
+        if (err && err.message && err.message === "Nothing to fetch") {
           return reply({err : err.message}).code(404);
         }
         reply({err : err.message}).code(500);
@@ -786,7 +838,7 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
             if (err) {
               return reply(err).code(500);
             }
-            if (result && result.length == 0) {
+            if (result && result.length === 0) {
               attachmentModel().create(attachments, function(err, result){
                 if (err) {
                   return reply(err).code(500);
@@ -817,7 +869,7 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
  */
 ImapAPI.prototype.moveMessage = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    client.moveMessage(request.query.id, request.query.boxName, request.query.newBoxName)
+    client.moveMessage(request.payload.seqs, request.payload.oldBoxName, request.payload.boxName)
       .then(function(){
         reply();
       })
@@ -835,15 +887,23 @@ ImapAPI.prototype.moveMessage = function(request, reply) {
  */
 ImapAPI.prototype.removeMessage = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    client.removeMessage(request.query.seq, request.query.boxName)
-      .then(function(){
-        attachmentModel().remove({messageId : decodeURIComponent(request.query.messageId)}).exec();
-        // Do not wait
-        reply().code(200);
-      })
-      .catch(function(err){
-        reply({err : err.message}).code(500);
-      })
+    var opts = {};
+    var seqs = request.query.seqs.split(",");
+    async.eachSeries(seqs, function(seq, cb){
+      seqs[seqs.indexOf(seq)] = parseInt(seq);
+      cb();
+    }, function(){
+      opts.archive = (request.query.archive && request.query.archive === true) ? true : false;
+      client.removeMessage(seqs, request.query.boxName, opts)
+        .then(function(){
+          attachmentModel().remove({messageId : decodeURIComponent(request.query.messageId)}).exec();
+          // Do not wait
+          reply().code(200);
+        })
+        .catch(function(err){
+          reply({err : err.message}).code(500);
+        })
+    })
   }
   
   checkPool(request, reply, realFunc);
@@ -890,6 +950,7 @@ ImapAPI.prototype.uploadAttachment = function(request, reply) {
   
   checkPool(request, reply, realFunc);
 }
+
 ImapAPI.prototype.removeAttachment = function(request, reply) {
   var realFunc = function(client, request, reply) {
     uploadAttachmentModel().remove({_id : request.query.attachmentId}, function(err, result){
@@ -980,6 +1041,31 @@ ImapAPI.prototype.quotaInfo = function(request, reply) {
     })
   }
 
+  checkPool(request, reply, realFunc);
+}
+
+ImapAPI.prototype.setFlag = function(request, reply) {
+  var realFunc = function(client, request, reply) {
+    if (request.payload.flag.toUpperCase() === "UNREAD") {
+      return client.removeFlag(request.payload.seqs, "Seen", request.payload.boxName)
+        .then(function(){
+          reply(); 
+        })
+        .catch(function(err){
+          reply({err : err.message}).code(500);
+        })
+    }
+    if (request.payload.flag.toUpperCase() === "READ") {
+      return client.addFlag(request.payload.seqs, "Seen", request.payload.boxName)
+        .then(function(){
+          reply(); 
+        })
+        .catch(function(err){
+          reply({err : err.message}).code(500);
+        })
+    }
+  }
+  
   checkPool(request, reply, realFunc);
 }
 

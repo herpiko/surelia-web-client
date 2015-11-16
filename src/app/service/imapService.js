@@ -85,6 +85,16 @@ ImapService.prototype.listBox = function(boxName, opts, canceler) {
   if (opts.search && opts.search !== undefined) {
     path += "&search=" + opts.search;
   }
+  if (opts.sortBy && opts.sortBy !== undefined) {
+    path += "&sortBy=" + opts.sortBy;
+  }
+  if (opts.sortImportance && opts.sortImportance !== undefined) {
+    path += "&sortImportance=" + opts.sortImportance;
+  }
+  if (opts.filter && opts.filter !== undefined) {
+    path += "&filter=" + opts.filter;
+  }
+
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
   var req = {
@@ -284,14 +294,21 @@ ImapService.prototype.removeAttachment = function(attachmentId, canceler) {
 }
 
 
-ImapService.prototype.moveMessage = function(id, boxName, newBoxName) {
+ImapService.prototype.moveMessage = function(seqs, oldBoxName, boxName) {
   var self = this;
-  var path = "/api/1.0/move-message?id=" + id + "&boxName=" + boxName + "&newBoxName=" + newBoxName;;
+  // Convert to comma separated string
+  var data = {
+    seqs : seqs,
+    oldBoxName : oldBoxName,
+    boxName : boxName
+  }
+  var path = "/api/1.0/move-message";
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
   var req = {
     method: "POST",
     url : path,
+    data : data,
     headers : {
       token : token,
       username : username
@@ -302,7 +319,7 @@ ImapService.prototype.moveMessage = function(id, boxName, newBoxName) {
 
 ImapService.prototype.removeMessage = function(seq, messageId, boxName) {
   var self = this;
-  var path = "/api/1.0/message?seq=" + seq + "&messageId=" + encodeURIComponent(messageId) + "&boxName=" + boxName;
+  var path = "/api/1.0/message?seqs=" + seq + "&messageId=" + encodeURIComponent(messageId) + "&boxName=" + boxName;
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
   var req = {
@@ -393,6 +410,27 @@ ImapService.prototype.quotaInfo = function(boxName) {
   var req = {
     method: "GET",
     url : path,
+    headers : {
+      token : token,
+      username : username
+    }
+  }
+  return self.$http(req)
+}
+
+ImapService.prototype.flagMessage = function(seqs, flag, boxName) {
+  var self = this;
+  var path = "/api/1.0/set-flag";
+  var token = self.localStorageService.get("token"); 
+  var username = self.localStorageService.get("username"); 
+  var req = {
+    method: "POST",
+    url : path,
+    data : {
+      seqs : seqs,
+      flag : flag,
+      boxName : boxName
+    },
     headers : {
       token : token,
       username : username

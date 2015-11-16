@@ -9,5 +9,7 @@ module.exports = {
   "TOASTR_MESSAGE_DELETED" : "Pesan telah dihapus",
   "TOASTR_MESSAGE_PERMANENTLY_DELETED" : "Pesan telah dihapus secara permanen",
   "TOASTR_CONNECTION_ERROR" : "Sambungan bermasalah. Silakan periksa kembali koneksi Anda dan coba lagi",
-  "TOASTR_ERROR_500" : "Maaf, terjadi galat"
+  "TOASTR_ERROR_500" : "Maaf, terjadi kesalahan sistem",
+  "TOASTR_MESSAGE_SELECTION_SHOULDNT_EMPTY" : "Pilih minimal satu pesan terlebih dahulu",
+  "TOASTR_COULDNT_MOVE_TO_SAME_BOX" : "Anda memilih kotak surel yang sama."
 }

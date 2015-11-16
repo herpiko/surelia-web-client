@@ -55,6 +55,9 @@ var app = angular.module("App", [
   $translateProvider.preferredLanguage(conf.lang);
   $translateProvider.useSanitizeValueStrategy('sanitize');
 })
+.config(function($httpProvider){
+  $httpProvider.defaults.timeout = 60000;
+})
 .config(function($stateProvider) {
   $stateProvider
   .state("Login", {

@@ -749,7 +749,12 @@ hoodiecrowServer.listen(1143, function(){
     it("Should be able to move message to another box", function(done){
       server.inject({
         method: "POST",
-        url : "/api/1.0/move-message?id=1&boxName=INBOX&newBoxName=" + newMailBox2,
+        url : "/api/1.0/move-message",
+        payload : {
+          seqs : [1],
+          oldBoxName : "INBOX",
+          boxName : newMailBox2
+        },
         headers : {
           token : token,
           username : process.env.TEST_SMTP_USERNAME
@@ -759,7 +764,12 @@ hoodiecrowServer.listen(1143, function(){
         // Move it back
         server.inject({
           method: "POST",
-          url : "/api/1.0/move-message?id=1&boxName=" + newMailBox2 + "&newBoxName=INBOX",
+          url : "/api/1.0/move-message",
+          payload : {
+            seqs : [1],
+            oldBoxName : newMailBox2,
+            boxName : "INBOX"
+          },
           headers : {
             token : token,
             username : process.env.TEST_SMTP_USERNAME
@@ -780,16 +790,18 @@ hoodiecrowServer.listen(1143, function(){
           username : process.env.TEST_SMTP_USERNAME
         }
       }, function(response){
+        console.log(response.result);
         trashTotal = response.result.meta.total;
         should(response.statusCode).equal(200);
         server.inject({
           method: "DELETE",
-          url : "/api/1.0/message?seq=1&boxName=INBOX",
+          url : "/api/1.0/message?seqs=1&boxName=INBOX",
           headers : {
             token : token,
             username : process.env.TEST_SMTP_USERNAME
           }
         }, function(response){
+          console.log(response.result);
           should(response.statusCode).equal(200);
           server.inject({
             method: "GET",
@@ -799,16 +811,18 @@ hoodiecrowServer.listen(1143, function(){
               username : process.env.TEST_SMTP_USERNAME
             }
           }, function(response){
+            console.log(response.result);
             should(response.result.meta.total).equal(trashTotal + 1);
             trashTotal = response.result.meta.total;
             server.inject({
               method: "DELETE",
-              url : "/api/1.0/message?seq=1&boxName=" + trashPath,
+              url : "/api/1.0/message?seqs=1&boxName=" + trashPath,
               headers : {
                 token : token,
                 username : process.env.TEST_SMTP_USERNAME
               }
             }, function(response){
+              console.log(response.result);
               should(response.statusCode).equal(200);
               server.inject({
                 method: "GET",
@@ -818,8 +832,95 @@ hoodiecrowServer.listen(1143, function(){
                   username : process.env.TEST_SMTP_USERNAME
                 }
               }, function(response){
+                console.log(response.result);
                 should(response.result.meta.total).equal(trashTotal - 1);
                 done();
+              })
+            })
+          })
+        })
+      })
+    })
+    it("Should be able to flag a message as unread and read", function(done){
+      // Get a list
+      server.inject({
+        method: "GET",
+        url : "/api/1.0/list-box?boxName=INBOX",
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        // Use the latest sequence number
+        var seq = response.result.data[0].seq;
+        // Retrieve it so it will be flagged as Seen
+        server.inject({
+          method: "GET",
+          url : "/api/1.0/message?boxName=INBOX&id=" + seq,
+          headers : {
+            token : token,
+            username : process.env.TEST_SMTP_USERNAME
+          }
+        }, function(response){
+          should.exist(response.result.parsed);
+          should.exist(response.result.attributes);
+          // Set it as Unread
+          server.inject({
+            method: "POST",
+            url : "/api/1.0/set-flag",
+            payload : {
+              seqs : [seq],
+              flag : "Unread",
+              boxName : "INBOX"
+            },
+            headers : {
+              token : token,
+              username : process.env.TEST_SMTP_USERNAME
+            }
+          }, function(response){
+            // Get list again
+            console.log(response.result);
+            server.inject({
+              method: "GET",
+              url : "/api/1.0/list-box?boxName=INBOX",
+              headers : {
+                token : token,
+                username : process.env.TEST_SMTP_USERNAME
+              }
+            }, function(response){
+              // Should be have no Seen flag
+              console.log(response.result.data[0]);
+              should(response.result.data[0].attributes.flags.indexOf("\\Seen") < 0).equal(true);
+              // Set it as read without retrieve the message
+              server.inject({
+                method: "POST",
+                url : "/api/1.0/set-flag",
+                payload : {
+                  seqs : [seq],
+                  flag : "Read",
+                  boxName : "INBOX"
+                },
+                headers : {
+                  token : token,
+                  username : process.env.TEST_SMTP_USERNAME
+                }
+              }, function(response){
+                // Get list again
+                console.log(response.result);
+                server.inject({
+                  method: "GET",
+                  url : "/api/1.0/list-box?boxName=INBOX",
+                  headers : {
+                    token : token,
+                    username : process.env.TEST_SMTP_USERNAME
+                  }
+                }, function(response){
+                  // Should be have a Seen flag
+                  console.log(response.result.data[0]);
+                  should(response.result.data[0].attributes.flags.indexOf("\\Seen") > -1).equal(true);
+                  done();
+                })
               })
             })
           })

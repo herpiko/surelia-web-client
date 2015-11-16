@@ -81,7 +81,7 @@ var mimeTypes = {
     ]
   }
 }
-var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache){
+var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -96,12 +96,19 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.Upload = Upload;
   this.ToastrService = ToastrService;
   this.$templateCache = $templateCache;
+  this.$sce = $sce;
   var self = this;
   self.compose = false;
   self.composeMode = "corner";
   self.cc = false;;
   self.bcc = false;
   self.newMessage = {};
+  self.currentMessage = {};
+  self.sortBy = null;
+  self.sortImportance = "ascending";
+  // This array will be used in "Move to" submenu in multiselect action
+  self.moveToBoxes = [];
+  self.flags = ["Read", "Unread"];
   self.isAlpha = function(str) {
     return /^[a-zA-Z()]+$/.test(str);
   }
@@ -146,20 +153,12 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
             (box.boxName.indexOf("Trash") > -1 || box.boxName.indexOf("Sent") > -1 )
           ) {
             box.meta.count = 0;
-          } 
-          if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
+          } else if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
             box.meta.count = box.meta.total;
-          } 
-        });
-        window.lodash.some(self.specialBoxes, function(box){
-          if (box && box.boxName && 
-            (box.boxName.indexOf("Trash") > -1 || box.boxName.indexOf("Sent") > -1 )
-          ) {
-            box.meta.count = 0;
-          } 
-          if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
-            box.meta.count = box.meta.total;
-          } 
+          } else {
+            // Add everything except Trash, Sent and Drafts
+            self.moveToBoxes.push(box.boxName);
+          }
         });
       })
       self.ImapService.getSpecialBoxes()
@@ -171,9 +170,11 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
               (box.specialName.indexOf("Trash") > -1 || box.specialName.indexOf("Sent") > -1 )
             ) {
               box.meta.count = 0;
-            } 
-            if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
+            } else if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
               box.meta.count = box.meta.total;
+            } else {
+              // Add everything except Trash, Sent and Drafts
+              self.moveToBoxes.push(box.specialName);
             } 
           });
         })
@@ -233,6 +234,9 @@ Message.prototype.listBoxOlder = function(){
     }
     var boxName = self.searchString ? "search" : self.currentBoxPath;
     opts.search = self.searchString ? self.searchString : null;
+    opts.sortBy = self.sortBy;
+    opts.sortImportance = self.sortImportance;
+    opts.filter = self.filter;
     self.listBox(boxName, opts, true)
   }
 }
@@ -246,12 +250,78 @@ Message.prototype.listBoxNewer = function(){
     }
     var boxName = self.searchString ? "search" : self.currentBoxPath;
     opts.search = self.searchString ? self.searchString : null;
+    opts.sortBy = self.sortBy;
+    opts.filter = self.filter;
+    opts.sortImportance = self.sortImportance;
     self.listBox(boxName, opts, true)
   }
 }
-Message.prototype.listBox = function(boxName, opts, canceler){
-  opts = opts || {};
+
+// @sort enums = ["DATE", "FROM", "SUBJECT", "SIZE"]
+Message.prototype.listSort = function(sort){
   var self = this;
+  var opts = {
+    limit : self.currentListMeta.limit,
+    page : self.currentListMeta.page,
+  }
+  var boxName = self.searchString ? "search" : self.currentBoxPath;
+  opts.search = self.searchString ? self.searchString : null;
+  opts.sortBy = self.sortBy = sort;
+  opts.sortImportance = self.sortImportance;
+  opts.filter = self.filter;
+  self.listBox(boxName, opts, true);
+}
+
+
+// @importance "ascending" or "descending"
+Message.prototype.listReverse = function(importance){
+  var self = this;
+  var opts = {
+    limit : self.currentListMeta.limit,
+    page : self.currentListMeta.page,
+  }
+  var boxName = self.searchString ? "search" : self.currentBoxPath;
+  opts.search = self.searchString ? self.searchString : null;
+  opts.sortBy = self.sortBy;
+  opts.sortImportance = self.sortImportance = importance;
+  opts.filter = self.filter;
+  self.listBox(boxName, opts, true);
+}
+
+Message.prototype.listFilter = function(filter){
+  var self = this;
+  var opts = {
+    limit : self.currentListMeta.limit,
+    page : self.currentListMeta.page,
+  }
+  var boxName = self.searchString ? "search" : self.currentBoxPath;
+  opts.search = self.searchString ? self.searchString : null;
+  opts.sortBy = self.sortBy;
+  opts.sortImportance = self.sortImportance;
+  opts.filter = self.filter = filter;
+  self.listBox(boxName, opts, true);
+}
+
+Message.prototype.listReload = function(){
+  var self = this;
+  var opts = {
+    limit : self.currentListMeta.limit,
+    page : self.currentListMeta.page,
+  }
+  var boxName = self.searchString ? "search" : self.currentBoxPath;
+  opts.search = self.searchString ? self.searchString : null;
+  opts.sortBy = self.sortBy;
+  opts.sortImportance = self.sortImportance;
+  opts.filter = self.filter;
+  self.listBox(boxName, opts, true);
+}
+
+Message.prototype.listBox = function(boxName, opts, canceler){
+  var self = this;
+  var opts = opts || {};
+  self.sortBy = opts.sortBy || null;
+  self.filter = opts.filter || null;
+  self.currentSelection = [];
   self.loading.start();
   self.view = "list";
   console.log("list box content");
@@ -543,23 +613,6 @@ Message.prototype.getAttachment = function(messageId, index) {
     
 }
 
-Message.prototype.moveMessage = function(id, boxName, newBoxName){
-  var self = this;
-  self.loading.start();
-  console.log("move message");
-  self.ImapService.moveMessage(id, boxName, newBoxName)
-    .success(function(data){
-      self.loading.complete();
-      console.log(data);
-      alert(JSON.stringify(data));
-    })
-    .error(function(data, status){
-      self.loading.complete();
-      console.log(data, status);
-      self.ToastrService.parse(data, status);
-    })
-}
-
 Message.prototype.logout = function(){
   var self = this;
   self.loading.start();
@@ -688,7 +741,7 @@ Message.prototype.removeMessage = function(seq, messageId, boxName){
         self.ToastrService.deleted();
       }
       self.view = "list";
-      self.listBox("INBOX");
+      self.listReload();
     })
     .error(function(data, status){
       console.log(data, status);
@@ -984,7 +1037,62 @@ Message.prototype.checkAll = function(){
   }
 }
 
-Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout", "Upload", "ToastrService"];
+Message.prototype.moveMessage = function(boxName) {
+  var self = this;
+  // Collect seq number
+  var seqs = [];
+  window.lodash.some(self.currentSelection, function(msg){
+    if (msg.seq) {
+      seqs.push(msg.seq);
+    }
+  });
+  if (self.currentBoxName.indexOf(boxName) > -1) {
+    return self.ToastrService.couldntMoveToSameBox();
+  }
+  if (seqs.length < 1) {
+    return self.ToastrService.messageSelectionEmpty();
+  }
+  self.loading.start();
+  var oldBoxName = self.currentBoxName;
+  console.log(seqs, oldBoxName, boxName);
+  self.ImapService.moveMessage(seqs, oldBoxName, boxName)
+    .then(function(data, status){
+      self.listReload();
+    })
+    .catch(function(data, status){
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
+    })
+}
+
+Message.prototype.flagMessage = function(flag) {
+  var self = this;
+  // Collect seq number
+  var seqs = [];
+  window.lodash.some(self.currentSelection, function(msg){
+    if (msg.seq) {
+      seqs.push(msg.seq);
+    }
+  });
+  if (self.currentBoxName.indexOf(boxName) > -1) {
+    return self.ToastrService.couldntMoveToSameBox();
+  }
+  if (seqs.length < 1) {
+    return self.ToastrService.messageSelectionEmpty();
+  }
+  self.loading.start();
+  var boxName = self.currentBoxName;
+  self.ImapService.flagMessage(seqs, flag, boxName)
+    .then(function(data, status){
+      self.listReload();
+    })
+    .catch(function(data, status){
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
+    })
+}
+
+Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout", "Upload", "ToastrService", "$sce"];
 
 var module = require("./index");
 module.controller("MessageCtrl", Message);

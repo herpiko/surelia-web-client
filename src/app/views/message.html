@@ -13,24 +13,50 @@
       </form>
       <ul>
               <li ng-repeat="box in msg.boxes" ng-click="msg.listBox(box.boxName,{},true)" style="cursor:pointer">
-              {{box.boxName}} 
+              {{box.boxName | FirstLetterCapitalize }} 
               <span ng-show="box.meta.count > 0"> ({{box.meta.count}})</span>
               <span ng-show="msg.currentBoxName==box.boxName"> *</span>
               </li>
               <li ng-repeat="special in msg.specialBoxes" ng-click="msg.listBox(special.path, {}, true)" style="cursor:pointer">
-              {{special.specialName}} <span ng-show="msg.currentBoxName==special.specialName"> *</span>
+              {{special.specialName | FirstLetterCapitalize}} <span ng-show="msg.currentBoxName==special.specialName"> *</span>
               <span ng-show="special.meta.count > 0"> ({{special.meta.count}})</span>
               </li>
-      </ul> 
+      </ul>
+      <div>
+        <p>
+          {{currentUsername}}
+        </p>
+      </div>
     </div>
     
     
     <!--List view-->
     <div ng-show="msg.view=='list'" style="width:60%;display:inline-block;vertical-align:top;">
             {{msg.currentListMeta.listStart}} - {{msg.currentListMeta.listEnd}} / {{msg.currentListMeta.total}}
-      <input type="checkbox" ng-model="msg.selectAll" ng-true-value="true" ng-false-value="false" ng-change="msg.checkAll()">
       <button ng-click="msg.listBoxNewer()">newer</button>
       <button ng-click="msg.listBoxOlder()">older</button>
+      <button ng-click="msg.listReload()">reload</button>
+      <br>
+      Sort by : 
+      <button ng-click="msg.listSort('DATE')">Date</button> 
+      <button ng-click="msg.listSort('FROM')">From</button> 
+      <button ng-click="msg.listSort('SUBJECT')">Subject</button> 
+      <button ng-click="msg.listSort('SIZE')">Size</button> | 
+      <button ng-click="msg.listReverse('ascending')">Ascending</button> 
+      <button ng-click="msg.listReverse('descending')">Descending</button>
+      <br>
+      Move to : 
+      <button ng-click="msg.moveMessage('Archive')">Archive</button>
+      <button>Spam</button>
+      <button ng-click="msg.moveMessage('Trash')">Trash</button>
+      <button ng-repeat="box in msg.moveToBoxes" ng-hide="(box.indexOf(msg.currentBoxName) > -1)" ng-click="msg.moveMessage(box)">{{box}}</button>
+      <br>
+      Filter : 
+      <button ng-click="msg.listFilter('UNSEEN')">Unread</button>
+      <br>
+      Flag as :
+      <button ng-repeat="flag in msg.flags" ng-click="msg.flagMessage(flag)">{{flag}}</button>
+      <input type="checkbox" ng-model="msg.selectAll" ng-true-value="true" ng-false-value="false" ng-change="msg.checkAll()">
       <div ng-repeat="message in msg.currentList" style="cursor:pointer;margin-top:3px;background:#ECECEC">
         <div style="display:inline-block">
           <input type="checkbox" checklist-model="msg.currentSelection" checklist-value="message"></input>

@@ -96,7 +96,7 @@ Imap.prototype.getSpecialBoxes = function() {
             var children = Object.keys(mboxes[index].children);
             async.each(children, function iterator(child, doneIteratingChildrens){
               var currentSpecialUse = mboxes[index].children[child].special_use_attrib; 
-              if (currentSpecialUse == "\\" + special) {
+              if (currentSpecialUse === "\\" + special) {
                 specials[special] = {
                   path : index + mboxes[index].delimiter + child,
                   specialName : special
@@ -106,7 +106,7 @@ Imap.prototype.getSpecialBoxes = function() {
               doneIteratingCildrens(err);
             })
           } else {
-            if (mboxes[index].special_use_attribs == "\\" + special || mboxes[index].attribs.indexOf("\\" + special) == 0) {
+            if (mboxes[index].special_use_attribs === "\\" + special || mboxes[index].attribs.indexOf("\\" + special) === 0) {
               specials[special] = {
                 path : index
               }
@@ -124,10 +124,10 @@ Imap.prototype.getSpecialBoxes = function() {
         var essentialBoxes = ["Drafts", "Sent", "Trash"];
         lodash.some(essentialBoxes, function(box) {
           var isMatched = lodash.some(specials, function(s){
-              return s.specialName == box;
+              return s.specialName === box;
             })
           var isExists = lodash.some(boxes, function(b){
-              return b == box;
+              return b === box;
             })
           if (!isMatched && !isExists) {
             
@@ -225,8 +225,9 @@ Imap.prototype.getBoxes = function() {
  * @returns {Promise}
  * 
  */
-Imap.prototype.listBox = function(name, limit, page, search) {
+Imap.prototype.listBox = function(name, limit, page, opts) {
   var self = this;
+  var opts = opts || {};
   var limit = limit || 10;
   var page = page || 1;
   var total;
@@ -254,25 +255,26 @@ Imap.prototype.listBox = function(name, limit, page, search) {
           if (seqs.messages.seqArray[i]) {
             seqArray.push(seqs.messages.seqArray[i]);
           }
-          if (seqArray.length == limit) {
+          if (seqArray.length === limit) {
             break;
           }
         }
       } else {
         for (var i = start; i <= fetchLimit; i++) {
           seqArray.push(i);
-          if (seqArray.length == limit) {
+          if (seqArray.length === limit) {
             break;
           }
         }
       }
-      console.log("name" + name);
-      console.log("limit" + limit);
-      console.log("page" + page);
-      console.log("search" + search);
-      console.log("fetchLimit" + fetchLimit);
-      console.log("start" + start);
-      console.log("seqArray" + seqArray);
+      console.log("name " + name);
+      console.log("limit " + limit);
+      console.log("page " + page);
+      console.log("fetchLimit " + fetchLimit);
+      console.log("start " + start);
+      console.log("seqArray " + seqArray);
+      console.log("options " + JSON.stringify(opts));
+      console.log("search criteria " + searchCriteria);
       async.each(seqArray, function iterator(seq, doneIteratingMessages) {
         var mail = {}
         try {
@@ -311,8 +313,8 @@ Imap.prototype.listBox = function(name, limit, page, search) {
                 if (attrs.struct[i]
                   && attrs.struct[i][0]
                   && attrs.struct[i][0].disposition
-                  && (attrs.struct[i][0].disposition.type == "ATTACHMENT"
-                  || attrs.struct[i][0].disposition.type == "attachment")
+                  && (attrs.struct[i][0].disposition.type === "ATTACHMENT"
+                  || attrs.struct[i][0].disposition.type === "attachment")
                 ) {
                   mail.hasAttachments = true;
                   break;
@@ -362,16 +364,58 @@ Imap.prototype.listBox = function(name, limit, page, search) {
         })
       })
     }
-    if (name == "search" && search && search !== undefined) {
+    if (name === "search" && opts.search && opts.search !== undefined) {
       name = "INBOX";
       isSearch = true;
+    } else {
+      opts.search = "";
     }
+    var searchCriteria = [["OR",["SUBJECT", opts.search],["FROM", opts.search]]];
     self.client.openBox(name, true, function(err, seqs){
       if (err) {
         return reject(err);
       }
-      if (isSearch) {
-        self.client.seq.search([["OR",["SUBJECT", search],["FROM", search]]], function(err, result){
+      if (self.client.serverSupports("SORT") && (opts.sortBy || opts.filter)) {
+        var sortCriteria = (opts && opts.sortBy) ? [opts.sortBy] : ["DATE"]; 
+        opts.sortImportance = opts.sortImportance || "ascending";
+        if (opts.sortImportance === "ascending") {
+          if (sortCriteria[0] === "DATE") {
+            sortCriteria[0] = sortCriteria[0];
+          } else {
+            sortCriteria[0] = "-" + sortCriteria[0];
+          }
+        } else if (opts.sortImportance === "descending") {
+          if (sortCriteria[0] === "DATE") {
+            sortCriteria[0] = "-" + sortCriteria[0];
+          } else {
+            sortCriteria[0] = sortCriteria[0];
+          }
+        }
+        if (opts.filter) {
+          var validFilter = [
+            "ALL",
+            "ANSWERED",
+            "DELETED",
+            "DRAFT",
+            "FLAGGED",
+            "NEW",
+            "SEEN",
+            "RECENT",
+            "OLD",
+            "UNANSWERED",
+            "UNDELETED",
+            "UNDRAFT",
+            "UNFLAGGED",
+            "UNSEEN",
+          ];
+          var isValidFilter = lodash.some(validFilter, function(filter){
+            return opts.filter.toUpperCase() == filter;
+          })
+          if (isValidFilter) {
+            searchCriteria[1] = opts.filter;
+          } 
+        }
+        self.client.seq.sort(sortCriteria, searchCriteria, function(err, result){
           if (err) {
             return reject(err);
           }
@@ -380,7 +424,18 @@ Imap.prototype.listBox = function(name, limit, page, search) {
           fetcher(seqs);
         })
       } else {
-        fetcher(seqs);
+        if (isSearch) {
+          self.client.seq.search(searchCriteria, function(err, result){
+            if (err) {
+              return reject(err);
+            }
+            seqs.messages.total = result.length;
+            seqs.messages.seqArray = result;
+            fetcher(seqs);
+          })
+        } else {
+          fetcher(seqs);
+        }
       }
     })
   })
@@ -450,7 +505,7 @@ Imap.prototype.renameBox = function(oldName, newName) {
  */
 
 
-Imap.prototype.addFlag = function(id, flag, boxName) {
+Imap.prototype.addFlag = function(seqs, flag, boxName) {
   var self = this;
   var flag = "\\" + flag;
   return new Promise(function(resolve, reject){
@@ -459,7 +514,7 @@ Imap.prototype.addFlag = function(id, flag, boxName) {
         if (err) {
           return reject(err);
         }
-        self.client.seq.addFlags(id.toString(), [flag], function(err){
+        self.client.seq.addFlags(seqs, [flag], function(err){
           if (err) {
             console.log(err);
             return reject(err);
@@ -470,7 +525,43 @@ Imap.prototype.addFlag = function(id, flag, boxName) {
         }); 
       })
     } else {
-      self.client.seq.addFlags(id.toString(), [flag], function(err){
+      self.client.seq.addFlags(seqs, [flag], function(err){
+        if (err) {
+          console.log(err);
+          return reject(err);
+        }
+        resolve();
+      }); 
+    }
+  })
+}
+
+/**
+ * Remove flags
+ * The third parameter is required if the box need to be closed at the end
+ */
+
+Imap.prototype.removeFlag = function(seqs, flag, boxName) {
+  var self = this;
+  var flag = "\\" + flag;
+  return new Promise(function(resolve, reject){
+    if (boxName) {
+      self.client.openBox(boxName, false, function(err, box){
+        if (err) {
+          return reject(err);
+        }
+        self.client.seq.delFlags(seqs, [flag], function(err){
+          if (err) {
+            console.log(err);
+            return reject(err);
+          }
+          self.client.closeBox(function(){
+            resolve();
+          });
+        }); 
+      })
+    } else {
+      self.client.seq.delFlags(seqs, [flag], function(err){
         if (err) {
           console.log(err);
           return reject(err);
@@ -494,7 +585,7 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
     var result = [];
     var isSearch = false;
     var isSearch = false;
-    if (boxName == "search") {
+    if (boxName === "search") {
       boxName = "INBOX";
       isSearch = true;
     }
@@ -503,27 +594,16 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
         return reject(err);
       }
       var mail = {}
-      if (isSearch) {
-        try {
-          var f = self.client.fetch(id.toString(), {
-            bodies : "",
-            struct : true
-          });
-        } catch (err) {
-          return reject(err);
-        }
-      } else {
-        if (parseInt(id) > box.messages.total) {
-          return reject(new Error("Nothing to fetch"));
-        }
-        try {
-          var f = self.client.seq.fetch(id.toString(), {
-            bodies : "",
-            struct : true
-          });
-        } catch (err) {
-          return reject(err);
-        }
+      if (parseInt(id) > box.messages.total) {
+        return reject(new Error("Nothing to fetch"));
+      }
+      try {
+        var f = self.client.seq.fetch(id.toString(), {
+          bodies : "",
+          struct : true
+        });
+      } catch (err) {
+        return reject(err);
       }
       f.on("message", function(msg, seqno){
         var prefix = "(#" + seqno + ")";
@@ -542,8 +622,8 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
               if (attrs.struct[i]
                 && attrs.struct[i][0]
                 && attrs.struct[i][0].disposition
-                && (attrs.struct[i][0].disposition.type == "ATTACHMENT"
-                || attrs.struct[i][0].disposition.type == "attachment")
+                && (attrs.struct[i][0].disposition.type === "ATTACHMENT"
+                || attrs.struct[i][0].disposition.type === "attachment")
               ) {
                 mail.hasAttachments = true;
                 break;
@@ -572,9 +652,7 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
                   resolve(mail);
                 })
                 .catch(function(err){
-                  if (err) {
-                    return reject(err);
-                  }
+                  return reject(err);
                 });
             }
           })
@@ -600,20 +678,39 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
  * @param {String} newBox - The name of the new box
  * @returns {Promise}
  */
-Imap.prototype.moveMessage = function(id, oldBox, newBox) {
+Imap.prototype.moveMessage = function(seqs, oldBox, newBox) {
   var self = this;
   return new Promise(function(resolve, reject){
-    self.client.openBox(oldBox, true, function(err){
-      if (err) {
-        return reject(err);
-      }
-      self.client.move([id.toString()], newBox, function(err){
+    if (newBox.indexOf("Trash") > -1) {
+      // Remove to trash
+      self.removeMessage(seqs, oldBox)
+        .then(function(){
+          resolve();
+        })
+        .catch(function(err){
+          reject(err);
+        });
+    } else if (newBox.indexOf("Archive") > -1) {
+      self.removeMessage(seqs, oldBox, {archive : true})
+        .then(function(){
+          resolve();
+        })
+        .catch(function(err){
+          reject(err);
+        });
+    } else {
+      self.client.openBox(oldBox, false, function(err){
         if (err) {
           return reject(err);
         }
-        resolve();
-      });
-    })
+        self.client.seq.move(seqs, newBox, function(err){
+          if (err) {
+            return reject(err);
+          }
+          resolve();
+        });
+      })
+    }
   })
 }
 
@@ -625,9 +722,10 @@ Imap.prototype.moveMessage = function(id, oldBox, newBox) {
  * @param {String} boxName - The name of the box which the message is being removed from
  * @returns {Promise}
  */
-Imap.prototype.removeMessage = function(id, boxName) {
+Imap.prototype.removeMessage = function(seqs, boxName, opts) {
   var self = this;
-  if (boxName == "search") {
+  var opts = opts || {}
+  if (boxName === "search") {
     boxName = "INBOX";
   }
   return new Promise(function(resolve, reject){
@@ -638,12 +736,13 @@ Imap.prototype.removeMessage = function(id, boxName) {
             return reject(err);
           }
           if (boxName.indexOf("Trash") > -1) {
+            // Permanent delete
             var trashPath = (specials.Trash && specials.Trash.path) ? specials.Trash.path : "Trash";
             self.client.openBox(trashPath, false, function(err){
               if (err) {
                 return reject(err);
               }
-              self.addFlag(id, "Deleted")
+              self.addFlag(seqs, "Deleted")
                 .then(function(){
                   self.client.expunge(function(err){
                     if (err) {
@@ -653,32 +752,46 @@ Imap.prototype.removeMessage = function(id, boxName) {
                   })
                 })
                 .catch(function(err){
-                  if (err) {
-                    return reject(err);
-                  }
+                  return reject(err);
                 });
             });
           } else {
-            if (specials.Trash && specials.Trash.path) {
-              self.client.seq.move(id.toString(), specials.Trash.path, function(err, code){
-                if (err) {
-                  return reject(err);
-                }
-                self.client.closeBox(function(err){
-                  // Do not check closeBox's error, if it does not allowed now, go on
-                  resolve();
+            if (opts.archive) {
+              // Archive it
+              self.addFlag(seqs, "Deleted")
+                .then(function(){
+                  self.client.expunge(function(err){
+                    if (err) {
+                      return reject(err);
+                    }
+                    resolve();
+                  })
                 })
-              });
+                .catch(function(err){
+                  return reject(err);
+                });
             } else {
-              self.client.seq.move(id.toString(), "Trash", function(err, code){
-                if (err) {
-                  return reject(err);
-                }
-                self.client.closeBox(function(err){
-                  // Do not check closeBox's error, if it does not allowed now, go on
-                  resolve();
-                })
-              });
+              if (specials.Trash && specials.Trash.path) {
+                self.client.seq.move(seqs, specials.Trash.path, function(err, code){
+                  if (err) {
+                    return reject(err);
+                  }
+                  self.client.closeBox(function(err){
+                    // Do not check closeBox's error, if it does not allowed now, go on
+                    resolve();
+                  })
+                });
+              } else {
+                self.client.seq.move(seqs, "Trash", function(err, code){
+                  if (err) {
+                    return reject(err);
+                  }
+                  self.client.closeBox(function(err){
+                    // Do not check closeBox's error, if it does not allowed now, go on
+                    resolve();
+                  })
+                });
+              }
             }
           }
       })
