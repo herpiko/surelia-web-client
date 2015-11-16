@@ -9,6 +9,7 @@ var async = require("async");
 var moment = require("moment");
 var Joi = require("joi");
 var lodash = require("lodash");
+var Stream = require("stream");
 var Grid = require("gridfs-stream");
 Grid.mongo = mongoose.mongo;
 gfs = Grid(mongoose.connection.db);
@@ -186,20 +187,7 @@ ImapAPI.prototype.registerEndPoints = function(){
     method : "POST",
     path : "/api/1.0/attachment",
     handler : function(request, reply){
-      /* self.uploadAttachment(request, reply); */
-      var id = mongoose.Types.ObjectId();
-      var writeStream = gfs.createWriteStream({
-        _id : id,
-        filename : request.payload.content.hapi.filename
-      });
-      writeStream.on("finish", function(){
-        reply({attachmentId : id});
-      });
-      writeStream.on("error", function(err){
-        console.log(err);
-        reply(err);
-      });
-      request.payload.content.pipe(writeStream);
+      self.uploadAttachment(request, reply);
     },
     config : {
       validate : {
@@ -248,7 +236,7 @@ ImapAPI.prototype.registerEndPoints = function(){
             filename : Joi.string(),
             contentType : Joi.string(),
             encoding : Joi.string(),
-            progress : Joi.string(),
+            progress : Joi.any(),
             attachmentId : Joi.string(),
           }))
         }  
@@ -421,27 +409,35 @@ ImapAPI.prototype.send = function(request, reply) {
                 // Check for attachmentId,
                 // if any, grab them from temporary attachment collection
                 async.eachSeries(payload.attachments, function(attachment, cb){
-                  gfs.files.find({_id : attachment.attachmentId}, function(err, file){
+                  gfs.exist({_id : attachment.attachmentId}, function(err, isExist){
                     if (err) {
                       return reply(err).code(500);
                     }
+                    if (!isExist) {
+                      var err = new Error("Attachment not found");
+                      return reply({err : err.message}).code(500);
+                    }
+                    file = gfs.createReadStream({ _id : attachment.attachmentId });
                     console.log(file);
+                    var buffer = "";
+                    file.on("error", function(err){
+                      return reply(err).code(500);
+                    })
+                    file.on("data", function(chunk){
+                      buffer += chunk;
+                    })
+                    file.on("end", function(){
+                      attachment.content = new Buffer(buffer).toString("base64");
+                      attachment.encoding = "base64";
+                      console.log(attachment.content);
+                      delete(attachment.progress);
+                      obj.msg.attachments.push(attachment);
+                      // Remove temporary attachment
+                      gfs.files.remove({_id : attachment.attachmentId});
+                      // But do not wait
+                      cb(); 
+                    })
                   })
-                  /* uploadAttachmentModel().findOne({_id : attachment.attachmentId}) */
-                  /*   .exec(function(err, result){ */
-                  /*     if (err) { */
-                  /*       return reply(err).code(500); */
-                  /*     } */ 
-                  /*     if (!result) { */
-                  /*       return reply(new Error("Attachments not found").message).code(500); */
-                  /*     } */
-                  /*     attachment.content = result.content; */
-                  /*     delete(attachment.progress); */
-                  /*     obj.msg.attachments.push(attachment); */
-                  /*     // Remove temporary attachment, but do not wait */
-                  /*     uploadAttachmentModel().remove({_id : attachment.attachmentId}); */
-                  /*     cb(); */ 
-                  /*   }) */
                 }, function(err){
                   realSend(request, reply, smtp, obj);
                 })
@@ -899,46 +895,108 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
         }
         // Save attachments to uploadAttachment collection in purpose of drafts and forward
         async.eachSeries(message.parsed.attachments, function(attachment, cb){
-          var a = {
-            content : attachment.content.toString("base64"),
-            timestamp : new Date()
-          }
-          uploadAttachmentModel().create(a, function(err, result){
-            if (err) {
-              return reply(err).code(500);
-            }
-            // This attachmentId is used to refetch attachments from db if the message is going to send
-            attachment.attachmentId = result._id;
-            cb();
-          })
+          /* var a = { */
+          /*   content : attachment.content.toString("base64"), */
+          /*   timestamp : new Date() */
+          /* } */
+          /* uploadAttachmentModel().create(a, function(err, result){ */
+          /*   if (err) { */
+          /*     return reply(err).code(500); */
+          /*   } */
+          /*   // This attachmentId is used to refetch attachments from db if the message is going to send */
+          /*   attachment.attachmentId = result._id; */
+          /*   cb(); */
+          /* }) */
+          // Prepare streams
+          var id = mongoose.Types.ObjectId();
+          var writeStream = gfs.createWriteStream({
+            _id : id,
+            filename : attachment.fileName
+          });
+          writeStream.on("finish", function(){
+            reply({attachmentId : id});
+          });
+          writeStream.on("error", function(err){
+            console.log(err);
+            reply(err);
+          });
+          var content = attachment.content;
+          attachment.content = "";
+          attachment.attachmentId = _id;
+          var s = new Stream.Readable();
+          s.push(content);
+          s.push(null);
+          // Stream content to gridfs, do not wait
+          s.pipe(writeStream);
+          // Do not wait
+          attachment.attachmentId = result._id;
+          cb();
         }, function(err){
           if (err) {
             return reply({err : err.message}).code(500);
           }
           // Cut and save attachments to attachment collection in purpose of separated attachment download.
-          var attachments = {
-            attachments : message.parsed.attachments,
-            messageId : message.parsed.messageId,
-          }
+          /* var attachments = { */
+          /*   attachments : message.parsed.attachments, */
+          /*   messageId : message.parsed.messageId, */
+          /* } */
   
           // First, check if there is existing attachment in db
-          attachmentModel().find({messageId : message.parsed.messageId}).exec(function(err, result){
+          /* attachmentModel().find({messageId : message.parsed.messageId}).exec(function(err, result){ */
+          gfs.exist({ filename : message.parsed.messageId}, function(err, isExist){
             if (err) {
               return reply(err).code(500);
             }
-            if (result && result.length === 0) {
-              attachmentModel().create(attachments, function(err, result){
+            console.log(isExist);
+            if (!isExist) {
+              for (var i = 0; i < message.parsed.attachments.length;i++) {
+                var id = mongoose.Types.ObjectId();
+                console.log(id);
+                message.parsed.attachments[i].attachmentId = id;
+                var content = message.parsed.attachments[i].content;
+                message.parsed.attachments[i].content = "";
+                // Stream content to gridfs, do not wait
+                var writeStream = gfs.createWriteStream({
+                  _id : id,
+                  // gfs.exist by metadata doesn't work. Use messageId as filename instead
+                  filename :  message.parsed.messageId,
+                  // Then save the original file name to metadata
+                  metadata : {
+                    filename : message.parsed.attachments[i].fileName,
+                  },
+                  contentType : message.parsed.attachments[i].contentType,
+                });
+                var s = new Stream.Readable();
+                s.push(content);
+                s.push(null);
+                s.pipe(writeStream);
+                writeStream.on("finish", function(){
+                  console.log("successfully saved to gridfs");
+                });
+                writeStream.on("error", function(err){
+                  console.log(err);
+                });
+              }
+              reply(message);
+            } else {
+              // Assign the attachment Id
+              gfs.files.find({ filename : message.parsed.messageId}).toArray(function(err, files){
                 if (err) {
                   return reply(err).code(500);
                 }
-                for (var i = 0; i < message.parsed.attachments.length;i++) {
-                  // Remove the attachment content
-                  message.parsed.attachments[i].content = "";
-                }
+                console.log(files);
+                lodash.some(message.parsed.attachments, function(attachment){
+                  attachment.content = "";
+                  lodash.some(files, function(file){
+                    console.log(attachment.fileName);
+                    console.log(file.metadata.filename);
+                    if (file.metadata && file.metadata.filename == attachment.fileName) {
+                      attachment.attachmentId = file._id
+                    }
+                  })
+                })
                 reply(message);
               })
-            } else {
-              reply(message);
             }
           })
         }) 
@@ -1003,14 +1061,17 @@ ImapAPI.prototype.removeMessage = function(request, reply) {
  */
 ImapAPI.prototype.getAttachment = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    attachmentModel().findOne({ messageId : request.query.messageId}).exec(function(err, result){
-      if (err) {
-        return reply(err).code(500);
-      }
-      if (!result){
-        return reply(new Error("Attachment not found").message).code(404);
-      }
-      reply(result.attachments[parseInt(request.query.index)]);
+    file = gfs.createReadStream({ _id : request.query.attachmentId });
+    var buffer = "";
+    file.on("error", function(err){
+      return reply(err).code(500);
+    })
+    file.on("data", function(chunk){
+      buffer += chunk;
+    })
+    file.on("end", function(){
+      content = new Buffer(buffer).toString("base64");
+      reply(content);
     })
   }
   
@@ -1024,16 +1085,19 @@ ImapAPI.prototype.getAttachment = function(request, reply) {
  */
 ImapAPI.prototype.uploadAttachment = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    /* var attachment = { */
-    /*   content : request.payload.content, */
-    /*   timestamp : new Date() */
-    /* } */
-    /* uploadAttachmentModel().create(attachment, function(err, result){ */
-    /*   if (err) { */
-    /*     return reply(err).code(500); */
-    /*   } */
-    /*   reply({attachmentId : result._id}); */
-    /* }) */
+    var id = mongoose.Types.ObjectId();
+    var writeStream = gfs.createWriteStream({
+      _id : id,
+      filename : request.payload.content.hapi.filename
+    });
+    writeStream.on("finish", function(){
+      reply({attachmentId : id});
+    });
+    writeStream.on("error", function(err){
+      console.log(err);
+      reply(err);
+    });
+    request.payload.content.pipe(writeStream);
   }
   
   checkPool(request, reply, realFunc);
@@ -1089,21 +1153,50 @@ ImapAPI.prototype.saveDraft = function(request, reply) {
       // Check for attachmentId,
       // if any, grab them from temporary attachment collection
       async.eachSeries(request.payload.attachments, function(attachment, cb){
-        uploadAttachmentModel().findOne({_id : attachment.attachmentId})
-          .exec(function(err, result){
-            if (err) {
-              return reply(err).code(500);
-            } 
-            if (!result) {
-              return reply(new Error("Attachments not found").message).code(500);
-            }
-            attachment.content = result.content;
+        /* uploadAttachmentModel().findOne({_id : attachment.attachmentId}) */
+        /*   .exec(function(err, result){ */
+        /*     if (err) { */
+        /*       return reply(err).code(500); */
+        /*     } */ 
+        /*     if (!result) { */
+        /*       return reply(new Error("Attachments not found").message).code(500); */
+        /*     } */
+        /*     attachment.content = result.content; */
+        /*     delete(attachment.progress); */
+        /*     msg.attachments.push(attachment); */
+        /*     // Remove temporary attachment, but do not wait */
+        /*     uploadAttachmentModel().remove({_id : attachment.attachmentId}); */
+        /*     cb(); */ 
+        /*   }) */
+        gfs.exist({_id : attachment.attachmentId}, function(err, isExist){
+          if (err) {
+            return reply(err).code(500);
+          }
+          if (!isExist) {
+            var err = new Error("Attachment not found");
+            return reply({err : err.message}).code(500);
+          }
+          file = gfs.createReadStream({ _id : attachment.attachmentId });
+          console.log(file);
+          var buffer = "";
+          file.on("error", function(err){
+            return reply(err).code(500);
+          })
+          file.on("data", function(chunk){
+            buffer += chunk;
+          })
+          file.on("end", function(){
+            attachment.content = new Buffer(buffer).toString("base64");
+            attachment.encoding = "base64";
+            console.log(attachment.content);
             delete(attachment.progress);
             msg.attachments.push(attachment);
-            // Remove temporary attachment, but do not wait
-            uploadAttachmentModel().remove({_id : attachment.attachmentId});
+            // Remove temporary attachment
+            gfs.files.remove({_id : attachment.attachmentId});
+            // But do not wait
             cb(); 
           })
+        })
       }, function(err){
         realSaveDraft(request, reply, client, msg);
       })
@@ -1205,7 +1298,6 @@ var keyModel = function() {
   m = mongoose.model("KeyPair", s);
   return m;
 }
-
 var attachmentModel = function() {
   var registered = false;
   var m;

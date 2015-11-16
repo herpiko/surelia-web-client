@@ -596,13 +596,13 @@ Message.prototype.retrieveMessage = function(id, boxName){
     })
 }
 
-Message.prototype.getAttachment = function(messageId, index) {
+Message.prototype.getAttachment = function(attachmentId) {
   var self = this;
-  self.ImapService.getAttachment(messageId, index)
+  self.ImapService.getAttachment(attachmentId)
     .then(function(data){
       self.loading.complete();
 
-      var binary_string = window.atob(data.content);
+      var binary_string = window.atob(data);
       var len = binary_string.length;
       var bytes = new Uint8Array(len);
       for (var i = 0; i < len; i++ ) {
@@ -796,7 +796,6 @@ Message.prototype.composeMessage = function(message, action){
             var a = {
               filename : msg.parsed.attachments[i].fileName,
               contentType : msg.parsed.attachments[i].contentType,
-              encoding : "base64",
               progress : "uploaded",
               attachmentId : msg.parsed.attachments[i].attachmentId
             }

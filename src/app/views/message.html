@@ -105,7 +105,7 @@
             <div>
               <ul>
                   <li ng-repeat="attachment in msg.currentMessage.parsed.attachments" class="{{attachment.icon}}">
-                  <span style="cursor:pointer" ng-click="msg.getAttachment(msg.currentMessage.parsed.messageId, attachment.index)">{{attachment.fileName}} - {{attachment.size | SizeFilter }}</span>
+                  <span style="cursor:pointer" ng-click="msg.getAttachment(attachment.attachmentId)">{{attachment.fileName}} - {{attachment.size | SizeFilter }}</span>
                 </li>
               </ul>
             </div>
