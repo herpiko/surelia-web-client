@@ -596,9 +596,9 @@ Message.prototype.retrieveMessage = function(id, boxName){
     })
 }
 
-Message.prototype.getAttachment = function(attachmentId) {
+Message.prototype.getAttachment = function(attachment) {
   var self = this;
-  self.ImapService.getAttachment(attachmentId)
+  self.ImapService.getAttachment(attachment.attachmentId)
     .then(function(data){
       self.loading.complete();
 
@@ -608,9 +608,9 @@ Message.prototype.getAttachment = function(attachmentId) {
       for (var i = 0; i < len; i++ ) {
         bytes[i] = binary_string.charCodeAt(i);
       }
-      var blob = new Blob([bytes.buffer], { type: data.contentType });
+      var blob = new Blob([bytes.buffer], { type: attachment.contentType || "binary/octet-stream" });
       if (typeof window.navigator.msSaveBlob !== 'undefined') {
-        window.navigator.msSaveBlob(blob, data.fileName);
+        window.navigator.msSaveBlob(blob, attachment.fileName);
       } else {
         var URL = window.URL || window.webkitURL;
         var downloadUrl = URL.createObjectURL(blob);
@@ -619,7 +619,7 @@ Message.prototype.getAttachment = function(attachmentId) {
           window.location = downloadUrl;
         } else {
           a.href = downloadUrl;
-          a.download = data.fileName;
+          a.download = attachment.fileName;
           document.body.appendChild(a);
           a.click();
         }
@@ -796,7 +796,7 @@ Message.prototype.composeMessage = function(message, action){
             var a = {
               filename : msg.parsed.attachments[i].fileName,
               contentType : msg.parsed.attachments[i].contentType,
-              progress : "uploaded",
+              progress : { status : "uploaded" },
               attachmentId : msg.parsed.attachments[i].attachmentId
             }
             self.newMessage.attachments.push(a);
@@ -876,7 +876,7 @@ Message.prototype.composeMessage = function(message, action){
             filename : msg.parsed.attachments[i].fileName,
             contentType : msg.parsed.attachments[i].contentType,
             encoding : "base64",
-            progress : "uploaded",
+            progress : { status : "uploaded" },
             attachmentId : msg.parsed.attachments[i].attachmentId
           }
           self.newMessage.attachments.push(a);
@@ -1037,6 +1037,7 @@ Message.prototype.uploadFiles = function(files, errFiles) {
         console.log(data);
       }, function(evt){
         console.log(evt);
+        attachment.progress.percentage = parseInt(100 * evt.loaded / evt.total);
         attachment.progress.loaded = evt.loaded;
         attachment.progress.total = evt.total;
       })

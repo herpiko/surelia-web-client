@@ -105,7 +105,7 @@
             <div>
               <ul>
                   <li ng-repeat="attachment in msg.currentMessage.parsed.attachments" class="{{attachment.icon}}">
-                  <span style="cursor:pointer" ng-click="msg.getAttachment(attachment.attachmentId)">{{attachment.fileName}} - {{attachment.size | SizeFilter }}</span>
+                  <span style="cursor:pointer" ng-click="msg.getAttachment(attachment)">{{attachment.fileName}} - {{attachment.size | SizeFilter }}</span>
                 </li>
               </ul>
             </div>
@@ -159,10 +159,10 @@
            <ul>
              <li ng-show="msg.newMessage.attachments.length > 0" ng-repeat="a in msg.newMessage.attachments" class="compose-attachments">
               {{a.filename}}
-                <span ng-show="a.progress.total">{{a.progress.loaded}} / {{a.progress.total}}</span>
                <span ng-show="a.progress.status=='uploading'"> - {{'UPLOADING' | translate}}</span>
                <span ng-show="a.progress.status=='failed'"> - {{'UPLOAD_FAILED' | translate}} </span>
-               <span ng-show="a.progress.status=='uploaded'"><i class="fa fa-check"></i></span>
+               <span ng-show="a.progress.status=='uploaded'"><i class="fa fa-check"></i></span> 
+                <span ng-show="a.progress.percentage && a.progress.status=='uploading'">{{a.progress.percentage}} %</span>
              </li>
            </ul>
 			  	</div>
