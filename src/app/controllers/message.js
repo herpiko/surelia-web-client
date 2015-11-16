@@ -596,21 +596,21 @@ Message.prototype.retrieveMessage = function(id, boxName){
     })
 }
 
-Message.prototype.getAttachment = function(messageId, index) {
+Message.prototype.getAttachment = function(attachment) {
   var self = this;
-  self.ImapService.getAttachment(messageId, index)
+  self.ImapService.getAttachment(attachment.attachmentId)
     .then(function(data){
       self.loading.complete();
 
-      var binary_string = window.atob(data.content);
+      var binary_string = window.atob(data);
       var len = binary_string.length;
       var bytes = new Uint8Array(len);
       for (var i = 0; i < len; i++ ) {
         bytes[i] = binary_string.charCodeAt(i);
       }
-      var blob = new Blob([bytes.buffer], { type: data.contentType });
+      var blob = new Blob([bytes.buffer], { type: attachment.contentType || "binary/octet-stream" });
       if (typeof window.navigator.msSaveBlob !== 'undefined') {
-        window.navigator.msSaveBlob(blob, data.fileName);
+        window.navigator.msSaveBlob(blob, attachment.fileName);
       } else {
         var URL = window.URL || window.webkitURL;
         var downloadUrl = URL.createObjectURL(blob);
@@ -619,7 +619,7 @@ Message.prototype.getAttachment = function(messageId, index) {
           window.location = downloadUrl;
         } else {
           a.href = downloadUrl;
-          a.download = data.fileName;
+          a.download = attachment.fileName;
           document.body.appendChild(a);
           a.click();
         }
@@ -796,8 +796,7 @@ Message.prototype.composeMessage = function(message, action){
             var a = {
               filename : msg.parsed.attachments[i].fileName,
               contentType : msg.parsed.attachments[i].contentType,
-              encoding : "base64",
-              progress : "uploaded",
+              progress : { status : "uploaded" },
               attachmentId : msg.parsed.attachments[i].attachmentId
             }
             self.newMessage.attachments.push(a);
@@ -877,7 +876,7 @@ Message.prototype.composeMessage = function(message, action){
             filename : msg.parsed.attachments[i].fileName,
             contentType : msg.parsed.attachments[i].contentType,
             encoding : "base64",
-            progress : "uploaded",
+            progress : { status : "uploaded" },
             attachmentId : msg.parsed.attachments[i].attachmentId
           }
           self.newMessage.attachments.push(a);
@@ -1008,32 +1007,39 @@ Message.prototype.uploadFiles = function(files, errFiles) {
       filename : file.name,
       contentType : file.type,
       encoding : "base64",
-      progress : "uploading"
+      progress :{
+        status : "uploading",
+      }
     }
     self.newMessage.attachments.push(attachment);
-    self.Upload.base64DataUrl(files)
-      .then(function(b64){
-        var data = b64[0].split(",")[1];
-        self.ImapService.uploadAttachment(data)
-          .then(function(result){
-            window.lodash.some(self.newMessage.attachments, function(attachment){
-              console.log(attachment);
-              if (attachment.filename == file.name) {
-                attachment.attachmentId = result.attachmentId;
-                attachment.progress = "uploaded";
-                console.log(self.newMessage.attachments);
-              }
-            })
-          })
-          .catch(function(data){
-            self.ToastrService.parse(data, status);
-            window.lodash.some(self.newMessage.attachments, function(attachment){
-              if (attachment.filename == file.filename) {
-                attachment.progress = "failed";
-              }
-            })
-            console.log(data);
-          })
+    self.ImapService.uploadAttachment(file, attachment)
+      .then(function(res){
+        console.log("success");
+        console.log(res);
+        var result = res.data;
+        window.lodash.some(self.newMessage.attachments, function(attachment){
+          console.log(attachment);
+          if (attachment.filename == file.name) {
+            attachment.attachmentId = result.attachmentId;
+            attachment.progress.status = "uploaded";
+            console.log(self.newMessage.attachments);
+          }
+        })
+      }, function(res){
+        console.log("err");
+        console.log(res)
+        self.ToastrService.parse(res.data, res.status);
+        window.lodash.some(self.newMessage.attachments, function(attachment){
+          if (attachment.filename == file.filename) {
+            attachment.progress.status = "failed";
+          }
+        })
+        console.log(data);
+      }, function(evt){
+        console.log(evt);
+        attachment.progress.percentage = parseInt(100 * evt.loaded / evt.total);
+        attachment.progress.loaded = evt.loaded;
+        attachment.progress.total = evt.total;
       })
   });
 }
