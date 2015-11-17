@@ -1,5 +1,8 @@
 require('events').EventEmitter.prototype._maxListeners = 100;
 var server = require(__dirname + "/../../../lib/server");
+server.start();
+var supertest = require("supertest");
+var request = supertest("localhost:3000");
 var should = require("should");
 var lodash = require("lodash");
 var composer = require("mailcomposer");
@@ -1119,112 +1122,116 @@ hoodiecrowServer.listen(1143, function(){
       })
     })
     it("Should be fail to save attachment because of invalid key", function(done){
-      server.inject({
-        method: "POST",
-        url : "/api/1.0/attachment",
-        payload : {
-          content: "aGVsbG8K",
-          invalid: "aGVsbG8K",
-        },
-        headers : {
-          token : token,
-          username : process.env.TEST_SMTP_USERNAME
-        }
-      }, function(response){
-        should(response.statusCode).equal(400);
-        should(response.result.validation.source).equal("payload");
-        should(response.result.validation.keys[0]).equal("invalid");
-        done();
-      })
+      request.post("/api/1.0/attachment")
+        .set("token", token)
+        .set("username", process.env.TEST_SMTP_USERNAME)
+        .attach("content", __dirname + "/assets/simple_grey.png")
+        .attach("invalid", __dirname + "/assets/simple_grey.png")
+        .end(function(err, res){
+          should(res.statusCode).equal(400);
+          should(res.body.validation.source).equal("payload");
+          should(res.body.validation.keys[0]).equal("invalid");
+          done();
+        })
+      /* server.inject({ */
+      /*   method: "POST", */
+      /*   url : "/api/1.0/attachment", */
+      /*   payload : { */
+      /*     content: "aGVsbG8K", */
+      /*     invalid: "aGVsbG8K", */
+      /*   }, */
+      /*   headers : { */
+      /*     token : token, */
+      /*     username : process.env.TEST_SMTP_USERNAME */
+      /*   } */
+      /* }, function(response){ */
+      /*   should(response.statusCode).equal(400); */
+      /*   should(response.result.validation.source).equal("payload"); */
+      /*   should(response.result.validation.keys[0]).equal("invalid"); */
+      /*   done(); */
+      /* }) */
     })
     it("Should be fail to save attachment because of missing required key", function(done){
-      server.inject({
-        method: "POST",
-        url : "/api/1.0/attachment",
-        payload : {
-          invalid: "aGVsbG8K",
-        },
-        headers : {
-          token : token,
-          username : process.env.TEST_SMTP_USERNAME
-        }
-      }, function(response){
-        should(response.statusCode).equal(400);
-        should(response.result.validation.source).equal("payload");
-        should(response.result.validation.keys[0]).equal("content");
-        done();
-      })
+      request.post("/api/1.0/attachment")
+        .set("token", token)
+        .set("username", process.env.TEST_SMTP_USERNAME)
+        .end(function(err, res){
+          should(res.statusCode).equal(415);
+          should(res.body.error).equal("Unsupported Media Type");
+          done();
+        })
     })
     it("Should be able to send a message with an attachment", function(done){
-      server.inject({
-        method: "POST",
-        url : "/api/1.0/attachment",
-        payload : {content: "aGVsbG8K"},
-        headers : {
-          token : token,
-          username : process.env.TEST_SMTP_USERNAME
-        }
-      }, function(response){
-        var data = {
-          // Envelope
-          from : process.env.TEST_SMTP_USERNAME,
-          recipients : [process.env.TEST_SMTP_USERNAME],
-          sender : "Surelia",
-          subject : "Subject of the message.",
-          html : "Content of the message",
-          attachments : [
-            {
-              filename : "hello.txt",
-              contentType : "text/plain",
-              encoding : "base64",
-              attachmentId : response.result.attachmentId 
-            }
-          ]
-        }
-        server.inject({
-          method: "POST",
-          url : "/api/1.0/send",
-          payload : data,
-          headers : {
-            token : token,
-            username : process.env.TEST_SMTP_USERNAME
-          }
-        }, function(response){
-          should(response.result.accepted.length).equal(1);
-          // Email with attachment has been sent, wait a bit
-          setTimeout(function(){
-            server.inject({
-              method: "GET",
-              url : "/api/1.0/list-box?boxName=INBOX",
-              headers : {
-                token : token,
-                username : process.env.TEST_SMTP_USERNAME
+      var attachmentId;
+      request.post("/api/1.0/attachment")
+        .set("token", token)
+        .set("username", process.env.TEST_SMTP_USERNAME)
+        .attach("content", __dirname + "/assets/simple_grey.png")
+        .end(function(err, res){
+          should(res.statusCode).equal(200);
+          console.log("=======================");
+          console.log(res.body);
+          attachmentId = res.body.attachmentId;
+          var data = {
+            // Envelope
+            from : process.env.TEST_SMTP_USERNAME,
+            recipients : [process.env.TEST_SMTP_USERNAME],
+            sender : "Surelia",
+            subject : "Subject of the message.",
+            html : "Content of the message",
+            attachments : [
+              {
+                filename : "hello.txt",
+                contentType : "text/plain",
+                encoding : "base64",
+                attachmentId : attachmentId
               }
-            }, function(response){
-              var seq = response.result.data[0].seq;
+            ]
+          }
+          server.inject({
+            method: "POST",
+            url : "/api/1.0/send",
+            payload : data,
+            headers : {
+              token : token,
+              username : process.env.TEST_SMTP_USERNAME
+            }
+          }, function(response){
+            should(response.result.accepted.length).equal(1);
+            // Email with attachment has been sent, wait a bit
+            setTimeout(function(){
               server.inject({
                 method: "GET",
-                url : "/api/1.0/message?boxName=INBOX&id=" + seq,
+                url : "/api/1.0/list-box?boxName=INBOX",
                 headers : {
                   token : token,
                   username : process.env.TEST_SMTP_USERNAME
                 }
               }, function(response){
+                var seq = response.result.data[0].seq;
                 server.inject({
                   method: "GET",
-                  url : "/api/1.0/attachment?messageId=" + encodeURIComponent(response.result.parsed.messageId) + "&index=0",
+                  url : "/api/1.0/message?boxName=INBOX&id=" + seq,
                   headers : {
                     token : token,
                     username : process.env.TEST_SMTP_USERNAME
                   }
                 }, function(response){
-                  should.exist(response.result.content);
-                  done();
+                  server.inject({
+                    method: "GET",
+                    url : "/api/1.0/attachment?attachmentId=" + attachmentId,
+                    headers : {
+                      token : token,
+                      username : process.env.TEST_SMTP_USERNAME
+                    }
+                  }, function(response){
+                    should(response.result.length).greaterThan(0);
+                    done();
+                  })
                 })
               })
-            })
-          }, 3000)
-        })
+            }, 3000)
+          })
       })
     })
     it("Should be able to remove temporary attachment in surelia backend", function(done){
