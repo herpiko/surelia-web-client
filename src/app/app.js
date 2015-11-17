@@ -12,6 +12,7 @@ require("angular-toastr");
 require("ng-file-upload");
 require("angular-moment");
 require("checklist-model");
+require("angular-mass-autocomplete");
 window.rangy = require("rangy/lib/rangy-core");
 window.randomcolor = require("randomcolor");
 window.rangy.saveSelection = require("rangy/lib/rangy-selectionsaverestore");
@@ -48,7 +49,8 @@ var app = angular.module("App", [
   "ngFileUpload",
   "angularMoment",
   "pascalprecht.translate",
-  "checklist-model"
+  "checklist-model",
+  "MassAutoComplete"
 ])
 .constant("conf", conf)
 .config(function ($translateProvider) {
