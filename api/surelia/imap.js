@@ -288,8 +288,8 @@ Imap.prototype.listBox = function(name, limit, page, opts) {
         f.on("message", function(msg, seqno){
           var prefix = "(#" + seqno + ")";
     
+          var buffer = "";
           msg.on("body", function(stream, info) {
-            var buffer = "";
             stream.on("data", function(chunk) {
               buffer += chunk.toString("utf8");
             });
@@ -325,7 +325,13 @@ Imap.prototype.listBox = function(name, limit, page, opts) {
               mail.boxName = (isSearch) ? "search" : name;
           })
           msg.once("end", function(){
-            result.push(mail);
+            var mailparser = new MailParser();
+            mailparser.on("end", function(mailObject){
+              mail.parsed = mailObject;
+              result.push(mail);
+            })
+            mailparser.write(buffer);
+            mailparser.end();
           })
         });
         f.once("end", function(err) {
