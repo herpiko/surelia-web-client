@@ -1,5 +1,5 @@
 'use strict';
-var ToastrService = function($http, localStorageService, $rootScope, $state, $q, toastr, $filter) {
+var ToastrService = function($http, localStorageService, $rootScope, $state, $q, toastr, $filter, ImapService) {
   this.$http = $http;
   this.localStorageService = localStorageService;
   this.$rootScope = $rootScope;
@@ -7,6 +7,7 @@ var ToastrService = function($http, localStorageService, $rootScope, $state, $q,
   this.$q = $q;
   this.toastr = toastr;
   this.$filter = $filter;
+  this.ImapService = ImapService;
 }
 
 ToastrService.prototype.couldntMoveToSameBox = function(){
@@ -20,6 +21,10 @@ ToastrService.prototype.messageSelectionEmpty = function(){
 ToastrService.prototype.error500 = function(){
   var self = this;
   self.toastr.error(self.$filter("translate")("TOASTR_ERROR_500"));
+}
+ToastrService.prototype.sessionExpired = function(){
+  var self = this;
+  self.toastr.error(self.$filter("translate")("TOASTR_SESSION_EXPIRED"));
 }
 
 ToastrService.prototype.connectionError = function(){
@@ -72,12 +77,18 @@ ToastrService.prototype.permanentlyDeleted = function() {
 ToastrService.prototype.parse = function(data, status) {
   var self = this;
   if ( data && data.err &&  data.err == "Invalid credentials") {
-    self.invalidCredentials();
-  } else if (status == 500) {
-    self.error500();
-  } else if (data == null && (status == undefined || status < 0)) {
+    return self.invalidCredentials();
+  }
+  if (data.err === "Session expired") {
+    self.ImapService.logout();
+    return self.sessionExpired();
+  }
+  if (status === 500) {
+    return self.error500();
+  }
+  if (data == null && (status == undefined || status < 0)) {
     // If this point reached, it must be a connection error / timeout / no response
-    self.connectionError();
+    return self.connectionError();
   }
 }
 

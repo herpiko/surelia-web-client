@@ -9,6 +9,11 @@ var async = require("async");
 var moment = require("moment");
 var Joi = require("joi");
 var lodash = require("lodash");
+var Grid = require("gridfs-stream");
+var streamifier = require("streamifier");
+var base64Stream = require("base64-stream");
+Grid.mongo = mongoose.mongo;
+gfs = Grid(mongoose.connection.db);
 
 var ImapAPI = function(server, options, next) {
   this.server = server;
@@ -43,7 +48,7 @@ ImapAPI.prototype.registerEndPoints = function(){
             filename : Joi.string(),
             contentType : Joi.string(),
             encoding : Joi.string(),
-            progress : Joi.string(),
+            progress : Joi.any(),
             attachmentId : Joi.string(),
           }))
         }  
@@ -68,6 +73,7 @@ ImapAPI.prototype.registerEndPoints = function(){
           smtpPort : Joi.string(),
           smtpTLS : Joi.boolean(),
           smtpSecure : Joi.boolean(),
+          rememberMe : Joi.boolean(),
         }  
       }
     }
@@ -187,9 +193,15 @@ ImapAPI.prototype.registerEndPoints = function(){
     config : {
       validate : {
         payload : {
-          content : Joi.string().required(),
-        }  
-      }
+          content : Joi.required(),
+        }
+      },
+      payload : {
+        maxBytes: 32457280, 
+        output : "stream",
+        parse : true,
+        allow : "multipart/form-data"
+      }  
     }
   })
   self.server.route({
@@ -225,7 +237,7 @@ ImapAPI.prototype.registerEndPoints = function(){
             filename : Joi.string(),
             contentType : Joi.string(),
             encoding : Joi.string(),
-            progress : Joi.string(),
+            progress : Joi.any(),
             attachmentId : Joi.string(),
           }))
         }  
@@ -303,7 +315,7 @@ ImapAPI.prototype.send = function(request, reply) {
               client.newMessage(message, request.query.sentPath)
               // Remove from Drafts
               if (obj.meta.seq && obj.meta.isDraft) {
-                var seqs = obj.meta.seq.split(",");
+                var seqs = obj.meta.seq.toString().split(",");
                 client.removeMessage(obj.meta.seq, request.query.draftPath)
               }
               // Flag as answered
@@ -394,25 +406,38 @@ ImapAPI.prototype.send = function(request, reply) {
                 meta : meta
               }
               if (payload.attachments && payload.attachments.length > 0) {
+                // grab them from temporary attachment collection
                 obj.msg.attachments = [];
-                // Check for attachmentId,
-                // if any, grab them from temporary attachment collection
                 async.eachSeries(payload.attachments, function(attachment, cb){
-                  uploadAttachmentModel().findOne({_id : attachment.attachmentId})
-                    .exec(function(err, result){
-                      if (err) {
-                        return reply(err).code(500);
-                      } 
-                      if (!result) {
-                        return reply(new Error("Attachments not found").message).code(500);
-                      }
-                      attachment.content = result.content;
+                  // Check for attachmentId,
+                  gfs.exist({_id : attachment.attachmentId}, function(err, isExist){
+                    if (err) {
+                      return reply(err).code(500);
+                    }
+                    if (!isExist) {
+                      var err = new Error("Attachment not found");
+                      return reply({err : err.message}).code(500);
+                    }
+                    var file = gfs.createReadStream({ _id : attachment.attachmentId });
+                    var string = "";
+                    file.on("error", function(err){
+                      console.log(err);
+                      return reply(err).code(500);
+                    })
+                    file.on("data", function(chunk){
+                      string += chunk;
+                    })
+                    file.on("end", function(){
+                      attachment.content = string;
+                      attachment.encoding = "base64";
                       delete(attachment.progress);
                       obj.msg.attachments.push(attachment);
-                      // Remove temporary attachment, but do not wait
-                      uploadAttachmentModel().remove({_id : attachment.attachmentId});
+                      // Remove temporary attachment
+                      gfs.files.remove({_id : attachment.attachmentId});
+                      // But do not wait
                       cb(); 
                     })
+                  })
                 }, function(err){
                   realSend(request, reply, smtp, obj);
                 })
@@ -468,71 +493,114 @@ var checkPool = function(request, reply, realFunc) {
   return new Promise(function(resolve, reject){
     var pool = Pool.getInstance();
     var id = request.headers.username;
-    // Check if the pool is exist
+    // Check session expiration, return err if expired
+    var checkExpiry = function(request, cb) {
+      keyModel().findOne({publicKey : request.headers.token}, function(err, keyPair){
+          if (err) {
+            return cb(err);
+          }
+          if (!keyPair) {
+            return cb(new Error("Session expired"));
+          }
+          var now = moment();
+          if (moment(keyPair.sessionExpiry) > now) {
+            if (moment(keyPair.sessionExpiry) < moment().add(1, "d")) {
+              keyPair.sessionExpiry = moment().add(1, "d");
+              keyPair.save();
+            }
+            // Do not wait
+            return cb();
+          } else {
+            return cb();
+          }
+      })
+    }
+    // Check if the pool is exists
     if (pool.map[id]) {
-      if (pool.map[id].obj.client.state === "disconnected") {
-        var client = pool.get(id);
-        client.connect()
-          .then(function(){
-            realFunc(client, request, reply);
+      checkExpiry(request, function(err){
+        if (err) {
+          return clearCredentials(request, function(){
+            reply({err :err.message}).code(401);
           })
-          .catch(function(err){
-            return reply({err : err.message}).code(500);
-          })
-      } else {
-        // Execute real function
-        realFunc(pool.map[id].obj, request, reply);
-      }
+        }
+        if (pool.map[id].obj.client.state === "disconnected") {
+          var client = pool.get(id);
+          client.connect()
+            .then(function(){
+              realFunc(client, request, reply);
+            })
+            .catch(function(err){
+              return reply({err : err.message}).code(500);
+            })
+        } else {
+          // Execute real function
+          realFunc(pool.map[id].obj, request, reply);
+        }
+      })
     } else {
       if (request.headers.token) {
-        // Pool doesn't exists, Check if there is a token in request header.
-        // This token is a public key that encrypt credential password which has been stored in db
-        // Get the public key's pair (private key) in purpose to decrypt password
-        keyModel().findOne({publicKey : request.headers.token}).select().lean().exec(function(err, keyPair){
+        checkExpiry(request, function(err){
           if (err) {
-            return reply(err);
-          } else if (!keyPair) {
-            return reply("No credential stored in backend").code(401);
-          } else {
-            var privateKey = forge.pki.privateKeyFromPem(keyPair.privateKey);
-            model().findOne({publicKey : request.headers.token}).select().lean().exec(function(err, result) {
+            return clearCredentials(request, function(){
+              reply({err : err.message}).code(401);
+            })
+          }
+          // Pool doesn't exist, but there is a token in request header.
+          // This token is a public key that will be used to 
+          // encrypt credential password which has been stored in db
+          // Get the public key's pair (private key) in purpose to decrypt password
+          keyModel().findOne({publicKey : request.headers.token})
+            .select()
+            .lean()
+            .exec(function(err, keyPair){
               if (err) {
                 return reply(err);
               } else if (!keyPair) {
                 return reply("No credential stored in backend").code(401);
               } else {
-                // Create credential object
-                var credential = {
-                  user : result.username,
-                  host : result.imapHost,
-                  port : result.imapPort,
-                  tls : result.imapTLS
-                }
-                // Dercypt the password
-                credential.password = privateKey.decrypt(result.password);
-  
-                createPool(request, reply, credential, function(client){
-                  // Recall to extend expiry time
-                  var client = pool.get(id);
-                  client.connect()
-                    .then(function(){
-                      realFunc(client, request, reply);
-                    })
-                    .catch(function(err){
-                      if (err) {
-                        return reply({err : err.message}).code(500);
-                      } else {
-                        var err = new Error("Fail to connect");
-                        return reply({err : err.message}).code(500);
+                var privateKey = forge.pki.privateKeyFromPem(keyPair.privateKey);
+                model().findOne({publicKey : request.headers.token})
+                  .select()
+                  .lean()
+                  .exec(function(err, result) {
+                    if (err) {
+                      return reply(err);
+                    } else if (!keyPair) {
+                      return reply("No credential stored in backend").code(401);
+                    } else {
+                      // Create credential object
+                      var credential = {
+                        user : result.username,
+                        host : result.imapHost,
+                        port : result.imapPort,
+                        tls : result.imapTLS
                       }
-                    })
-                });
-              }
-            })
-          }
-        })
+                      // Dercypt the password
+                      credential.password = privateKey.decrypt(result.password);
+        
+                      createPool(request, reply, credential, function(client){
+                        // Recall to extend expiry time
+                        var client = pool.get(id);
+                        client.connect()
+                          .then(function(){
+                            realFunc(client, request, reply);
+                          })
+                          .catch(function(err){
+                            if (err) {
+                              return reply({err : err.message}).code(500);
+                            } else {
+                              var err = new Error("Fail to connect");
+                              return reply({err : err.message}).code(500);
+                            }
+                          })
+                      });
+                    }
+                })
+            }
+          })
+        });
       } else {
-        // Pool doesn't exists and there is no token in request header.
+        // Pool doesn't exist and there is no token in request header.
         // This must be a login request, create new pool and connect/auth.
         if (!request.payload.username
         || !request.payload.password
@@ -587,10 +655,16 @@ var checkPool = function(request, reply, realFunc) {
               // Save key pair to db
               var keyPair = {}
               var publicKeyPem = forge.pki.publicKeyToPem(keys.publicKey);
-              // Public key need to be decaded to base64 for easy query later
+              // Public key need to be decoded to base64 for easy query later
               keyPair.publicKey = forge.util.encode64(forge.pem.decode(publicKeyPem)[0].body);
-              // And private key stay in PEM format
+              // And private key stays in PEM format
               keyPair.privateKey = forge.pki.privateKeyToPem(keys.privateKey);
+              // Set session expiration
+              if (request.payload.rememberMe) {
+                keyPair.sessionExpiry = moment().add(14, "d");
+              } else {
+                keyPair.sessionExpiry = moment().add(1, "d");
+              }
               keyModel().create(keyPair, function(err, result){
                 if (err) {
                   return reject(err);
@@ -636,20 +710,27 @@ var checkPool = function(request, reply, realFunc) {
  *
  */
 
+var clearCredentials = function(request, cb) {
+  var pool = Pool.getInstance();
+  if (request.headers.username && pool.map[request.headers.username]) {
+    pool.map[request.headers.username].expire = (new Date()).valueOf() - 10000;
+    pool.destroy();
+  }
+  // Do not catch error, just go on
+  if (request.headers.token) {
+    model().remove({publicKey : request.headers.token}).lean().exec();
+    keyModel().remove({publicKey : request.headers.token}).lean().exec();
+  }
+  cb();
+}
+
 ImapAPI.prototype.logout = function(request, reply) {
   if (!request.headers.token || !request.headers.username) {
     var err = new Error("Token needed");
     return reply({err : err.message}).code(500);
   }
-  var pool = Pool.getInstance();
-  if (pool.map[request.headers.username]) {
-    pool.map[request.headers.username].expire = (new Date()).valueOf() - 10000;
-    pool.destroy();
-  }
-  model().remove({publicKey : request.headers.token}).lean().exec(function(){
-    keyModel().remove({publicKey : request.headers.token}).lean().exec(function(){
-      reply();
-    });
+  clearCredentials(request, function(){
+    reply()
   });
 }
 
@@ -810,50 +891,55 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
           return reply(message);
         }
         // Save attachments to uploadAttachment collection in purpose of drafts and forward
-        async.eachSeries(message.parsed.attachments, function(attachment, cb){
-          var a = {
-            content : attachment.content.toString("base64"),
-            timestamp : new Date()
-          }
-          uploadAttachmentModel().create(a, function(err, result){
-            if (err) {
-              return reply(err).code(500);
-            }
-            // This attachmentId is used to refetch attachments from db if the message is going to send
-            attachment.attachmentId = result._id;
-            cb();
-          })
-        }, function(err){
+        gfs.exist({ filename : message.parsed.messageId}, function(err, isExist){
           if (err) {
-            return reply({err : err.message}).code(500);
+            return reply(err).code(500);
           }
-          // Cut and save attachments to attachment collection in purpose of separated attachment download.
-          var attachments = {
-            attachments : message.parsed.attachments,
-            messageId : message.parsed.messageId,
-          }
-  
-          // First, check if there is existing attachment in db
-          attachmentModel().find({messageId : message.parsed.messageId}).exec(function(err, result){
-            if (err) {
-              return reply(err).code(500);
-            }
-            if (result && result.length === 0) {
-              attachmentModel().create(attachments, function(err, result){
-                if (err) {
-                  return reply(err).code(500);
+          if (!isExist) {
+            async.eachSeries(message.parsed.attachments, function(attachment, cb){
+              // Prepare streams
+              var id = mongoose.Types.ObjectId();
+              var file = {
+                _id : id,
+                filename :  message.parsed.messageId,
+                contentType : attachment.contentType,
+                metadata : {
+                  filename : attachment.fileName,
                 }
-                for (var i = 0; i < message.parsed.attachments.length;i++) {
-                  // Remove the attachment content
-                  message.parsed.attachments[i].content = "";
-                }
-                reply(message);
-              })
-            } else {
+              }
+              var content = attachment.content;
+              attachment.attachmentId = id;
+              
+              var writeStream = gfs.createWriteStream(file);
+              writeStream.on("finish", function(){
+                cb();
+              });
+              writeStream.on("error", function(err){
+                console.log(err);
+                cb(err);
+              });
+              var readableStreamBuffer = streamifier.createReadStream(content);
+              readableStreamBuffer.pipe(base64Stream.encode()).pipe(writeStream);
+            }, function(err){
+              if (err) {
+                return reply({err : err.message}).code(500);
+              }
               reply(message);
-            }
-          })
-        }) 
+            })
+          } else {
+            // Assign the attachment Id
+            gfs.files.find({filename : message.parsed.messageId}).toArray(function(err, files){
+              lodash.some(message.parsed.attachments, function(attachment){
+                lodash.some(files, function(file){
+                  if (file.metadata && file.metadata.filename == attachment.fileName) {
+                    attachment.attachmentId = file._id; 
+                  }
+                })
+              })
+              reply(message);
+            })
+          }
+        })
       })
       .catch(function(err){
         reply({err : err.message}).code(500);
@@ -896,7 +982,7 @@ ImapAPI.prototype.removeMessage = function(request, reply) {
       opts.archive = (request.query.archive && request.query.archive === true) ? true : false;
       client.removeMessage(seqs, request.query.boxName, opts)
         .then(function(){
-          attachmentModel().remove({messageId : decodeURIComponent(request.query.messageId)}).exec();
+          gfs.files.remove({ filename : decodeURIComponent(request.query.messageId) });
           // Do not wait
           reply().code(200);
         })
@@ -915,20 +1001,30 @@ ImapAPI.prototype.removeMessage = function(request, reply) {
  */
 ImapAPI.prototype.getAttachment = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    attachmentModel().findOne({ messageId : request.query.messageId}).exec(function(err, result){
+    gfs.exist({_id : request.query.attachmentId}, function(err, isExist) {
       if (err) {
         return reply(err).code(500);
       }
-      if (!result){
-        return reply(new Error("Attachment not found").message).code(404);
+      if (!isExist) {
+        reply({err : new Error("Attachment not found").message}).code(404);
       }
-      reply(result.attachments[parseInt(request.query.index)]);
+      var file = gfs.createReadStream({ _id : request.query.attachmentId });
+      var string = "";
+      file.on("error", function(err){
+        console.log(err);
+        return reply(err).code(500);
+      })
+      file.on("data", function(chunk){
+        string += chunk;
+      })
+      file.on("end", function(){
+        reply(string);
+      })
     })
   }
   
   checkPool(request, reply, realFunc);
 }
-
 
 /**
  * Upload attachment during compose in client side
@@ -936,16 +1032,19 @@ ImapAPI.prototype.getAttachment = function(request, reply) {
  */
 ImapAPI.prototype.uploadAttachment = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    var attachment = {
-      content : request.payload.content,
-      timestamp : new Date()
-    }
-    uploadAttachmentModel().create(attachment, function(err, result){
-      if (err) {
-        return reply(err).code(500);
-      }
-      reply({attachmentId : result._id});
-    })
+    var id = mongoose.Types.ObjectId();
+    var writeStream = gfs.createWriteStream({
+      _id : id,
+      filename : request.payload.content.hapi.filename
+    });
+    writeStream.on("finish", function(){
+      reply({attachmentId : id});
+    });
+    writeStream.on("error", function(err){
+      console.log(err);
+      reply(err);
+    });
+    request.payload.content.pipe(base64Stream.encode()).pipe(writeStream);
   }
   
   checkPool(request, reply, realFunc);
@@ -953,12 +1052,9 @@ ImapAPI.prototype.uploadAttachment = function(request, reply) {
 
 ImapAPI.prototype.removeAttachment = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    uploadAttachmentModel().remove({_id : request.query.attachmentId}, function(err, result){
-      if (err) {
-        return reply(err).code(500);
-      }
-      reply().code(200);
-    })
+    gfs.files.remove({_id : request.query.attachmentId});
+    // Async
+    reply().code(200);
   }
   
   checkPool(request, reply, realFunc);
@@ -972,6 +1068,9 @@ ImapAPI.prototype.saveDraft = function(request, reply) {
   var realSaveDraft = function(request, reply, client, msg) {
     var newMessage = composer(msg);
     newMessage.build(function(err, message){
+      if (err) {
+        reply({err : err.message}).code(500);
+      }
       client.newMessage(message, request.query.draftPath)
         .then(function(){
           reply();
@@ -1001,21 +1100,33 @@ ImapAPI.prototype.saveDraft = function(request, reply) {
       // Check for attachmentId,
       // if any, grab them from temporary attachment collection
       async.eachSeries(request.payload.attachments, function(attachment, cb){
-        uploadAttachmentModel().findOne({_id : attachment.attachmentId})
-          .exec(function(err, result){
-            if (err) {
-              return reply(err).code(500);
-            } 
-            if (!result) {
-              return reply(new Error("Attachments not found").message).code(500);
-            }
-            attachment.content = result.content;
+        gfs.exist({_id : attachment.attachmentId}, function(err, isExist){
+          if (err) {
+            return reply(err).code(500);
+          }
+          if (!isExist) {
+            var err = new Error("Attachment not found");
+            return reply({err : err.message}).code(500);
+          }
+          file = gfs.createReadStream({ _id : attachment.attachmentId });
+          var string = "";
+          file.on("error", function(err){
+            return reply(err).code(500);
+          })
+          file.on("data", function(chunk){
+            string += chunk;
+          })
+          file.on("end", function(){
+            attachment.content = string;
+            attachment.encoding = "base64";
             delete(attachment.progress);
             msg.attachments.push(attachment);
-            // Remove temporary attachment, but do not wait
-            uploadAttachmentModel().remove({_id : attachment.attachmentId});
+            // Remove temporary attachment
+            gfs.files.remove({_id : attachment.attachmentId});
+            // But do not wait
             cb(); 
           })
+        })
       }, function(err){
         realSaveDraft(request, reply, client, msg);
       })
@@ -1091,7 +1202,7 @@ var model = function() {
     smtpPort : Number,
     smtpTLS : Boolean,
     smtpSecure : Boolean,
-    publicKey : String
+    publicKey : String,
   }
   var s = new mongoose.Schema(schema);
   m = mongoose.model("Auth", s);
@@ -1111,47 +1222,25 @@ var keyModel = function() {
   var schema = {
     publicKey : String,
     privateKey : String,
+    sessionExpiry : Date
   }
   var s = new mongoose.Schema(schema);
   m = mongoose.model("KeyPair", s);
   return m;
 }
-
-var attachmentModel = function() {
+var fsModel = function() {
   var registered = false;
   var m;
   try {
-    m = mongoose.model("Attachment");
+    m = mongoose.model("fs.file");
     registered = true;
   } catch(e) {
   }
 
   if (registered) return m;
-  var schema = {
-    attachments : [],
-    messageId : String,
-  }
+  var schema = { any : {} }
   var s = new mongoose.Schema(schema);
-  m = mongoose.model("Attachment", s);
-  return m;
-}
-
-var uploadAttachmentModel = function() {
-  var registered = false;
-  var m;
-  try {
-    m = mongoose.model("UploadAttachment");
-    registered = true;
-  } catch(e) {
-  }
-
-  if (registered) return m;
-  var schema = {
-    content : String,
-    timestamp : Date
-  }
-  var s = new mongoose.Schema(schema);
-  m = mongoose.model("UploadAttachment", s);
+  m = mongoose.model("fs.file", s);
   return m;
 }
 
@@ -1159,7 +1248,7 @@ exports.model = model;
 
 // Interval function to remove expired temporary attachment
 setInterval(function(){
-  uploadAttachmentModel().remove({timestamp : {$lt : moment().subtract(24, "hours")}});
+  fsModel().remove({uploadDate : {$lt : moment().subtract(24, "hours")}});
 }, 10000)
 
 exports.register = function(server, options, next) {

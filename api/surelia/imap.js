@@ -813,6 +813,7 @@ Imap.prototype.newMessage = function(messageData, draftPath) {
   return new Promise(function(resolve, reject){
     self.client.append(messageData, { mailbox : draftPath, flags : "\\Seen"}, function(err){
       if (err) {
+        console.log(err);
         return reject(err);
       }
       resolve();

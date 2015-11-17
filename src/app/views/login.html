@@ -1,8 +1,12 @@
 <div ng-controller="LoginCtrl as login">
-  <h4>Login</h4>
+  <h4>{{'LOGIN' | translate}}</h4>
   <form ng-submit="login.auth(credential)">
-    <input ng-model="credential.username" placeholder="username"></input>
-    <br><input ng-model="credential.password" placeholder="password"></input>
+    <input ng-model="credential.username" placeholder="{{'LOGIN_EMAIL' | translate}}"></input>
+    <br><input ng-model="credential.password" placeholder="{{'LOGIN_PASSWORD' | translate}}"></input>
+    <br><input type="checkbox" ng-model="credential.rememberMe" ng-true-value="true" ng-false-value="false"> {{'LOGIN_REMEMBER_ME' | translate}}
     <br><button type="submit">{{'LOGIN' | translate}}</button>
   </form>
+  <br>
+  <a href="" ng-click="login.switchLang('en')">English</a> |
+  <a href="" ng-click="login.switchLang('id')">Bahasa Indonesia</a>
 </div>

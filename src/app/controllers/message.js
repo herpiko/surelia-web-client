@@ -81,7 +81,7 @@ var mimeTypes = {
     ]
   }
 }
-var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce){
+var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce, $translate){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -97,6 +97,7 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.ToastrService = ToastrService;
   this.$templateCache = $templateCache;
   this.$sce = $sce;
+  this.$translate = $translate;
   var self = this;
   self.compose = false;
   self.composeMode = "corner";
@@ -117,13 +118,25 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   if (self.localStorageService.get("username")) {
     self.$rootScope.currentUsername = self.localStorageService.get("username");
   }
-
+  // getBoxes() and getSpecialBoxes are running in async
+  // Make sure loading progress get completed 
+  // if only both of those function are already completed.
+  var loadCompletion = {
+    boxes : false,
+    specialBoxes : false
+  }
+  var loadComplete = function(){
+    if (loadCompletion.boxes && loadCompletion.specialBoxes) {
+      self.loading.complete();
+    }
+  }
   // Load basic information
   self.loading.set(20);
   self.ImapService.getBoxes()
     .success(function(data, status){
       console.log(data);
-      self.loading.set(30);
+      loadCompletion.boxes = true;
+      loadComplete();
       var opts = {
         limit : 10,
         page : 1,
@@ -161,34 +174,37 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
           }
         });
       })
-      self.ImapService.getSpecialBoxes()
-        .success(function(data, status){
-          self.loading.complete();
-          self.specialBoxes = data;
-          window.lodash.some(self.specialBoxes, function(box){
-            if (box && box.specialName && 
-              (box.specialName.indexOf("Trash") > -1 || box.specialName.indexOf("Sent") > -1 )
-            ) {
-              box.meta.count = 0;
-            } else if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
-              box.meta.count = box.meta.total;
-            } else {
-              // Add everything except Trash, Sent and Drafts
-              self.moveToBoxes.push(box.specialName);
-            } 
-          });
-        })
-        .error(function(data, status){
-          console.log(data, status);
-          self.loading.complete();
-          self.ErrorHandlerService.parse(data, status);
-        })
     })
     .error(function(data, status){
       console.log(data, status);
-      self.loading.complete();
+      loadCompletion.boxes = true;
+      loadComplete();
       self.ErrorHandlerService.parse(data, status);
     })
+    self.ImapService.getSpecialBoxes()
+      .success(function(data, status){
+        loadCompletion.boxes = true;
+        loadComplete();
+        self.specialBoxes = data;
+        window.lodash.some(self.specialBoxes, function(box){
+          if (box && box.specialName && 
+            (box.specialName.indexOf("Trash") > -1 || box.specialName.indexOf("Sent") > -1 )
+          ) {
+            box.meta.count = 0;
+          } else if (box && box.specialName && box.specialName.indexOf("Drafts") > -1) {
+            box.meta.count = box.meta.total;
+          } else {
+            // Add everything except Trash, Sent and Drafts
+            self.moveToBoxes.push(box.specialName);
+          } 
+        });
+      })
+      .error(function(data, status){
+        console.log(data, status);
+        loadCompletion.boxes = true;
+        loadComplete();
+        self.ErrorHandlerService.parse(data, status);
+      })
   self.isValidEmail = function(emailString){
     var regExp = /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))){2,6}$/i;
     return regExp.test(emailString);
@@ -206,6 +222,10 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
     });
 }
 
+Message.prototype.switchLang = function(lang) {
+  var self = this;
+  self.$translate.use(lang);
+}
 
 Message.prototype.getBoxes = function(){
   var self = this;
@@ -576,21 +596,21 @@ Message.prototype.retrieveMessage = function(id, boxName){
     })
 }
 
-Message.prototype.getAttachment = function(messageId, index) {
+Message.prototype.getAttachment = function(attachment) {
   var self = this;
-  self.ImapService.getAttachment(messageId, index)
+  self.ImapService.getAttachment(attachment.attachmentId)
     .then(function(data){
       self.loading.complete();
 
-      var binary_string = window.atob(data.content);
+      var binary_string = window.atob(data);
       var len = binary_string.length;
       var bytes = new Uint8Array(len);
       for (var i = 0; i < len; i++ ) {
         bytes[i] = binary_string.charCodeAt(i);
       }
-      var blob = new Blob([bytes.buffer], { type: data.contentType });
+      var blob = new Blob([bytes.buffer], { type: attachment.contentType || "binary/octet-stream" });
       if (typeof window.navigator.msSaveBlob !== 'undefined') {
-        window.navigator.msSaveBlob(blob, data.fileName);
+        window.navigator.msSaveBlob(blob, attachment.fileName);
       } else {
         var URL = window.URL || window.webkitURL;
         var downloadUrl = URL.createObjectURL(blob);
@@ -599,7 +619,7 @@ Message.prototype.getAttachment = function(messageId, index) {
           window.location = downloadUrl;
         } else {
           a.href = downloadUrl;
-          a.download = data.fileName;
+          a.download = attachment.fileName;
           document.body.appendChild(a);
           a.click();
         }
@@ -615,18 +635,7 @@ Message.prototype.getAttachment = function(messageId, index) {
 
 Message.prototype.logout = function(){
   var self = this;
-  self.loading.start();
-  var username = self.localStorageService.get("username"); 
-  var token = self.localStorageService.get("token"); 
-  console.log("logout");
-  self.$rootScope.isLoggedIn = false;
-  self.localStorageService.remove("username"); 
-  self.localStorageService.remove("token"); 
-  self.ImapService.logout(username, token)
-  self.$timeout(function(){
-    self.$state.go("Login");
-    self.loading.complete();
-  }, 500)
+  self.ImapService.logout();
 }
 
 Message.prototype.sendMessage = function(msg){
@@ -787,8 +796,7 @@ Message.prototype.composeMessage = function(message, action){
             var a = {
               filename : msg.parsed.attachments[i].fileName,
               contentType : msg.parsed.attachments[i].contentType,
-              encoding : "base64",
-              progress : "uploaded",
+              progress : { status : "uploaded" },
               attachmentId : msg.parsed.attachments[i].attachmentId
             }
             self.newMessage.attachments.push(a);
@@ -868,7 +876,7 @@ Message.prototype.composeMessage = function(message, action){
             filename : msg.parsed.attachments[i].fileName,
             contentType : msg.parsed.attachments[i].contentType,
             encoding : "base64",
-            progress : "uploaded",
+            progress : { status : "uploaded" },
             attachmentId : msg.parsed.attachments[i].attachmentId
           }
           self.newMessage.attachments.push(a);
@@ -999,31 +1007,33 @@ Message.prototype.uploadFiles = function(files, errFiles) {
       filename : file.name,
       contentType : file.type,
       encoding : "base64",
-      progress : "uploading"
+      progress :{
+        status : "uploading",
+      }
     }
     self.newMessage.attachments.push(attachment);
-    self.Upload.base64DataUrl(files)
-      .then(function(b64){
-        var data = b64[0].split(",")[1];
-        self.ImapService.uploadAttachment(data)
-          .then(function(result){
-            window.lodash.some(self.newMessage.attachments, function(attachment){
-              console.log(attachment);
-              if (attachment.filename == file.name) {
-                attachment.attachmentId = result.attachmentId;
-                attachment.progress = "uploaded";
-                console.log(self.newMessage.attachments);
-              }
-            })
-          })
-          .catch(function(data){
-            window.lodash.some(self.newMessage.attachments, function(attachment){
-              if (attachment.filename == file.filename) {
-                attachment.progress = "failed";
-              }
-            })
-            console.log(data);
-          })
+    self.ImapService.uploadAttachment(file, attachment)
+      .then(function(res){
+        var result = res.data;
+        window.lodash.some(self.newMessage.attachments, function(attachment){
+          console.log(attachment);
+          if (attachment.filename == file.name) {
+            attachment.attachmentId = result.attachmentId;
+            attachment.progress.status = "uploaded";
+            console.log(self.newMessage.attachments);
+          }
+        })
+      }, function(res){
+        self.ToastrService.parse(res.data, res.status);
+        window.lodash.some(self.newMessage.attachments, function(attachment){
+          if (attachment.fileName == file.filename) {
+            attachment.progress.status = "failed";
+          }
+        })
+        console.log(data);
+      }, function(evt){
+        console.log(evt);
+        attachment.progress.percentage = parseInt(100 * evt.loaded / evt.total);
       })
   });
 }

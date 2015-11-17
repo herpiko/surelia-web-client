@@ -1,15 +1,15 @@
 <div ng-controller="MessageCtrl as msg">
   <div style="width:100%;background:#ECECEC;padding:10px">
-    <button ng-click="msg.composeMessage()">compose</button>
-    <button ng-click="msg.logout()">logout</button>
-    <span>Quota: {{msg.quota.usage | SizeFilter }}/{{msg.quota.limit | SizeFilter }}  ({{msg.quota.percentage}})</span>
+    <button ng-click="msg.composeMessage()">{{'COMPOSE' | translate}}</button>
+    <button ng-click="msg.logout()">{{'LOGOUT' | translate}}</button>
+    <span>{{'QUOTA' | translate}} : {{msg.quota.usage | SizeFilter }}/{{msg.quota.limit | SizeFilter }}  ({{msg.quota.percentage}})</span>
     <br>
   </div>
   <div>
     <!--Sidebar-->
     <div style="width:300px;display:inline-block;vertical-align:top;padding:10px;background:#ECECEC;">
             <form ng-submit="msg.listBox('search', {page : 1, limit : 10, search : msg.searchString}, true)">
-        <input ng-model="msg.searchString" placeholder="search..."></input>
+        <input ng-model="msg.searchString" placeholder="{{'SEARCH_PLACEHOLDER' | translate}}"></input>
       </form>
       <ul>
               <li ng-repeat="box in msg.boxes" ng-click="msg.listBox(box.boxName,{},true)" style="cursor:pointer">
@@ -26,36 +26,41 @@
         <p>
           {{currentUsername}}
         </p>
+        <br>
+        <a href="" ng-click="msg.switchLang('en')">English</a> |
+        <a href="" ng-click="msg.switchLang('id')">Bahasa Indonesia</a>
       </div>
     </div>
     
     
     <!--List view-->
-    <div ng-show="msg.view=='list'" style="width:60%;display:inline-block;vertical-align:top;">
+    <div style="width:60%;display:inline-block;vertical-align:top;">
             {{msg.currentListMeta.listStart}} - {{msg.currentListMeta.listEnd}} / {{msg.currentListMeta.total}}
-      <button ng-click="msg.listBoxNewer()">newer</button>
-      <button ng-click="msg.listBoxOlder()">older</button>
-      <button ng-click="msg.listReload()">reload</button>
+      <button ng-click="msg.listBoxNewer()">&larr;</button>
+      <button ng-click="msg.listBoxOlder()">&rarr;</button>
+      <button ng-click="msg.listReload()">{{'RELOAD' | translate}}</button>
       <br>
-      Sort by : 
-      <button ng-click="msg.listSort('DATE')">Date</button> 
-      <button ng-click="msg.listSort('FROM')">From</button> 
-      <button ng-click="msg.listSort('SUBJECT')">Subject</button> 
-      <button ng-click="msg.listSort('SIZE')">Size</button> | 
-      <button ng-click="msg.listReverse('ascending')">Ascending</button> 
-      <button ng-click="msg.listReverse('descending')">Descending</button>
+      {{'SORT_BY' | translate}}  : 
+      <button ng-click="msg.listSort('DATE')">{{'DATE' | translate}}</button> 
+      <button ng-click="msg.listSort('FROM')">{{'FROM' | translate}}</button> 
+      <button ng-click="msg.listSort('SUBJECT')">{{'SUBJECT' | translate}}</button> 
+      <button ng-click="msg.listSort('SIZE')">{{'SIZE' | translate}}</button> | 
+      <button ng-click="msg.listReverse('ascending')">A - Z</button> 
+      <button ng-click="msg.listReverse('descending')">Z - A</button>
       <br>
-      Move to : 
-      <button ng-click="msg.moveMessage('Archive')">Archive</button>
+      {{'MOVE_TO' | translate}}  : 
+      <button ng-click="msg.moveMessage('Archive')">{{'ARCHIVE' | translate}}</button>
       <button>Spam</button>
-      <button ng-click="msg.moveMessage('Trash')">Trash</button>
+      <button ng-click="msg.moveMessage('Trash')">{{'TRASH' | translate}}</button>
       <button ng-repeat="box in msg.moveToBoxes" ng-hide="(box.indexOf(msg.currentBoxName) > -1)" ng-click="msg.moveMessage(box)">{{box}}</button>
       <br>
-      Filter : 
-      <button ng-click="msg.listFilter('UNSEEN')">Unread</button>
+      {{'FILTER' | translate}}  : 
+      <button ng-click="msg.listFilter('UNSEEN')">{{'UNREAD' | translate}}</button>
       <br>
-      Flag as :
-      <button ng-repeat="flag in msg.flags" ng-click="msg.flagMessage(flag)">{{flag}}</button>
+      {{'FLAG_AS' | translate}}  : 
+      <button ng-click="msg.flagMessage('UNREAD')">{{'UNREAD' | translate}}</button>
+      <button ng-click="msg.flagMessage('READ')">{{'READ' | translate}}</button>
+      <br>
       <input type="checkbox" ng-model="msg.selectAll" ng-true-value="true" ng-false-value="false" ng-change="msg.checkAll()">
       <div ng-repeat="message in msg.currentList" style="cursor:pointer;margin-top:3px;background:#ECECEC">
         <div style="display:inline-block">
@@ -78,17 +83,17 @@
     <!--Message view-->
     <div ng-show="msg.view=='message'" style="width:60%;display:inline-block;vertical-align:top;background:#ECECEC">
             <div>
-              <button ng-click="msg.composeMessage(msg.currentMessage, 'reply')">Reply</button>
-              <button ng-click="msg.composeMessage(msg.currentMessage, 'all')">Reply all</button>
-              <button ng-click="msg.composeMessage(msg.currentMessage, 'forward')">Forward</button>
-              <button ng-click="">Archive</button>
+              <button ng-click="msg.composeMessage(msg.currentMessage, 'reply')">{{'REPLY' | translate}}</button>
+              <button ng-click="msg.composeMessage(msg.currentMessage, 'all')">{{'REPLY_ALL' | translate}}</button>
+              <button ng-click="msg.composeMessage(msg.currentMessage, 'forward')">{{'FORWARD' | translate}}</button>
+              <button ng-click="">{{'ARCHIVE' | translate}}</button>
               <button ng-click="">Spam</button>
-              <button ng-hide="msg.currentMessage.deleted" ng-click="msg.removeMessage(msg.currentMessage.seq, msg.currentMessage.parsed.messageId, msg.currentMessage.boxName)">Delete</button>
-              <button ng-show="msg.currentMessage.deleted" ng-click="msg.removeMessage(msg.currentMessage.attributes.uid, msg.currentMessage.parsed.messageId, msg.currentMessage.boxName, { permanentDelete : true })">Delete</button>
+              <button ng-hide="msg.currentMessage.deleted" ng-click="msg.removeMessage(msg.currentMessage.seq, msg.currentMessage.parsed.messageId, msg.currentMessage.boxName)">{{'DELETE' | translate}}</button>
+              <button ng-show="msg.currentMessage.deleted" ng-click="msg.removeMessage(msg.currentMessage.attributes.uid, msg.currentMessage.parsed.messageId, msg.currentMessage.boxName, { permanentDelete : true })">{{'DELETE' | translate}}</button>
             </div>
             <div><b>{{msg.currentMessage.parsed.subject}}</b></div>
-            <div>From : {{msg.currentMessage.parsed.headers.from}}</div>
-            <div>To : {{msg.currentMessage.parsed.headers.to}}<span ng-show="msg.currentMessage.parsed.headers.cc">, {{msg.currentMessage.parsed.headers.cc}}</span>
+            <div>{{'FROM' | translate}} : {{msg.currentMessage.parsed.headers.from}}</div>
+            <div>{{'TO' | translate}} : {{msg.currentMessage.parsed.headers.to}}<span ng-show="msg.currentMessage.parsed.headers.cc">, {{msg.currentMessage.parsed.headers.cc}}</span>
             </div>
             <div>
               <span am-time-ago="msg.currentMessage.parsed.date"></span>
@@ -100,14 +105,14 @@
             <div>
               <ul>
                   <li ng-repeat="attachment in msg.currentMessage.parsed.attachments" class="{{attachment.icon}}">
-                  <span style="cursor:pointer" ng-click="msg.getAttachment(msg.currentMessage.parsed.messageId, attachment.index)">{{attachment.fileName}} - {{attachment.size | SizeFilter }}</span>
+                  <span style="cursor:pointer" ng-click="msg.getAttachment(attachment)">{{attachment.fileName}} - {{attachment.size | SizeFilter }}</span>
                 </li>
               </ul>
             </div>
     </div>
 
     <form ng-show="msg.compose" ng-submit="msg.sendMessage(msg.newMessage)" ng-class="{'compose-container':(msg.composeMode=='corner' || msg.composeMode=='minimaze' ), 'compose-container-maximaze':msg.composeMode=='maximaze'}">
-      <div class='compose-header'>Tulis surel
+      <div class='compose-header'>{{'COMPOSE' | translate}}
         <span class="compose-header-button" ng-click="msg.saveDraft()">X</span>
         <span class="compose-header-button" ng-hide="msg.composeMode=='maximaze' || msg.composeMode=='minimaze'" ng-click="msg.resizeCompose('maximaze')">/</span>
         <span class="compose-header-button" ng-hide="msg.composeMode=='corner'" ng-click="msg.resizeCompose('corner')">[]</span>
@@ -153,17 +158,18 @@
            </div>
            <ul>
              <li ng-show="msg.newMessage.attachments.length > 0" ng-repeat="a in msg.newMessage.attachments" class="compose-attachments">
-               {{a.filename}}
-               <span ng-show="a.progress=='uploading'"> - Mengunggah...</span>
-               <span ng-show="a.progress=='failed'"> - Gagal mengunggah</span>
-               <span ng-show="a.progress=='uploaded'"><i class="fa fa-check"></i></span>
+              {{a.filename}}
+               <span ng-show="a.progress.status=='uploading'"> - {{'UPLOADING' | translate}}</span>
+               <span ng-show="a.progress.status=='failed'"> - {{'UPLOAD_FAILED' | translate}} </span>
+               <span ng-show="a.progress.status=='uploaded'"><i class="fa fa-check"></i></span> 
+                <span ng-show="a.progress.percentage && a.progress.status=='uploading'">{{a.progress.percentage}} %</span>
              </li>
            </ul>
 			  	</div>
 			  </fieldset>
         <div class='button-bar'>
-						<button class="btn btn-success" type="reset" ng-click="msg.discardDraft()"><i class="fa fa-envelope-o"></i> Batal</button>
-						<button type="submit" class="btn btn-success"><i class="fa fa-envelope-o"></i> Kirim</button>
+						<button class="btn btn-success" type="reset" ng-click="msg.discardDraft()"><i class="fa fa-envelope-o"></i> {{'DISCARD' | translate}}</button>
+            <button type="submit" class="btn btn-success"><i class="fa fa-envelope-o"></i> {{'SEND' | translate}}</button>
         </div>
       </div>
     </form>

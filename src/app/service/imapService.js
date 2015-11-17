@@ -1,10 +1,11 @@
 'use strict';
-var ImapService = function($http, localStorageService, $rootScope, $state, $q) {
+var ImapService = function($http, localStorageService, $rootScope, $state, $q, Upload) {
   this.$http = $http;
   this.localStorageService = localStorageService;
   this.$rootScope = $rootScope;
   this.$state = $state;
   this.$q = $q;
+  this.Upload = Upload;
 }
 
 ImapService.prototype.auth = function(credential, canceler) {
@@ -197,14 +198,14 @@ ImapService.prototype.retrieveMessage = function(id, boxName, canceler) {
   return promise.promise;
 }
 
-ImapService.prototype.getAttachment = function(messageId, index, canceler) {
+ImapService.prototype.getAttachment = function(attachmentId, canceler) {
   var self = this;
   var promise = self.$q.defer();
   if (self.$rootScope.getAttachmentCanceler) {
     self.$rootScope.getAttachmentCanceler.resolve();
   }
   self.$rootScope.getAttachmentCanceler = self.$q.defer();
-  var path = "/api/1.0/attachment?messageId=" + messageId + "&index=" + index;
+  var path = "/api/1.0/attachment?attachmentId=" + attachmentId;
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
   var req = {
@@ -228,19 +229,12 @@ ImapService.prototype.getAttachment = function(messageId, index, canceler) {
   return promise.promise;
 }
 
-ImapService.prototype.uploadAttachment = function(data, canceler) {
+ImapService.prototype.uploadAttachment = function(data, meta, canceler) {
   var self = this;
-  console.log("Uploading");
-  var promise = self.$q.defer();
-  if (self.$rootScope.uploadAttachmentCanceler) {
-    self.$rootScope.uploadAttachmentCanceler.resolve();
-  }
-  self.$rootScope.uploadAttachmentCanceler = self.$q.defer();
   var path = "/api/1.0/attachment";
   var token = self.localStorageService.get("token"); 
-  var username = self.localStorageService.get("username"); 
+  var username = self.localStorageService.get("username");
   var req = {
-    method: "POST",
     url : path,
     data : {content : data},
     headers : {
@@ -248,17 +242,7 @@ ImapService.prototype.uploadAttachment = function(data, canceler) {
       username : username
     }
   }
-  if (canceler) {
-    req.timeout = self.$rootScope.uploadAttachmentCanceler.promise;
-  }
-  self.$http(req)
-  .success(function(data, status, headers) {
-    promise.resolve(data, status); 
-  })
-  .error(function(data, status, headers) {
-    promise.reject(data, status);
-  });
-  return promise.promise;
+  return self.Upload.upload(req)
 }
 
 ImapService.prototype.removeAttachment = function(attachmentId, canceler) {
@@ -350,8 +334,14 @@ ImapService.prototype.newMessage = function(newMessage) {
   return self.$http(req)
 }
 
-ImapService.prototype.logout = function(username, token) {
+ImapService.prototype.logout = function() {
   var self = this;
+  var username = self.localStorageService.get("username"); 
+  var token = self.localStorageService.get("token"); 
+  self.$rootScope.isLoggedIn = false;
+  self.localStorageService.remove("username"); 
+  self.localStorageService.remove("token");
+  self.$state.go("Login");
   var path = "/api/1.0/logout";
   var req = {
     method: "GET",
