@@ -24,6 +24,7 @@ module.exports = {
   "LOGIN_FAQ" : "FAQ",
   "LOGIN_ABOUT" : "About",
   "LOGIN_TOS" : "Terms of Service",
+  "LOGIN_FORGET_PASSWORD" : "Forgot password?",
   
   // Message
   "COMPOSE" : "Compose message",

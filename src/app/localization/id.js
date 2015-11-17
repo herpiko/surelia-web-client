@@ -22,6 +22,7 @@ module.exports = {
   "LOGIN_FAQ" : "Tanya Jawab",
   "LOGIN_ABOUT" : "Tentang",
   "LOGIN_TOS" : "Syarat dan Ketentuan",
+  "LOGIN_FORGET_PASSWORD" : "Lupa kata sandi?",
 
   // Message
   "COMPOSE" : "Tulis Surel",
