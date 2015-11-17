@@ -49,6 +49,7 @@
     "rangy": "^1.3.0",
     "smtp-connection": "^1.3.1",
     "stream-to-buffer": "^0.1.0",
+    "streamifier": "^0.1.1",
     "textangular": "^1.4.6"
   },
   "devDependencies": {

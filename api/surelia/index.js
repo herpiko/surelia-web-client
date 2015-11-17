@@ -494,14 +494,13 @@ var checkPool = function(request, reply, realFunc) {
     var pool = Pool.getInstance();
     var id = request.headers.username;
     // Check session expiration, returns boolean
-    var expiredMessage = new Error("Session expired");
     var checkExpiry = function(request, cb) {
       keyModel().findOne({publicKey : request.headers.token}, function(err, keyPair){
           if (err) {
             return cb(err);
           }
           if (!keyPair) {
-            return cb(null, false);
+            return cb(new Error("Session expired"));
           }
           var now = moment();
           if (moment(keyPair.sessionExpiry) > now) {
@@ -510,97 +509,95 @@ var checkPool = function(request, reply, realFunc) {
               keyPair.save();
             }
             // Do not wait
-            return cb(null, true);
+            return cb();
           } else {
-            return cb(null, false);
+            return cb();
           }
       })
     }
     // Check if the pool is exist
     if (pool.map[id]) {
-      checkExpiry(request, function(err, isValid){
-        if (err || !isValid) {
+      checkExpiry(request, function(err){
+        if (err) {
           return clearCredentials(request, function(){
-            reply({err :expiredMessage.message}).code(401);
+            reply({err :err.message}).code(401);
           })
+        }
+        if (pool.map[id].obj.client.state === "disconnected") {
+          var client = pool.get(id);
+          client.connect()
+            .then(function(){
+              realFunc(client, request, reply);
+            })
+            .catch(function(err){
+              return reply({err : err.message}).code(500);
+            })
         } else {
-          if (pool.map[id].obj.client.state === "disconnected") {
-            var client = pool.get(id);
-            client.connect()
-              .then(function(){
-                realFunc(client, request, reply);
-              })
-              .catch(function(err){
-                return reply({err : err.message}).code(500);
-              })
-          } else {
-            // Execute real function
-            realFunc(pool.map[id].obj, request, reply);
-          }
+          // Execute real function
+          realFunc(pool.map[id].obj, request, reply);
         }
       })
     } else {
       if (request.headers.token) {
-        checkExpiry(request, function(err, isValid){
-          if (err || !isValid) {
+        checkExpiry(request, function(err){
+          if (err) {
             return clearCredentials(request, function(){
-              reply({err : expiredMessage.message}).code(401);
-            })
-          } else {
-            // Pool doesn't exists, but there is a token in request header.
-            // This token is a public key that will be used to 
-            // encrypt credential password which has been stored in db
-            // Get the public key's pair (private key) in purpose to decrypt password
-            keyModel().findOne({publicKey : request.headers.token})
-              .select()
-              .lean()
-              .exec(function(err, keyPair){
-                if (err) {
-                  return reply(err);
-                } else if (!keyPair) {
-                  return reply("No credential stored in backend").code(401);
-                } else {
-                  var privateKey = forge.pki.privateKeyFromPem(keyPair.privateKey);
-                  model().findOne({publicKey : request.headers.token})
-                    .select()
-                    .lean()
-                    .exec(function(err, result) {
-                      if (err) {
-                        return reply(err);
-                      } else if (!keyPair) {
-                        return reply("No credential stored in backend").code(401);
-                      } else {
-                        // Create credential object
-                        var credential = {
-                          user : result.username,
-                          host : result.imapHost,
-                          port : result.imapPort,
-                          tls : result.imapTLS
-                        }
-                        // Dercypt the password
-                        credential.password = privateKey.decrypt(result.password);
-          
-                        createPool(request, reply, credential, function(client){
-                          // Recall to extend expiry time
-                          var client = pool.get(id);
-                          client.connect()
-                            .then(function(){
-                              realFunc(client, request, reply);
-                            })
-                            .catch(function(err){
-                              if (err) {
-                                return reply({err : err.message}).code(500);
-                              } else {
-                                var err = new Error("Fail to connect");
-                                return reply({err : err.message}).code(500);
-                              }
-                            })
-                        });
-                      }
-                  })
-              }
+              reply({err : err.message}).code(401);
             })
           }
+          // Pool doesn't exists, but there is a token in request header.
+          // This token is a public key that will be used to 
+          // encrypt credential password which has been stored in db
+          // Get the public key's pair (private key) in purpose to decrypt password
+          keyModel().findOne({publicKey : request.headers.token})
+            .select()
+            .lean()
+            .exec(function(err, keyPair){
+              if (err) {
+                return reply(err);
+              } else if (!keyPair) {
+                return reply("No credential stored in backend").code(401);
+              } else {
+                var privateKey = forge.pki.privateKeyFromPem(keyPair.privateKey);
+                model().findOne({publicKey : request.headers.token})
+                  .select()
+                  .lean()
+                  .exec(function(err, result) {
+                    if (err) {
+                      return reply(err);
+                    } else if (!keyPair) {
+                      return reply("No credential stored in backend").code(401);
+                    } else {
+                      // Create credential object
+                      var credential = {
+                        user : result.username,
+                        host : result.imapHost,
+                        port : result.imapPort,
+                        tls : result.imapTLS
+                      }
+                      // Dercypt the password
+                      credential.password = privateKey.decrypt(result.password);
+        
+                      createPool(request, reply, credential, function(client){
+                        // Recall to extend expiry time
+                        var client = pool.get(id);
+                        client.connect()
+                          .then(function(){
+                            realFunc(client, request, reply);
+                          })
+                          .catch(function(err){
+                            if (err) {
+                              return reply({err : err.message}).code(500);
+                            } else {
+                              var err = new Error("Fail to connect");
+                              return reply({err : err.message}).code(500);
+                            }
+                          })
+                      });
+                    }
+                })
+            }
+          })
         });
       } else {
         // Pool doesn't exists and there is no token in request header.
