@@ -493,7 +493,7 @@ var checkPool = function(request, reply, realFunc) {
   return new Promise(function(resolve, reject){
     var pool = Pool.getInstance();
     var id = request.headers.username;
-    // Check session expiration, returns boolean
+    // Check session expiration, return err if expired
     var checkExpiry = function(request, cb) {
       keyModel().findOne({publicKey : request.headers.token}, function(err, keyPair){
           if (err) {
@@ -515,7 +515,7 @@ var checkPool = function(request, reply, realFunc) {
           }
       })
     }
-    // Check if the pool is exist
+    // Check if the pool is exists
     if (pool.map[id]) {
       checkExpiry(request, function(err){
         if (err) {
@@ -545,7 +545,7 @@ var checkPool = function(request, reply, realFunc) {
               reply({err : err.message}).code(401);
             })
           }
-          // Pool doesn't exists, but there is a token in request header.
+          // Pool doesn't exist, but there is a token in request header.
           // This token is a public key that will be used to 
           // encrypt credential password which has been stored in db
           // Get the public key's pair (private key) in purpose to decrypt password
@@ -600,7 +600,7 @@ var checkPool = function(request, reply, realFunc) {
           })
         });
       } else {
-        // Pool doesn't exists and there is no token in request header.
+        // Pool doesn't exist and there is no token in request header.
         // This must be a login request, create new pool and connect/auth.
         if (!request.payload.username
         || !request.payload.password
@@ -655,9 +655,9 @@ var checkPool = function(request, reply, realFunc) {
               // Save key pair to db
               var keyPair = {}
               var publicKeyPem = forge.pki.publicKeyToPem(keys.publicKey);
-              // Public key need to be decaded to base64 for easy query later
+              // Public key need to be decoded to base64 for easy query later
               keyPair.publicKey = forge.util.encode64(forge.pem.decode(publicKeyPem)[0].body);
-              // And private key stay in PEM format
+              // And private key stays in PEM format
               keyPair.privateKey = forge.pki.privateKeyToPem(keys.privateKey);
               // Set session expiration
               if (request.payload.rememberMe) {
@@ -1025,7 +1025,6 @@ ImapAPI.prototype.getAttachment = function(request, reply) {
   
   checkPool(request, reply, realFunc);
 }
-
 
 /**
  * Upload attachment during compose in client side
