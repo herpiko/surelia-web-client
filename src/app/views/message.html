@@ -121,23 +121,43 @@
       <div class='inner' ng-hide="msg.composeMode=='minimaze'">
 			  <fieldset>
 			  	<div class="form-group">
-			  		<div class="col-lg-12">
+			  		<div class="col-lg-12" mass-autocomplete>
              <span class="compose-label">Kepada</span>
              <span class="compose-label-cc-button" ng-hide="msg.cc" ng-click="msg.showCc()">Cc</span>
              <span class="compose-label-bcc-button" ng-hide="msg.bcc" ng-click="msg.showBcc()">Bcc</span>
-			  			<input type="text" ng-model="msg.newMessage.recipients" class="compose-input-to form-control">
+			  			<input type="text" ng-model="msg.newMessage.recipients" class="compose-input-to form-control" mass-autocomplete-item="msg.option_delimited" ng-change="msg.currentAutocomplete='recipients'">
 			  		</div>
 			  	</div>
+          <div class="ac-container" ng-show="msg.addressBookAutocomplete.recipients.length > 0" style="position:absolute;">
+            <ul class="ac-menu">
+              <li ng-repeat="result in msg.addressBookAutocomplete.recipients"
+                ng-if="$index > -1"
+                class="ac-menu-item"
+                ng-class="$index == selected_index ? 'ac-state-focus' : ''">
+                <a href ng-click="msg.select_suggested(result.value, 'recipients')" ng-bind-html=result.label> </a>
+              </li>
+            </ul>
+          </div>
 			  	<div class="form-group" ng-show="msg.cc">
-			  		<div class="col-lg-12">
+			  		<div class="col-lg-12" mass-autocomplete>
              <span class="compose-label">Cc</span>
-			  			<input type="text" ng-model="msg.newMessage.cc" class="compose-input-cc form-control">
+			  			<input type="text" ng-model="msg.newMessage.cc" class="compose-input-cc form-control" mass-autocomplete-item="msg.option_delimited" ng-change="msg.currentAutocomplete='cc'">
 			  		</div>
 			  	</div>
+          <div class="ac-container" ng-show="msg.addressBookAutocomplete.cc.length > 0" style="position:absolute;">
+            <ul class="ac-menu">
+              <li ng-repeat="result in msg.addressBookAutocomplete.cc"
+                ng-if="$index > -1"
+                class="ac-menu-item"
+                ng-class="$index == selected_index ? 'ac-state-focus' : ''">
+                <a href ng-click="msg.select_suggested(result.value, 'cc')" ng-bind-html=result.label> </a>
+              </li>
+            </ul>
+          </div>
 			  	<div class="form-group" ng-show="msg.bcc">
-			  		<div class="col-lg-12">
+			  		<div class="col-lg-12" mass-autocomplete>
              <span class="compose-label">Bcc</span>
-			  			<input type="text" ng-model="msg.newMessage.bcc" class="compose-input-bcc form-control">
+			  			<input type="text" ng-model="msg.newMessage.bcc" class="compose-input-bcc form-control" mass-autocomplete-item="msg.option_delimited" ng-change="msg.currentAutocomplete='bcc'">
 			  		</div>
 			  	</div>
 			  	<div class="form-group">
@@ -146,6 +166,16 @@
 			  			<input type="text"  ng-model="msg.newMessage.subject" class="compose-input-subject form-control">
 			  		</div>
 			  	</div>
+          <div class="ac-container" ng-show="msg.addressBookAutocomplete.bcc.length > 0" style="position:absolute;">
+            <ul class="ac-menu">
+              <li ng-repeat="result in msg.addressBookAutocomplete.bcc"
+                ng-if="$index > -1"
+                class="ac-menu-item"
+                ng-class="$index == selected_index ? 'ac-state-focus' : ''">
+                <a href ng-click="msg.select_suggested(result.value, 'bcc')" ng-bind-html=result.label> </a>
+              </li>
+            </ul>
+          </div>
 			  	<div>
               <text-angular ta-unsafe-sanitizer="true" ng-model="msg.newMessage.html"></text-angular>
 			  	</div>
