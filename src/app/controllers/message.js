@@ -81,7 +81,7 @@ var mimeTypes = {
     ]
   }
 }
-var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce, $translate){
+var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce, $translate, AddressBookService){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -98,6 +98,7 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.$templateCache = $templateCache;
   this.$sce = $sce;
   this.$translate = $translate;
+  this.AddressBookService = AddressBookService;
   var self = this;
   self.compose = false;
   self.composeMode = "corner";
@@ -105,6 +106,10 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.bcc = false;
   self.newMessage = {};
   self.currentMessage = {};
+  self.addressBook = [];
+  self.enableAutocomplete = true;
+  self.currentAutocomplete = {};
+  self.addressBookAutocomplete = {};
   self.sortBy = null;
   self.sortImportance = "ascending";
   // This array will be used in "Move to" submenu in multiselect action
@@ -132,6 +137,14 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   }
   // Load basic information
   self.loading.set(20);
+  self.AddressBookService.get()
+    .then(function(data){
+      console.log(data);
+      self.addressBook = data;
+    })
+    .catch(function(data, status){
+      self.ErrorHandlerService.parse(data, status);
+    })
   self.ImapService.getBoxes()
     .success(function(data, status){
       console.log(data);
@@ -220,6 +233,61 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
       self.quota.limit = data.limit * 1024;
       self.quota.percentage = data.percentage;
     });
+
+    // Autocomplete
+    var suggest_email = function(term) {
+      var q = term.toLowerCase().trim(),
+          results = [];
+  
+      for (var i = 0; i < self.addressBook.length && results.length < 10; i++) {
+        var a = self.addressBook[i];
+        if (a.emailAddress.toLowerCase().indexOf(q) == 0
+          || a.name.toLowerCase().indexOf(q) == 0
+        ) {
+          var label = a.name;
+          if (label.length > 0) {
+            label += " - " + a.emailAddress;
+          } else {
+            label = a.emailAddress;
+          }
+          results.push({ label: label, value: a.emailAddress });
+        }
+      }
+      return results;
+    }
+    var suggest_email_delimited = function(term) {
+      if (self.enableAutocomplete) {
+        var ix = term.lastIndexOf(","),
+            lhs = term.substring(0, ix + 1),
+            rhs = term.substring(ix + 1),
+            suggestions = suggest_email(rhs);
+      
+        suggestions.forEach(function (s) {
+          s.value = lhs + s.value;
+        });
+        self.addressBookAutocomplete[self.currentAutocomplete] = suggestions; 
+        return suggestions;
+      }
+    };
+    self.select_suggested = function(val, form) { 
+      self.enableAutocomplete = false;
+      var str = self.newMessage[form].split(",");
+      var length = str.length;
+      str = str.slice(0,length-1);
+      str[str.length] = val;
+      self.newMessage[form] = str.join(", ");
+      self.clearAutocomplete();
+      setTimeout(function(){
+        self.enableAutocomplete = true;
+      }, 1000)
+    }
+    self.clearAutocomplete = function(){
+      self.addressBookAutocomplete = {};
+    } 
+    self.option_delimited = {
+      suggest: suggest_email_delimited,
+    };
+
 }
 
 Message.prototype.switchLang = function(lang) {
