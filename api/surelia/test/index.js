@@ -1258,6 +1258,158 @@ hoodiecrowServer.listen(1143, function(){
       })
     })
   });
+  describe("Address Book", function() {
+    it("Get address book collection for autocomplete", function(done){
+      server.inject({
+        method: "GET",
+        url : "/api/1.0/autocomplete",
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result[0].emailAddress.length).greaterThan(0);
+        done();
+      })
+    })
+    it("Get address book collection", function(done){
+      server.inject({
+        method: "GET",
+        url : "/api/1.0/address-book",
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.meta.pages).equal(1);
+        should(response.result.meta.page).equal(1);
+        should(response.result.meta.limit).equal(10);
+        should(response.result.data[0].emailAddress.length).greaterThan(0);
+        should(response.result.data[0].account.length).greaterThan(0);
+        done();
+      })
+    })
+    it("Get address book collection, search for surelia", function(done){
+      server.inject({
+        method: "GET",
+        url : "/api/1.0/address-book?q=surelia",
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.meta.page).equal(1);
+        should(response.result.meta.limit).equal(10);
+        should(response.result.data[0].emailAddress.length).greaterThan(0);
+        should(response.result.data[0].emailAddress).equal(process.env.TEST_SMTP_USERNAME);
+        should(response.result.data[0].account.length).greaterThan(0);
+        done();
+      })
+    })
+    it("Fail get address book collection because of invalid query", function(done){
+      server.inject({
+        method: "GET",
+        url : "/api/1.0/address-book?something=something",
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.statusCode).equal(400);
+        should(response.result.error).equal("Bad Request");
+        done();
+      })
+    })
+    it("Create new contact and update it", function(done){
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/contact",
+        payload : {
+          emailAddress : "someemail@domain.com",
+          name : "Just Someone",
+          organization : "Org",
+          officeAddress : "Somewhere",
+          homeAddress : "Here",
+          phone : 1234567890
+        },
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.emailAddress).equal("someemail@domain.com");
+        should(response.result.name).equal("Just Someone");
+        should(response.result.organization).equal("Org");
+        should(response.result.officeAddress).equal("Somewhere");
+        should(response.result.homeAddress).equal("Here");
+        should(response.result.phone).equal("1234567890");
+        server.inject({
+          method: "PUT",
+          url : "/api/1.0/contact",
+          payload : {
+            _id : response.result._id,
+            emailAddress : "someemail@domain.com",
+            name : "Just Someone",
+            organization : "Org",
+            officeAddress : "Somewhere",
+            homeAddress : "Here",
+            phone : 1234567890
+          },
+          headers : {
+            token : token,
+            username : process.env.TEST_SMTP_USERNAME
+          }
+        }, function(response){
+          console.log(response.result);
+          done();
+        })
+      })
+    })
+    it("Create new contact with partial information", function(done){
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/contact",
+        payload : {
+          emailAddress : "someemail@domain.com",
+          name : "Just Someone",
+        },
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.emailAddress).equal("someemail@domain.com");
+        should(response.result.name).equal("Just Someone");
+        done();
+      })
+    })
+    it("Fail to create new contact because of invalid payload key", function(done){
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/contact",
+        payload : {
+          emailAddress : "someemail@domain.com",
+          name : "Just Someone",
+          something : "something"
+        },
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.statusCode).equal(400);
+        should(response.result.error).equal("Bad Request");
+        done();
+      })
+    })
+  });
   describe("Logout", function() {
     it("Should logout and lost access", function(done){
       server.inject({

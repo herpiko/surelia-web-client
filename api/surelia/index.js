@@ -273,12 +273,85 @@ ImapAPI.prototype.registerEndPoints = function(){
   
   self.server.route({
     method : "GET",
+    path : "/api/1.0/autocomplete",
+    handler : function(request, reply){
+      self.getAutocomplete(request, reply);
+    }
+  })
+  
+  self.server.route({
+    method : "GET",
     path : "/api/1.0/address-book",
     handler : function(request, reply){
       self.getAddressBook(request, reply);
+    },
+    config : {
+      validate : {
+        query : {
+          page : Joi.number().allow(""),
+          limit : Joi.number().allow(""),
+          q : Joi.string().allow(""),
+        }  
+      }
     }
   })
-
+  self.server.route({
+    method : "GET",
+    path : "/api/1.0/contact",
+    handler : function(request, reply){
+      self.getContact(request, reply);
+    },
+    config : {
+      validate : {
+        query : {
+          id : Joi.string().allow(""),
+        }  
+      }
+    }
+  })
+  
+  self.server.route({
+    method : "POST",
+    path : "/api/1.0/contact",
+    handler : function(request, reply){
+      self.addContact(request, reply);
+    },
+    config : {
+      validate : {
+        payload : {
+          emailAddress : Joi.string().required(""),
+          name : Joi.string().required(""),
+          organization : Joi.string().allow(""),
+          name : Joi.string().allow(""),
+          officeAddress : Joi.string().allow(""),
+          homeAddress : Joi.string().allow(""),
+          phone : [Joi.string().allow(""),Joi.number().allow("")]
+        }  
+      }
+    }
+  })
+  
+  self.server.route({
+    method : "PUT",
+    path : "/api/1.0/contact",
+    handler : function(request, reply){
+      self.updateContact(request, reply);
+    },
+    config : {
+      validate : {
+        payload : {
+          _id : Joi.string().required(""),
+          emailAddress : Joi.string().allow(""),
+          name : Joi.string().allow(""),
+          organization : Joi.string().allow(""),
+          name : Joi.string().allow(""),
+          officeAddress : Joi.string().allow(""),
+          homeAddress : Joi.string().allow(""),
+          phone : [Joi.string().allow(""),Joi.number().allow("")]
+        }  
+      }
+    }
+  })
 }
 
 /**
@@ -1256,9 +1329,14 @@ ImapAPI.prototype.setFlag = function(request, reply) {
   checkPool(request, reply, realFunc);
 }
 
-ImapAPI.prototype.getAddressBook = function(request, reply) {
+// Address Book CRUD
+
+/**
+ * Get all the address book collection for autocomplete
+ */
+ImapAPI.prototype.getAutocomplete = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    addressBookModel().find({accounts : {$in : [request.headers.username]}}).exec(function(err, result){
+    addressBookModel().find({account : request.headers.username}).select({name:1, emailAddress:1}).exec(function(err, result){
       if (err) {
         reply(err).code(500);
       }
@@ -1268,6 +1346,119 @@ ImapAPI.prototype.getAddressBook = function(request, reply) {
   
   checkPool(request, reply, realFunc);
 }
+
+/**
+ * Get the address book collection, per page and limit
+ */
+ImapAPI.prototype.getAddressBook = function(request, reply) {
+  var realFunc = function(client, request, reply) {
+
+    var defaultLimit = 10;
+  
+    var query = {
+      account : request.headers.username
+    };
+    var limit = request.query.limit || defaultLimit;
+    var page = request.query.page || 1;
+    if (request.query.q) {
+      query = {
+        emailAddress: new RegExp(request.query.q, "i")
+      }
+    }
+  
+    // Count all records first
+    addressBookModel().count(query, function(err, count) {
+      if (err) return reply(err);
+  
+      var q = addressBookModel()
+        .find(query) 
+        .lean();
+  
+      var numPages = 1; 
+      q.limit(limit);
+      q.skip(limit * (page - 1));
+      numPages =  Math.ceil(count/limit);
+  
+      q.exec(function(err, result) {
+        if (err) {
+          return reply(err).code(500);
+        }
+        reply({
+          meta : {
+            limit : limit,
+            total: count,
+            pages: numPages,
+            page: page,
+          },
+          data: result
+        });
+      });
+    });
+  }
+  
+  checkPool(request, reply, realFunc);
+}
+
+/**
+ * Get a contact
+ */
+ImapAPI.prototype.getContact = function(request, reply) {
+  var realFunc = function(client, request, reply) {
+    addressBookModel().findOne({_id:request.query.id}).exec(function(err, result){
+      if (err) {
+        reply(err).code(500);
+      }
+      reply(result);
+    })
+  }
+  
+  checkPool(request, reply, realFunc);
+}
+
+/**
+ * Add new contact
+ */
+ImapAPI.prototype.addContact = function(request, reply) {
+  var realFunc = function(client, request, reply) {
+    request.payload.account = request.headers.username;
+    console.log(request.payload);
+    addressBookModel().create(request.payload, function(err, result){
+      if (err) {
+        reply(err).code(500);
+      }
+      reply(result);
+    })
+  }
+  
+  checkPool(request, reply, realFunc);
+}
+
+/**
+ * Update existing contact
+ */
+ImapAPI.prototype.updateContact = function(request, reply) {
+  var self = this;
+  var realFunc = function(client, request, reply) {
+    console.log(request.payload);
+    var id = request.payload._id;
+    delete(request.payload._id);
+    addressBookModel().findOneAndUpdate({_id:id}, request.payload, function(err, result){
+      console.log(err);
+      if (err) {
+        reply(err).code(500);
+      }
+      addressBookModel().findOne({_id:id}).exec(function(err, result){
+        if (err) {
+          reply(err).code(500);
+        }
+        reply(result);
+      })
+    })
+  }
+  checkPool(request, reply, realFunc);
+}
+
+
 
 // Model
 
@@ -1333,7 +1524,11 @@ var addressBookModel = function() {
   var schema = {
     account : String,
     emailAddress : String,
-    name : String
+    name : String,
+    organization : String,
+    officeAddress : String,
+    homeAddress : String,
+    phone : String,
   }
   var s = new mongoose.Schema(schema);
   m = mongoose.model("addressBook", s);
