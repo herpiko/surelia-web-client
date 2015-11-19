@@ -1169,8 +1169,6 @@ hoodiecrowServer.listen(1143, function(){
         .attach("content", __dirname + "/assets/simple_grey.png")
         .end(function(err, res){
           should(res.statusCode).equal(200);
-          console.log("=======================");
-          console.log(res.body);
           attachmentId = res.body.attachmentId;
           var data = {
             // Envelope
@@ -1283,7 +1281,6 @@ hoodiecrowServer.listen(1143, function(){
         }
       }, function(response){
         console.log(response.result);
-        should(response.result.meta.pages).equal(1);
         should(response.result.meta.page).equal(1);
         should(response.result.meta.limit).equal(10);
         should(response.result.data[0].emailAddress.length).greaterThan(0);
@@ -1375,6 +1372,25 @@ hoodiecrowServer.listen(1143, function(){
         method: "POST",
         url : "/api/1.0/contact",
         payload : {
+          emailAddress : "someemail2@domain.com",
+          name : "Just Someone",
+        },
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.emailAddress).equal("someemail2@domain.com");
+        should(response.result.name).equal("Just Someone");
+        done();
+      })
+    })
+    it("Fail to create new contact because of entity already exist", function(done){
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/contact",
+        payload : {
           emailAddress : "someemail@domain.com",
           name : "Just Someone",
         },
@@ -1384,8 +1400,7 @@ hoodiecrowServer.listen(1143, function(){
         }
       }, function(response){
         console.log(response.result);
-        should(response.result.emailAddress).equal("someemail@domain.com");
-        should(response.result.name).equal("Just Someone");
+        should(response.statusCode).equal(422);
         done();
       })
     })

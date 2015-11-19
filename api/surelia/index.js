@@ -281,6 +281,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       validate : {
         query : {
           page : Joi.number().allow(""),
+          sort : Joi.string().allow(""),
           limit : Joi.number().allow(""),
           q : Joi.string().allow(""),
         }  
@@ -292,7 +293,7 @@ ImapAPI.prototype.registerEndPoints = function(){
     method : "GET",
     path : "/api/1.0/contacts/candidates",
     handler : function(request, reply){
-      self.getAutocomplete(request, reply);
+      self.getContactCandidates(request, reply);
     }
   })
   
@@ -867,6 +868,7 @@ ImapAPI.prototype.listBox = function(request, reply) {
               async.eachSeries(addressArray, function(email, cb){
                 // Check if the email address exists in db
                 addressBookModel().findOne({emailAddress:email.address, account : request.headers.username}, function(err, result){
+                  console.log(err);
                   if (result){
                     return cb();
                   }
@@ -895,9 +897,6 @@ ImapAPI.prototype.listBox = function(request, reply) {
             if (!result){
               // Collect them all!
               collectEmails(message.parsed.cc)
-                .then(function(){
-                  return collectEmails(message.parsed.bcc);
-                })
                 .then(function(){
                   return collectEmails(message.parsed.from);
                 })
@@ -1337,7 +1336,7 @@ ImapAPI.prototype.setFlag = function(request, reply) {
 /**
  * Get all the address book collection for autocomplete
  */
-ImapAPI.prototype.getAutocomplete = function(request, reply) {
+ImapAPI.prototype.getContactCandidates = function(request, reply) {
   var realFunc = function(client, request, reply) {
     addressBookModel().find({account : request.headers.username}).select({name:1, emailAddress:1}).exec(function(err, result){
       if (err) {
@@ -1357,6 +1356,7 @@ ImapAPI.prototype.getAddressBook = function(request, reply) {
   var realFunc = function(client, request, reply) {
 
     var defaultLimit = 10;
+    var sort = { emailAddress : 1 };
   
     var query = {
       account : request.headers.username
@@ -1368,7 +1368,15 @@ ImapAPI.prototype.getAddressBook = function(request, reply) {
         emailAddress: new RegExp(request.query.q, "i")
       }
     }
-  
+    if (request.query.sort) {
+      if (request.query.sort == "ascending") {
+        sort.emailAddress = 1;
+      } else if (request.query.sort == "descending") {
+        sort.emailAddress = -1;
+      }
+    }
+
+    console.log(query);
     // Count all records first
     addressBookModel().count(query, function(err, count) {
       if (err) {
@@ -1376,7 +1384,8 @@ ImapAPI.prototype.getAddressBook = function(request, reply) {
       }
   
       var q = addressBookModel()
-        .find(query) 
+        .find(query)
+        .sort(sort)
         .lean();
   
       var numPages = 1; 
@@ -1409,11 +1418,20 @@ ImapAPI.prototype.getAddressBook = function(request, reply) {
  */
 ImapAPI.prototype.getContact = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    addressBookModel().findOne({_id:request.query.id}).exec(function(err, result){
-      if (err) {
-        return reply(err).code(500);
-      }
-      reply(result);
+    addressBookModel().findOne({_id:request.query.id})
+      .select({
+        name : 1, 
+        emailAddress : 1,
+        officeAddress : 1,
+        homeAddress : 1,
+        phone : 1,
+        _id : 1,
+      })
+      .exec(function(err, result){
+        if (err) {
+          return reply(err).code(500);
+        }
+        reply(result);
     })
   }
   
@@ -1427,11 +1445,20 @@ ImapAPI.prototype.addContact = function(request, reply) {
   var realFunc = function(client, request, reply) {
     request.payload.account = request.headers.username;
     console.log(request.payload);
-    addressBookModel().create(request.payload, function(err, result){
+
+    addressBookModel().find({emailAddress : request.payload.emailAddress}, function(err, result){
       if (err) {
         return reply(err).code(500);
       }
-      reply(result);
+      if (result.length > 0) {
+        return reply({err :new Error("Contact already exists").message}).code(422);
+      }
+      addressBookModel().create(request.payload, function(err, result){
+        if (err) {
+          return reply(err).code(500);
+        }
+        reply(result);
+      })
     })
   }
   
