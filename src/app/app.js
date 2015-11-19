@@ -71,10 +71,10 @@ var app = angular.module("App", [
       }
     }
   )
-  .state("Message", {
-      url: "/message",
+  .state("Surelia", {
+      url: "/surelia",
       templateProvider: function($templateCache) {
-        return $templateCache.get("message.html");
+        return $templateCache.get("surelia.html");
       }
     }
   )

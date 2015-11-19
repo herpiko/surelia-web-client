@@ -16,7 +16,7 @@ var Login = function ($scope, $rootScope, $state, $window, $stateParams, localSt
   self.loading = self.ngProgressFactory.createInstance();
 
   if (self.$rootScope.isLoggedIn || self.localStorageService.get("token")) {
-    self.$state.go("Message");
+    self.$state.go("Surelia");
   }
   self.$scope.credential = {
     imapHost : self.conf.imap.host,
@@ -43,7 +43,7 @@ Login.prototype.auth = function(credential){
     .then(function(data){
       self.loading.complete();
       console.log(data);
-      self.$state.go("Message");
+      self.$state.go("Surelia");
     })
     .catch(function(data, status){
       self.loading.complete();

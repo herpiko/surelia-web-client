@@ -10,6 +10,18 @@ var ToastrService = function($http, localStorageService, $rootScope, $state, $q,
   this.ImapService = ImapService;
 }
 
+ToastrService.prototype.contactAlreadyExists = function(){
+  var self = this;
+  self.toastr.success(self.$filter("translate")("TOASTR_CONTACT_ALREADY_EXISTS"));
+}
+ToastrService.prototype.successfullyAddContact = function(){
+  var self = this;
+  self.toastr.success(self.$filter("translate")("TOASTR_SUCCESSFULLY_ADD_CONTACT"));
+}
+ToastrService.prototype.successfullyUpdateContact = function(){
+  var self = this;
+  self.toastr.success(self.$filter("translate")("TOASTR_SUCCESSFULLY_UPDATE_CONTACT"));
+}
 ToastrService.prototype.couldntMoveToSameBox = function(){
   var self = this;
   self.toastr.error(self.$filter("translate")("TOASTR_COULDNT_MOVE_TO_SAME_BOX"));
@@ -76,12 +88,17 @@ ToastrService.prototype.permanentlyDeleted = function() {
 // instead of writing a bunch of toastr functions.
 ToastrService.prototype.parse = function(data, status) {
   var self = this;
+  console.log(data);
+  console.log(status);
   if ( data && data.err &&  data.err == "Invalid credentials") {
     return self.invalidCredentials();
   }
   if (data.err === "Session expired") {
     self.ImapService.logout();
     return self.sessionExpired();
+  }
+  if (data.err == "Contact already exists") {
+    return self.contactAlreadyExists();
   }
   if (status === 500) {
     return self.error500();

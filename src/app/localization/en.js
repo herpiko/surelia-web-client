@@ -14,6 +14,9 @@ module.exports = {
   "TOASTR_MESSAGE_SELECTION_SHOULDNT_EMPTY" : "Please select minimum one message",
   "TOASTR_COULDNT_MOVE_TO_SAME_BOX" : "You are choosing the same box",
   "TOASTR_SESSION_EXPIRED" : "Your session is expired. Please try to login again",
+  "TOASTR_SUCCESSFULLY_UPDATE_CONTACT" : "Contact update has been saved",
+  "TOASTR_SUCCESSFULLY_ADD_CONTACT" : "New contact has been saved",
+  "TOASTR_CONTACT_ALREADY_EXISTS" : "Unable to save. Contact already exists.",
 
   // Login
   "WELCOME" : "Welcome",
@@ -54,4 +57,16 @@ module.exports = {
   "FLAG_AS" : "Flag as",
   "FILTER" : "Filter",
   "ATTACHMENTS" : "Attachments",
+  
+  // Contact
+  "ADD" : "Add",
+  "ADD_CONTACT" : "Add contact",
+  "CONTACTS" : "Contacts",
+  "NAME" : "Name",
+  "EMAIL" : "Email Address",
+  "OFFICE_ADDRESS" : "Office Address",
+  "HOME_ADDRESS" : "Home Address",
+  "PHONE" : "Phone",
+  "EDIT" : "Edit",
+  "UPDATE" : "Update",
 }

@@ -12,6 +12,9 @@ module.exports = {
   "TOASTR_MESSAGE_SELECTION_SHOULDNT_EMPTY" : "Pilih minimal satu pesan terlebih dahulu",
   "TOASTR_COULDNT_MOVE_TO_SAME_BOX" : "Anda memilih kotak surel yang sama",
   "TOASTR_SESSION_EXPIRED" : "Batas waktu sesi Anda telah habis. Silakan coba untuk masuk kembali",
+  "TOASTR_SUCCESSFULLY_ADD_CONTACT" : "Kontak baru telah disimpan",
+  "TOASTR_SUCCESSFULLY_UPDATE_CONTACT" : "Pembaruan kontak telah disimpan",
+  "TOASTR_CONTACT_ALREADY_EXISTS" : "Gagal menyimpan. Kontak sudah pernah dibuat",
   
   // Login
   "WELCOME" : "Selamat Datang",
@@ -52,4 +55,16 @@ module.exports = {
   "FLAG_AS" : "Tandai sebagai",
   "FILTER" : "Filter",
   "ATTACHMENTS" : "Lampiran",
+
+  // Contact
+  "ADD" : "Tambah",
+  "ADD_CONTACT" : "Tambah kontak",
+  "CONTACTS" : "Buku Alamat",
+  "NAME" : "Nama",
+  "EMAIL" : "Surat Elektronik",
+  "OFFICE_ADDRESS" : "Alamat Kantor",
+  "HOME_ADDRESS" : "Alamat Rumah",
+  "PHONE" : "Telepon",
+  "EDIT" : "Sunting",
+  "UPDATE" : "Perbarui",
 }
