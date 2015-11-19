@@ -413,6 +413,7 @@ Surelia.prototype.listBox = function(boxName, opts, canceler){
   self.sortBy = opts.sortBy || null;
   self.filter = opts.filter || null;
   self.currentSelection = [];
+  self.currentMessage = {};
   self.loading.start();
   self.listView = "messages";
   self.view = "message";
@@ -1184,9 +1185,9 @@ Surelia.prototype.flagMessage = function(flag) {
 Surelia.prototype.retrieveContact = function(id){
   var self = this;
   self.loading.start();
-  self.view = "contact";
   self.ContactService.get(id, true)
     .then(function(data){
+      self.view = "contact";
       console.log(data);
       self.contactForm = false;
       self.currentContact = data;
@@ -1253,12 +1254,16 @@ Surelia.prototype.listContact = function(opts, canceler){
   if (!opts.search) {
     self.searchString = null;
   }
+  self.currentBoxName = "";
+  self.currentBoxPath = "";
   self.sortBy = opts.sortBy || null;
   self.currentContactSelection = [];
   self.currentContact = {};
+  self.currentContactForm = {};
+  self.currentContactFormMode = "";
   self.loading.start();
   self.listView = "contacts";
-  self.view = "contact";
+  self.view = "";
   self.selectAll = false;
   self.contactForm = false;
   console.log("list contacts");

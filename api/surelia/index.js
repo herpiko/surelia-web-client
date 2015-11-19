@@ -1423,6 +1423,7 @@ ImapAPI.prototype.getContact = function(request, reply) {
         name : 1, 
         emailAddress : 1,
         officeAddress : 1,
+        organization : 1,
         homeAddress : 1,
         phone : 1,
         _id : 1,

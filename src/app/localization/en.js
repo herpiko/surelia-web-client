@@ -64,9 +64,11 @@ module.exports = {
   "CONTACTS" : "Contacts",
   "NAME" : "Name",
   "EMAIL" : "Email Address",
+  "ORGANIZATION" : "Organization",
   "OFFICE_ADDRESS" : "Office Address",
   "HOME_ADDRESS" : "Home Address",
   "PHONE" : "Phone",
   "EDIT" : "Edit",
   "UPDATE" : "Update",
+  "CONTACT_LIST" : "Contact List",
 }

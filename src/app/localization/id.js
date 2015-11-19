@@ -62,9 +62,11 @@ module.exports = {
   "CONTACTS" : "Buku Alamat",
   "NAME" : "Nama",
   "EMAIL" : "Surat Elektronik",
+  "ORGANIZATION" : "Institusi / Organisasi",
   "OFFICE_ADDRESS" : "Alamat Kantor",
   "HOME_ADDRESS" : "Alamat Rumah",
   "PHONE" : "Telepon",
   "EDIT" : "Sunting",
   "UPDATE" : "Perbarui",
+  "CONTACT_LIST" : "Daftar Kontak",
 }
