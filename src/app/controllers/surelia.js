@@ -284,14 +284,16 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
         self.enableAutocomplete = true;
       }, 1000)
     }
-    self.clearAutocomplete = function(){
-      self.contactCandidatesAutocomplete = {};
-    } 
     self.option_delimited = {
       suggest: suggest_email_delimited,
     };
 
 }
+
+Surelia.prototype.clearAutocomplete = function(){
+  var self = this;
+  self.contactCandidatesAutocomplete = {};
+} 
 
 Surelia.prototype.switchLang = function(lang) {
   var self = this;
@@ -713,6 +715,7 @@ Surelia.prototype.logout = function(){
 
 Surelia.prototype.sendMessage = function(msg){
   var self = this;
+  self.clearAutocomplete();
   var msg = angular.copy(msg);
   // Recipients should not be empty
   if (!msg.recipients) {
@@ -962,6 +965,7 @@ Surelia.prototype.composeMessage = function(message, action){
 
 Surelia.prototype.saveDraft = function(){
   var self = this;
+  self.clearAutocomplete();
   self.compose = false;
   var msg = angular.copy(self.newMessage);
   // Save as draft if it has modified
@@ -1024,6 +1028,7 @@ Surelia.prototype.saveDraft = function(){
 }
 Surelia.prototype.discardDraft = function(id){
   var self = this;
+  self.clearAutocomplete();
   self.compose = false;
   // Remove temporary attachments in surelia backend
   if (self.newMessage.attachments && self.newMessage.attachments.length > 0) {
