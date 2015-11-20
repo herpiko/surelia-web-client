@@ -12,6 +12,7 @@ var lodash = require("lodash");
 var Grid = require("gridfs-stream");
 var streamifier = require("streamifier");
 var base64Stream = require("base64-stream");
+var objectHash = require("object-hash");
 Grid.mongo = mongoose.mongo;
 gfs = Grid(mongoose.connection.db);
 
@@ -269,7 +270,90 @@ ImapAPI.prototype.registerEndPoints = function(){
       }
     }
   })
-
+  
+  self.server.route({
+    method : "GET",
+    path : "/api/1.0/contacts",
+    handler : function(request, reply){
+      self.getAddressBook(request, reply);
+    },
+    config : {
+      validate : {
+        query : {
+          page : Joi.number().allow(""),
+          sort : Joi.string().allow(""),
+          limit : Joi.number().allow(""),
+          q : Joi.string().allow(""),
+        }  
+      }
+    }
+  })
+  
+  self.server.route({
+    method : "GET",
+    path : "/api/1.0/contacts/candidates",
+    handler : function(request, reply){
+      self.getContactCandidates(request, reply);
+    }
+  })
+  
+  self.server.route({
+    method : "GET",
+    path : "/api/1.0/contact",
+    handler : function(request, reply){
+      self.getContact(request, reply);
+    },
+    config : {
+      validate : {
+        query : {
+          id : Joi.string().allow(""),
+        }  
+      }
+    }
+  })
+  
+  self.server.route({
+    method : "POST",
+    path : "/api/1.0/contact",
+    handler : function(request, reply){
+      self.addContact(request, reply);
+    },
+    config : {
+      validate : {
+        payload : {
+          emailAddress : Joi.string().required(""),
+          name : Joi.string().required(""),
+          organization : Joi.string().allow(""),
+          name : Joi.string().allow(""),
+          officeAddress : Joi.string().allow(""),
+          homeAddress : Joi.string().allow(""),
+          phone : [Joi.string().allow(""),Joi.number().allow("")]
+        }  
+      }
+    }
+  })
+  
+  self.server.route({
+    method : "PUT",
+    path : "/api/1.0/contact",
+    handler : function(request, reply){
+      self.updateContact(request, reply);
+    },
+    config : {
+      validate : {
+        payload : {
+          _id : Joi.string().required(""),
+          emailAddress : Joi.string().allow(""),
+          name : Joi.string().allow(""),
+          organization : Joi.string().allow(""),
+          name : Joi.string().allow(""),
+          officeAddress : Joi.string().allow(""),
+          homeAddress : Joi.string().allow(""),
+          phone : [Joi.string().allow(""),Joi.number().allow("")]
+        }  
+      }
+    }
+  })
 }
 
 /**
@@ -770,7 +854,72 @@ ImapAPI.prototype.listBox = function(request, reply) {
     }
     client.listBox(request.query.boxName, request.query.limit, request.query.page, opts)
       .then(function(result){
+
         reply(result);
+
+        // Collect email address to addressBook
+        // Since this collector is a heavy process, make it async
+
+        var collectEmails = function(addressArray) {
+          return new Promise(function(resolve, reject){
+            if (addressArray && addressArray.length > 0) {
+              // Fast async document creation could make duplicated items
+              // Let's process it one by one
+              async.eachSeries(addressArray, function(email, cb){
+                // Check if the email address exists in db
+                addressBookModel().findOne({emailAddress:email.address, account : request.headers.username}, function(err, result){
+                  console.log(err);
+                  if (result){
+                    return cb();
+                  }
+                  email.name = email.name || "";
+                  addressBookModel().create({emailAddress : email.address, name : email.name, account : request.headers.username}, function(err){ 
+                    console.log(err);
+                    cb();
+                  });
+                })
+              }, function(err){
+                resolve();
+              })
+            } else {
+              resolve();
+            }
+          })
+        }
+
+        // Iterate the message list
+        // Fast async document creation could make duplicated items
+        // Let's process it one by one
+        // In this deep function, Do not check for errors
+        async.eachSeries(result.data, function(message, cb){
+          var hash = objectHash(message.parsed.headers);
+          collectedMessageModel().findOne({hash : hash}, function(err, result){
+            if (!result){
+              // Collect them all!
+              collectEmails(message.parsed.cc)
+                .then(function(){
+                  return collectEmails(message.parsed.from);
+                })
+                .then(function(){
+                  return collectEmails(message.parsed.to);
+                })
+                .then(function(){
+                  // Save the new message hash
+                  collectedMessageModel().create({hash : hash}, function(err, result){ 
+                    console.log(err)
+                    cb();
+                  })
+                })
+                .catch(function(err){
+                  cb();
+                })
+            } else {
+              cb();
+            }
+          })
+        }, function(err){
+          // Do nothing. All is well.
+        })
       })
       .catch(function(err){
         if (err && err.message && err.message === "Nothing to fetch") {
@@ -887,6 +1036,8 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
         if (request.query.boxName.indexOf("Drafts") > -1) {
           message.isDraft = true;
         }
+
+
         if (!message.hasAttachments && !message.parsed.attachments) {
           return reply(message);
         }
@@ -1180,6 +1331,168 @@ ImapAPI.prototype.setFlag = function(request, reply) {
   checkPool(request, reply, realFunc);
 }
 
+// Address Book CRUD
+
+/**
+ * Get all the address book collection for autocomplete
+ */
+ImapAPI.prototype.getContactCandidates = function(request, reply) {
+  var realFunc = function(client, request, reply) {
+    addressBookModel().find({account : request.headers.username}).select({name:1, emailAddress:1}).exec(function(err, result){
+      if (err) {
+        return reply(err).code(500);
+      }
+      reply(result);
+    })
+  }
+  
+  checkPool(request, reply, realFunc);
+}
+
+/**
+ * Get the address book collection, per page and limit
+ */
+ImapAPI.prototype.getAddressBook = function(request, reply) {
+  var realFunc = function(client, request, reply) {
+
+    var defaultLimit = 10;
+    var sort = { emailAddress : 1 };
+  
+    var query = {
+      account : request.headers.username
+    };
+    var limit = request.query.limit || defaultLimit;
+    var page = request.query.page || 1;
+    if (request.query.q) {
+      query = {
+        emailAddress: new RegExp(request.query.q, "i")
+      }
+    }
+    if (request.query.sort) {
+      if (request.query.sort == "ascending") {
+        sort.emailAddress = 1;
+      } else if (request.query.sort == "descending") {
+        sort.emailAddress = -1;
+      }
+    }
+
+    console.log(query);
+    // Count all records first
+    addressBookModel().count(query, function(err, count) {
+      if (err) {
+        return reply(err);
+      }
+  
+      var q = addressBookModel()
+        .find(query)
+        .sort(sort)
+        .lean();
+  
+      var numPages = 1; 
+      q.limit(limit);
+      q.skip(limit * (page - 1));
+      numPages =  Math.ceil(count/limit);
+  
+      q.exec(function(err, result) {
+        if (err) {
+          return reply(err).code(500);
+        }
+        reply({
+          meta : {
+            limit : limit,
+            total: count,
+            pages: numPages,
+            page: page,
+          },
+          data: result
+        });
+      });
+    });
+  }
+  
+  checkPool(request, reply, realFunc);
+}
+
+/**
+ * Get a contact
+ */
+ImapAPI.prototype.getContact = function(request, reply) {
+  var realFunc = function(client, request, reply) {
+    addressBookModel().findOne({_id:request.query.id})
+      .select({
+        name : 1, 
+        emailAddress : 1,
+        officeAddress : 1,
+        organization : 1,
+        homeAddress : 1,
+        phone : 1,
+        _id : 1,
+      })
+      .exec(function(err, result){
+        if (err) {
+          return reply(err).code(500);
+        }
+        reply(result);
+    })
+  }
+  
+  checkPool(request, reply, realFunc);
+}
+
+/**
+ * Add new contact
+ */
+ImapAPI.prototype.addContact = function(request, reply) {
+  var realFunc = function(client, request, reply) {
+    request.payload.account = request.headers.username;
+    console.log(request.payload);
+
+    addressBookModel().find({emailAddress : request.payload.emailAddress}, function(err, result){
+      if (err) {
+        return reply(err).code(500);
+      }
+      if (result.length > 0) {
+        return reply({err :new Error("Contact already exists").message}).code(422);
+      }
+      addressBookModel().create(request.payload, function(err, result){
+        if (err) {
+          return reply(err).code(500);
+        }
+        reply(result);
+      })
+    })
+  }
+  
+  checkPool(request, reply, realFunc);
+}
+
+/**
+ * Update existing contact
+ */
+ImapAPI.prototype.updateContact = function(request, reply) {
+  var self = this;
+  var realFunc = function(client, request, reply) {
+    console.log(request.payload);
+    var id = request.payload._id;
+    delete(request.payload._id);
+    addressBookModel().findOneAndUpdate({_id:id}, request.payload, function(err, result){
+      console.log(err);
+      if (err) {
+        return reply(err).code(500);
+      }
+      addressBookModel().findOne({_id:id}).exec(function(err, result){
+        if (err) {
+          return reply(err).code(500);
+        }
+        reply(result);
+      })
+    })
+  }
+  checkPool(request, reply, realFunc);
+}
+
+
+
 // Model
 
 var model = function() {
@@ -1206,6 +1519,52 @@ var model = function() {
   }
   var s = new mongoose.Schema(schema);
   m = mongoose.model("Auth", s);
+  return m;
+}
+
+// If a messageId has been stored to this collection
+// it means all the email address in those message has been
+// collected in addressBook collection
+var collectedMessageModel = function() {
+  var registered = false;
+  var m;
+  try {
+    m = mongoose.model("collectedMessage");
+    registered = true;
+  } catch(e) {
+  }
+
+  if (registered) return m;
+  var schema = {
+    hash: String,
+  }
+  var s = new mongoose.Schema(schema);
+  m = mongoose.model("collectedMessage", s);
+  return m;
+}
+
+// Email address collection
+var addressBookModel = function() {
+  var registered = false;
+  var m;
+  try {
+    m = mongoose.model("addressBook");
+    registered = true;
+  } catch(e) {
+  }
+
+  if (registered) return m;
+  var schema = {
+    account : String,
+    emailAddress : String,
+    name : String,
+    organization : String,
+    officeAddress : String,
+    homeAddress : String,
+    phone : String,
+  }
+  var s = new mongoose.Schema(schema);
+  m = mongoose.model("addressBook", s);
   return m;
 }
 

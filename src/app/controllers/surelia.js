@@ -81,7 +81,7 @@ var mimeTypes = {
     ]
   }
 }
-var Message = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce, $translate){
+var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce, $translate, ContactService){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -98,13 +98,20 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.$templateCache = $templateCache;
   this.$sce = $sce;
   this.$translate = $translate;
+  this.ContactService = ContactService;
   var self = this;
+  self.listView = "messages";
+  self.list = "message";
   self.compose = false;
   self.composeMode = "corner";
   self.cc = false;;
   self.bcc = false;
   self.newMessage = {};
   self.currentMessage = {};
+  self.contactCandidates = [];
+  self.enableAutocomplete = true;
+  self.currentAutocomplete = {};
+  self.contactCandidatesAutocomplete = {};
   self.sortBy = null;
   self.sortImportance = "ascending";
   // This array will be used in "Move to" submenu in multiselect action
@@ -132,6 +139,15 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
   }
   // Load basic information
   self.loading.set(20);
+  // Get contact candidates for autocomplete
+  self.ContactService.getCandidates()
+    .then(function(data){
+      console.log(data);
+      self.contactCandidates = data;
+    })
+    .catch(function(data, status){
+      self.ErrorHandlerService.parse(data, status);
+    })
   self.ImapService.getBoxes()
     .success(function(data, status){
       console.log(data);
@@ -220,14 +236,71 @@ var Message = function ($scope, $rootScope, $state, $window, $stateParams, local
       self.quota.limit = data.limit * 1024;
       self.quota.percentage = data.percentage;
     });
+
+    // Autocomplete
+    var suggest_email = function(term) {
+      var q = term.toLowerCase().trim(),
+          results = [];
+  
+      for (var i = 0; i < self.contactCandidates.length && results.length < 10; i++) {
+        var a = self.contactCandidates[i];
+        if (a.emailAddress.toLowerCase().indexOf(q) == 0
+          || a.name.toLowerCase().indexOf(q) == 0
+        ) {
+          var label = a.name;
+          if (label.length > 0) {
+            label += " - " + a.emailAddress;
+          } else {
+            label = a.emailAddress;
+          }
+          results.push({ label: label, value: a.emailAddress });
+        }
+      }
+      return results;
+    }
+    var suggest_email_delimited = function(term) {
+      if (self.enableAutocomplete) {
+        var ix = term.lastIndexOf(","),
+            lhs = term.substring(0, ix + 1),
+            rhs = term.substring(ix + 1),
+            suggestions = suggest_email(rhs);
+      
+        suggestions.forEach(function (s) {
+          s.value = lhs + s.value;
+        });
+        self.contactCandidatesAutocomplete[self.currentAutocomplete] = suggestions; 
+        return suggestions;
+      }
+    };
+    self.select_suggested = function(val, form) { 
+      self.enableAutocomplete = false;
+      var str = self.newMessage[form].split(",");
+      var length = str.length;
+      str = str.slice(0,length-1);
+      str[str.length] = val;
+      self.newMessage[form] = str.join(", ");
+      self.clearAutocomplete();
+      setTimeout(function(){
+        self.enableAutocomplete = true;
+      }, 1000)
+    }
+    self.option_delimited = {
+      suggest: suggest_email_delimited,
+    };
+
 }
 
-Message.prototype.switchLang = function(lang) {
+Surelia.prototype.clearAutocomplete = function(){
+  var self = this;
+  self.contactCandidatesAutocomplete = {};
+} 
+
+Surelia.prototype.switchLang = function(lang) {
   var self = this;
   self.$translate.use(lang);
 }
 
-Message.prototype.getBoxes = function(){
+Surelia.prototype.getBoxes = function(){
   var self = this;
   self.loading.start();
   console.log("boxes");
@@ -245,9 +318,9 @@ Message.prototype.getBoxes = function(){
     })
 }
 
-Message.prototype.listBoxOlder = function(){
+Surelia.prototype.listBoxNext = function(){
   var self = this;
-  if (self.currentListMeta.older) {
+  if (self.currentListMeta.next) {
     var opts = {
       limit : self.currentListMeta.limit,
       page : self.currentListMeta.page + 1,
@@ -261,9 +334,9 @@ Message.prototype.listBoxOlder = function(){
   }
 }
 
-Message.prototype.listBoxNewer = function(){
+Surelia.prototype.listBoxPrev = function(){
   var self = this;
-  if (self.currentListMeta.newer) {
+  if (self.currentListMeta.prev) {
     var opts = {
       limit : self.currentListMeta.limit,
       page : self.currentListMeta.page - 1,
@@ -278,7 +351,7 @@ Message.prototype.listBoxNewer = function(){
 }
 
 // @sort enums = ["DATE", "FROM", "SUBJECT", "SIZE"]
-Message.prototype.listSort = function(sort){
+Surelia.prototype.listSort = function(sort){
   var self = this;
   var opts = {
     limit : self.currentListMeta.limit,
@@ -294,7 +367,7 @@ Message.prototype.listSort = function(sort){
 
 
 // @importance "ascending" or "descending"
-Message.prototype.listReverse = function(importance){
+Surelia.prototype.listReverse = function(importance){
   var self = this;
   var opts = {
     limit : self.currentListMeta.limit,
@@ -308,7 +381,7 @@ Message.prototype.listReverse = function(importance){
   self.listBox(boxName, opts, true);
 }
 
-Message.prototype.listFilter = function(filter){
+Surelia.prototype.listFilter = function(filter){
   var self = this;
   var opts = {
     limit : self.currentListMeta.limit,
@@ -322,7 +395,7 @@ Message.prototype.listFilter = function(filter){
   self.listBox(boxName, opts, true);
 }
 
-Message.prototype.listReload = function(){
+Surelia.prototype.listReload = function(){
   var self = this;
   var opts = {
     limit : self.currentListMeta.limit,
@@ -336,14 +409,17 @@ Message.prototype.listReload = function(){
   self.listBox(boxName, opts, true);
 }
 
-Message.prototype.listBox = function(boxName, opts, canceler){
+Surelia.prototype.listBox = function(boxName, opts, canceler){
   var self = this;
   var opts = opts || {};
   self.sortBy = opts.sortBy || null;
   self.filter = opts.filter || null;
   self.currentSelection = [];
+  self.currentMessage = {};
   self.loading.start();
-  self.view = "list";
+  self.listView = "messages";
+  self.view = "message";
+  self.selectAll = false;
   console.log("list box content");
   if (boxName.indexOf("Drafts") > -1) {
     self.isDraft = true;
@@ -434,14 +510,14 @@ Message.prototype.listBox = function(boxName, opts, canceler){
       // calculate pagination nav
       var meta = self.currentListMeta;
       if ((meta.page - 1) > 0) {
-        self.currentListMeta.newer = true;
+        self.currentListMeta.prev = true;
       } else {
-        self.currentListMeta.newer = false;
+        self.currentListMeta.prev = false;
       }
       if (meta.limit * (meta.page +1) - meta.total < opts.limit) {
-        self.currentListMeta.older = true;
+        self.currentListMeta.next = true;
       } else {
-        self.currentListMeta.older = false;
+        self.currentListMeta.next = false;
       }
       if (meta.total > 0) {
         self.currentListMeta.listStart = (meta.page * meta.limit) - (meta.limit - 1);
@@ -461,7 +537,7 @@ Message.prototype.listBox = function(boxName, opts, canceler){
     })
 }
 
-Message.prototype.addBox = function(boxName){
+Surelia.prototype.addBox = function(boxName){
   var self = this;
   self.loading.start();
   console.log("add box");
@@ -478,7 +554,7 @@ Message.prototype.addBox = function(boxName){
     })
 }
 
-Message.prototype.renameBox = function(boxName, newBoxName){
+Surelia.prototype.renameBox = function(boxName, newBoxName){
   var self = this;
   self.loading.start();
   console.log("rename box");
@@ -495,7 +571,7 @@ Message.prototype.renameBox = function(boxName, newBoxName){
     })
 }
 
-Message.prototype.deleteBox = function(boxName){
+Surelia.prototype.deleteBox = function(boxName){
   var self = this;
   self.loading.start();
   console.log("delete box");
@@ -512,7 +588,7 @@ Message.prototype.deleteBox = function(boxName){
     })
 }
 
-Message.prototype.retrieveMessage = function(id, boxName){
+Surelia.prototype.retrieveMessage = function(id, boxName){
   var self = this;
   self.loading.start();
   console.log("retrieve message");
@@ -547,7 +623,6 @@ Message.prototype.retrieveMessage = function(id, boxName){
         data.seq = id;
         self.composeMessage(data);
       } else {
-        self.view = "message";
         self.currentMessage = data;
         self.currentMessage.seq = id;
         // Set flag state
@@ -596,7 +671,7 @@ Message.prototype.retrieveMessage = function(id, boxName){
     })
 }
 
-Message.prototype.getAttachment = function(attachment) {
+Surelia.prototype.getAttachment = function(attachment) {
   var self = this;
   self.ImapService.getAttachment(attachment.attachmentId)
     .then(function(data){
@@ -633,13 +708,14 @@ Message.prototype.getAttachment = function(attachment) {
     
 }
 
-Message.prototype.logout = function(){
+Surelia.prototype.logout = function(){
   var self = this;
   self.ImapService.logout();
 }
 
-Message.prototype.sendMessage = function(msg){
+Surelia.prototype.sendMessage = function(msg){
   var self = this;
+  self.clearAutocomplete();
   var msg = angular.copy(msg);
   // Recipients should not be empty
   if (!msg.recipients) {
@@ -688,7 +764,6 @@ Message.prototype.sendMessage = function(msg){
   self.ImapService.sendMessage(msg, paths)
     .success(function(data){
       console.log(data);
-      self.view = "list";
       self.loading.complete();
       self.ToastrService.sent();
       // Remove it immediately from draft scope
@@ -730,7 +805,7 @@ Message.prototype.sendMessage = function(msg){
     })
 }
 
-Message.prototype.removeMessage = function(seq, messageId, boxName){
+Surelia.prototype.removeMessage = function(seq, messageId, boxName){
   var self = this;
   self.loading.start();
   console.log("remove message");
@@ -749,7 +824,6 @@ Message.prototype.removeMessage = function(seq, messageId, boxName){
       } else {
         self.ToastrService.deleted();
       }
-      self.view = "list";
       self.listReload();
     })
     .error(function(data, status){
@@ -759,7 +833,7 @@ Message.prototype.removeMessage = function(seq, messageId, boxName){
     })
 }
 
-Message.prototype.composeMessage = function(message, action){
+Surelia.prototype.composeMessage = function(message, action){
   var self = this;
   var msg = angular.copy(message);
   self.compose = true;
@@ -889,8 +963,9 @@ Message.prototype.composeMessage = function(message, action){
   console.log(self.currentMessageHash);
 }
 
-Message.prototype.saveDraft = function(){
+Surelia.prototype.saveDraft = function(){
   var self = this;
+  self.clearAutocomplete();
   self.compose = false;
   var msg = angular.copy(self.newMessage);
   // Save as draft if it has modified
@@ -951,8 +1026,9 @@ Message.prototype.saveDraft = function(){
       })
   }
 }
-Message.prototype.discardDraft = function(id){
+Surelia.prototype.discardDraft = function(id){
   var self = this;
+  self.clearAutocomplete();
   self.compose = false;
   // Remove temporary attachments in surelia backend
   if (self.newMessage.attachments && self.newMessage.attachments.length > 0) {
@@ -983,23 +1059,23 @@ Message.prototype.discardDraft = function(id){
   self.newMessage = {};
 }
 
-Message.prototype.resizeCompose = function(mode){
+Surelia.prototype.resizeCompose = function(mode){
   var self = this;
   console.log(mode);
   self.composeMode = mode;
 }
 
-Message.prototype.showCc = function(){
+Surelia.prototype.showCc = function(){
   var self = this;
   self.cc = true;
 }
 
-Message.prototype.showBcc = function(){
+Surelia.prototype.showBcc = function(){
   var self = this;
   self.bcc = true;
 }
 
-Message.prototype.uploadFiles = function(files, errFiles) {
+Surelia.prototype.uploadFiles = function(files, errFiles) {
   var self = this;
   angular.forEach(files, function(file) {
     console.log(file);
@@ -1038,7 +1114,7 @@ Message.prototype.uploadFiles = function(files, errFiles) {
   });
 }
 
-Message.prototype.checkAll = function(){
+Surelia.prototype.checkAll = function(){
   var self = this;
   if (self.selectAll) {
     self.currentSelection = angular.copy(self.currentList);
@@ -1047,7 +1123,16 @@ Message.prototype.checkAll = function(){
   }
 }
 
-Message.prototype.moveMessage = function(boxName) {
+Surelia.prototype.checkAllContacts = function(){
+  var self = this;
+  if (self.selectAll) {
+    self.currentContactSelection = angular.copy(self.currentContactList);
+  } else {
+    self.currentContactSelection = [];
+  }
+}
+
+Surelia.prototype.moveMessage = function(boxName) {
   var self = this;
   // Collect seq number
   var seqs = [];
@@ -1075,7 +1160,7 @@ Message.prototype.moveMessage = function(boxName) {
     })
 }
 
-Message.prototype.flagMessage = function(flag) {
+Surelia.prototype.flagMessage = function(flag) {
   var self = this;
   // Collect seq number
   var seqs = [];
@@ -1102,7 +1187,203 @@ Message.prototype.flagMessage = function(flag) {
     })
 }
 
-Message.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout", "Upload", "ToastrService", "$sce"];
+Surelia.prototype.retrieveContact = function(id){
+  var self = this;
+  self.loading.start();
+  self.ContactService.get(id, true)
+    .then(function(data){
+      self.view = "contact";
+      console.log(data);
+      self.contactForm = false;
+      self.currentContact = data;
+      self.loading.complete();
+    })
+    .catch(function(data, status){
+      self.ErrorService.parse(data, status);
+      self.loading.complete();
+    })
+}
+Surelia.prototype.listContactNext = function(){
+  var self = this;
+  if (self.currentListMeta.next) {
+    var opts = {
+      limit : self.currentListMeta.limit,
+      page : self.currentListMeta.page + 1,
+    }
+    opts.search = self.searchString ? self.searchString : null;
+    opts.sortImportance = self.sortImportance;
+    self.listContact(opts, true)
+  }
+}
+
+Surelia.prototype.listContactPrev = function(){
+  var self = this;
+  if (self.currentListMeta.prev) {
+    var opts = {
+      limit : self.currentListMeta.limit,
+      page : self.currentListMeta.page - 1,
+    }
+    opts.search = self.searchString ? self.searchString : null;
+    opts.sortImportance = self.sortImportance;
+    self.listContact(opts, true)
+  }
+}
+
+// @importance "ascending" or "descending"
+Surelia.prototype.listContactReverse = function(importance){
+  var self = this;
+  var opts = {
+    limit : self.currentListMeta.limit,
+    page : self.currentListMeta.page,
+  }
+  opts.search = self.searchString ? self.searchString : null;
+  opts.sortImportance = self.sortImportance = importance;
+  self.listContact(opts, true);
+}
+
+Surelia.prototype.listContactReload = function(){
+  var self = this;
+  var opts = {
+    limit : self.currentListMeta.limit,
+    page : self.currentListMeta.page,
+  }
+  opts.search = self.searchString ? self.searchString : null;
+  opts.sortImportance = self.sortImportance;
+  self.listContact(opts, true);
+}
+
+Surelia.prototype.listContact = function(opts, canceler){
+  var self = this;
+  var opts = opts || {};
+  console.log(opts);
+  if (!opts.search) {
+    self.searchString = null;
+  }
+  self.currentBoxName = "";
+  self.currentBoxPath = "";
+  self.sortBy = opts.sortBy || null;
+  self.currentContactSelection = [];
+  self.currentContact = {};
+  self.currentContactForm = {};
+  self.currentContactFormMode = "";
+  self.loading.start();
+  self.listView = "contacts";
+  self.view = "";
+  self.selectAll = false;
+  self.contactForm = false;
+  console.log("list contacts");
+  self.ContactService.getList(opts, true)
+    .then(function(data){
+      self.loading.complete();
+      console.log(data);
+      self.currentContactList = data.data;
+      self.currentListMeta = data.meta;
+      // generate avatar, unread status
+      opts.limit = opts.limit || 10;
+      var colors = window.randomcolor({count:opts.limit, luminosity : "dark"});
+      var assignedColor = [];
+      for (var i in self.currentContactList) {
+        var hash = window.objectHash(self.currentContactList[i].emailAddress);
+        if (self.currentContactList[i].name.length > 0) {
+          var index = self.isAlpha(self.currentContactList[i].name[0]) ? 0 : 1;
+          self.currentContactList[i].avatar = self.currentContactList[i].name[index].toUpperCase();
+        } else {
+          var index = self.isAlpha(self.currentContactList[i].emailAddress[0]) ? 0 : 1;
+          self.currentContactList[i].avatar = self.currentContactList[i].emailAddress[index].toUpperCase();
+        }
+        if (assignedColor.indexOf(hash) < 0) {
+          assignedColor.push(hash);
+          self.currentContactList[i].color = colors[assignedColor.indexOf(hash)];
+        } else {
+          self.currentContactList[i].color = colors[assignedColor.indexOf(hash)];
+        }
+      }
+      // calculate pagination nav
+      var meta = self.currentListMeta;
+      if ((meta.page - 1) > 0) {
+        self.currentListMeta.prev = true;
+      } else {
+        self.currentListMeta.prev = false;
+      }
+      if (meta.limit * (meta.page +1) - meta.total < opts.limit) {
+        self.currentListMeta.next = true;
+      } else {
+        self.currentListMeta.next = false;
+      }
+      if (meta.total > 0) {
+        self.currentListMeta.listStart = (meta.page * meta.limit) - (meta.limit - 1);
+      } else {
+        self.currentListMeta.listStart = 0;
+      }
+      if (self.currentListMeta.listStart + meta.limit > meta.total) {
+        self.currentListMeta.listEnd = meta.total;
+      } else {
+        self.currentListMeta.listEnd = self.currentListMeta.listStart + meta.limit - 1;
+      }
+      
+    })
+    .catch(function(data, status){
+      self.ErrorHandlerService.parse(data, status);
+    })
+}
+
+Surelia.prototype.addContact = function(contact) {
+  var self = this;
+  self.loading.start();
+  self.ContactService.add(contact)
+    .then(function(data){
+      console.log(data);
+      self.loading.complete();
+      self.contactForm = false;
+      self.listContactReload();
+      self.retrieveContact(data._id);
+      self.ToastrService.successfullyAddContact();
+    })
+    .catch(function(data, status){
+      console.log(data, status);
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
+    })
+}
+Surelia.prototype.updateContact = function(contact) {
+  var self = this;
+  self.loading.start();
+  self.ContactService.update(contact)
+    .then(function(data){
+      console.log(data);
+      self.loading.complete();
+      self.contactForm = false;
+      self.listContactReload();
+      self.retrieveContact(contact._id);
+      self.ToastrService.successfullyUpdateContact();
+    })
+    .catch(function(data, status){
+      console.log(data, status);
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
+    })
+}
+
+Surelia.prototype.editContact = function(){
+  var self = this;
+  self.currentContactForm = angular.copy(self.currentContact);
+  self.contactForm = true;
+  self.contactFormMode = "edit";
+}
+Surelia.prototype.newContact = function(){
+  var self = this;
+  self.view = "contact";
+  self.currentContactForm = {};
+  self.contactForm = true;
+  self.contactFormMode = "add";
+}
+Surelia.prototype.discardEditContact = function(){
+  var self = this;
+  self.currentContactForm = {};
+  self.contactForm = false;
+}
+
+Surelia.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout", "Upload", "ToastrService", "$sce"];
 
 var module = require("./index");
-module.controller("MessageCtrl", Message);
+module.controller("SureliaCtrl", Surelia);

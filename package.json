@@ -4,7 +4,7 @@
   "description": "Surelia",
   "main": "index.js",
   "scripts": {
-    "test": " NODE_TLS_REJECT_UNAUTHORIZED=0 DB=test npm run build && mocha --timeout 50000 test",
+    "test": "mongo test --eval 'db.dropDatabase()' && NODE_TLS_REJECT_UNAUTHORIZED=0 DB=test npm run build && mocha --timeout 100000 test",
     "single": "npm run build && NODE_TLS_REJECT_UNAUTHORIZED=0 node index single",
     "server": "npm run build && node index ",
     "restart": "npm run build && node index restart",
@@ -20,6 +20,7 @@
     "angular-bootstrap": "^0.12.2",
     "angular-file-upload": "^2.1.4",
     "angular-local-storage": "^0.2.2",
+    "angular-mass-autocomplete": "^0.2.3",
     "angular-moment": "^0.10.3",
     "angular-sanitize": "^1.4.7",
     "angular-toastr": "^1.5.0",
