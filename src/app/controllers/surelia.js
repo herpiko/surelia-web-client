@@ -1402,6 +1402,7 @@ Surelia.prototype.deleteContact = function(ids) {
 }
 Surelia.prototype.updateContact = function(contact) {
   var self = this;
+  delete(contact.avatarId);
   self.loading.start();
   self.ContactService.update(contact)
     .then(function(data){

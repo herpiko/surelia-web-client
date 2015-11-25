@@ -47,6 +47,7 @@ module.exports = {
   "DELETE" : "Hapus",
   "TO" : "Kepada",
   "DISCARD" : "Batal",
+  "UPLOAD" : "Unggah",
   "UPLOADING" : "Mengunggah...",
   "UPLOAD_FAILED" : "Gagal mengunggah",
   "SEND" : "Kirim",
