@@ -198,7 +198,7 @@ ImapAPI.prototype.registerEndPoints = function(){
         }
       },
       payload : {
-        maxBytes: 32457280, 
+        maxBytes: 5000000, 
         output : "stream",
         parse : true,
         allow : "multipart/form-data"

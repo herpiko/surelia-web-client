@@ -49,6 +49,7 @@ module.exports = {
   "DELETE" : "Delete",
   "TO" : "To",
   "DISCARD" : "Discard",
+  "UPLOAD" : "Upload",
   "UPLOADING" : "Uploading...",
   "UPLOAD_FAILED" : "Failed to upload",
   "SEND" : "Send",

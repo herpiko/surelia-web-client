@@ -94,6 +94,13 @@ ToastrService.prototype.parse = function(data, status) {
   var self = this;
   console.log(data);
   console.log(status);
+  if (status == 401) {
+    self.localStorageService.remove("username"); 
+    self.localStorageService.remove("token"); 
+    self.isLoggedIn = false;
+    self.$state.go("Login");
+    return;
+  }
   if ( data && data.err &&  data.err == "Invalid credentials") {
     return self.invalidCredentials();
   }
