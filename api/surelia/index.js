@@ -387,7 +387,6 @@ ImapAPI.prototype.registerEndPoints = function(){
       },
       payload : {
         maxBytes: 32457280, 
-        output : "stream",
         parse : true,
         allow : "multipart/form-data"
       }  
@@ -1600,27 +1599,31 @@ ImapAPI.prototype.uploadAvatar = function(request, reply) {
     // Combined hash of current username
     // and the contact email address is used both as filename and query key
     var hash = objectHash(request.headers.username + request.query.emailAddress);
-    var id = mongoose.Types.ObjectId();
-    var writeStream = gfs.createWriteStream({
-      _id : id,
-      filename : hash,
-      meta : {
-        emailAddress : request.query.emailAddress,
-      }
+    fsModel().remove({filename : hash}, function(err, result){
+      // Ignore error
+      var id = mongoose.Types.ObjectId();
+      var writeStream = gfs.createWriteStream({
+        _id : id,
+        filename : hash,
+        meta : {
+          emailAddress : request.query.emailAddress,
+        }
+      });
+      writeStream.on("finish", function(){
+        addressBookModel()
+          .findOneAndUpdate({emailAddress : request.query.emailAddress}, {avatarId : id}, function(err, result){
+            if (err) {
+              return reply(err).code(500);
+            }
+            reply({avatarId : id}).code(200);
+          }) 
+      });
+      writeStream.on("error", function(err){
+        reply(err).code(500);
+      });
+      var readableStreamBuffer = streamifier.createReadStream(request.payload.content);
+      readableStreamBuffer.pipe(writeStream);
     });
-    writeStream.on("finish", function(){
-      addressBookModel()
-        .findOneAndUpdate({emailAddress : request.query.emailAddress}, {avatarId : id}, function(err, result){
-          if (err) {
-            return reply(err).code(500);
-          }
-          reply({avatarId : id}).code(200);
-        }) 
-    });
-    writeStream.on("error", function(err){
-      reply(err).code(500);
-    });
-    request.payload.content.pipe(base64Stream.encode()).pipe(writeStream);
   }
   
   checkPool(request, reply, realFunc);
