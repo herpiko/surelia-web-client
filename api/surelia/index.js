@@ -369,6 +369,44 @@ ImapAPI.prototype.registerEndPoints = function(){
       }
     }
   })
+  
+  self.server.route({
+    method : "POST",
+    path : "/api/1.0/avatar",
+    handler : function(request, reply){
+      self.uploadAvatar(request, reply);
+    },
+    config : {
+      validate : {
+        query : {
+          emailAddress : Joi.string().required(),
+        },  
+        payload : {
+          content : Joi.required(),
+        }
+      },
+      payload : {
+        maxBytes: 32457280, 
+        output : "stream",
+        parse : true,
+        allow : "multipart/form-data"
+      }  
+    }
+  })
+  self.server.route({
+    method : "GET",
+    path : "/api/1.0/avatar",
+    handler : function(request, reply){
+      self.getAvatar(request, reply);
+    },
+    config : {
+      validate : {
+        query : {
+          emailAddress : Joi.string().required(),
+        }
+      }
+    }
+  })
 }
 
 /**
@@ -1172,7 +1210,7 @@ ImapAPI.prototype.getAttachment = function(request, reply) {
         return reply(err).code(500);
       }
       if (!isExist) {
-        reply({err : new Error("Attachment not found").message}).code(404);
+        return reply({err : new Error("Attachment not found").message}).code(404);
       }
       var file = gfs.createReadStream({ _id : request.query.attachmentId });
       var string = "";
@@ -1438,6 +1476,7 @@ ImapAPI.prototype.getContact = function(request, reply) {
         organization : 1,
         homeAddress : 1,
         phone : 1,
+        avatarId : 1,
         _id : 1,
       })
       .exec(function(err, result){
@@ -1549,6 +1588,76 @@ ImapAPI.prototype.deleteContact = function(request, reply) {
 }
 
 
+/**
+ * Upload avatar
+ *
+ */
+ImapAPI.prototype.uploadAvatar = function(request, reply) {
+  var realFunc = function(client, request, reply) {
+    // There are probability of duplicated contact on different account,
+    // Then, query by email address only isn't appropriate.
+    // So does the avatarId, because it doesn't included in listBox result. 
+    // Combined hash of current username
+    // and the contact email address is used both as filename and query key
+    var hash = objectHash(request.headers.username + request.query.emailAddress);
+    var id = mongoose.Types.ObjectId();
+    var writeStream = gfs.createWriteStream({
+      _id : id,
+      filename : hash,
+      meta : {
+        emailAddress : request.query.emailAddress,
+      }
+    });
+    writeStream.on("finish", function(){
+      addressBookModel()
+        .findOneAndUpdate({emailAddress : request.query.emailAddress}, {avatarId : id}, function(err, result){
+          if (err) {
+            return reply(err).code(500);
+          }
+          reply({avatarId : id}).code(200);
+        }) 
+    });
+    writeStream.on("error", function(err){
+      reply(err).code(500);
+    });
+    request.payload.content.pipe(base64Stream.encode()).pipe(writeStream);
+  }
+  
+  checkPool(request, reply, realFunc);
+}
+
+/**
+ * Get avatar
+ *
+ */
+ImapAPI.prototype.getAvatar = function(request, reply) {
+  var realFunc = function(client, request, reply) {
+    var hash = objectHash(request.headers.username + request.query.emailAddress);
+    gfs.exist({filename : hash}, function(err, isExist) {
+      if (err) {
+        return reply(err).code(500);
+      }
+      if (!isExist) {
+        return reply({err : new Error("Avatar not found").message}).code(404);
+      }
+      var file = gfs.createReadStream({ filename : hash });
+      var string = "";
+      file.on("error", function(err){
+        return reply(err).code(500);
+      })
+      file.on("data", function(chunk){
+        string += chunk;
+      })
+      file.on("end", function(){
+        reply(string).code(200);
+      })
+    })
+  }
+  
+  checkPool(request, reply, realFunc);
+}
+
+
 
 // Model
 
@@ -1640,6 +1749,7 @@ var addressBookModel = function() {
     officeAddress : String,
     homeAddress : String,
     phone : String,
+    avatarId : String,
   }
   var s = new mongoose.Schema(schema);
   m = mongoose.model("addressBook", s);
