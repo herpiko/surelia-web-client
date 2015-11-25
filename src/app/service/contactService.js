@@ -110,6 +110,37 @@ ContactService.prototype.get = function(id, canceler) {
   return promise.promise;
 }
 
+ContactService.prototype.delete = function(id, canceler) {
+  var self = this;
+  if (self.$rootScope.deleteContactCanceler) {
+    self.$rootScope.deleteContactCanceler.resolve();
+  }
+  self.$rootScope.deleteContactCanceler = self.$q.defer();
+  var promise = self.$q.defer();
+  var path = "/api/1.0/contact?id=" + id;
+  var token = self.localStorageService.get("token"); 
+  var username = self.localStorageService.get("username"); 
+  var req = {
+    method: "DELETE",
+    url : path,
+    headers : {
+      token : token,
+      username : username
+    }
+  }
+  if (canceler) {
+    req.timeout = self.$rootScope.deleteContactCanceler.promise;
+  }
+  self.$http(req)
+  .success(function(data, status, headers) {
+    promise.resolve(data);
+  })
+  .error(function(data, status, headers) {
+    promise.reject(data, status);
+  });
+  return promise.promise;
+}
+
 ContactService.prototype.add = function(contact, canceler) {
   var self = this;
   if (self.$rootScope.addContactCanceler) {

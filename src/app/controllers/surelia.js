@@ -1345,6 +1345,38 @@ Surelia.prototype.addContact = function(contact) {
       self.ToastrService.parse(data, status);
     })
 }
+
+Surelia.prototype.batchDeleteContact = function(){
+  var self = this;
+  var ids = "";
+  window.lodash.some(self.currentContactSelection, function(c){
+    if (ids.length > 0) {
+      ids += ",";
+    }
+    console.log(c);
+    ids += c._id;
+  })
+  self.deleteContact(ids);
+}
+
+Surelia.prototype.deleteContact = function(ids) {
+  console.log("delete " + ids);
+  var self = this;
+  self.loading.start();
+  self.ContactService.delete(ids)
+    .then(function(data){
+      console.log(data);
+      self.loading.complete();
+      self.contactForm = false;
+      self.listContactReload();
+      self.ToastrService.successfullyDeleteContact();
+    })
+    .catch(function(data, status){
+      console.log(data, status);
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
+    })
+}
 Surelia.prototype.updateContact = function(contact) {
   var self = this;
   self.loading.start();

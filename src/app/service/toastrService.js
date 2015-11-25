@@ -18,6 +18,10 @@ ToastrService.prototype.successfullyAddContact = function(){
   var self = this;
   self.toastr.success(self.$filter("translate")("TOASTR_SUCCESSFULLY_ADD_CONTACT"));
 }
+ToastrService.prototype.successfullyDeleteContact = function(){
+  var self = this;
+  self.toastr.success(self.$filter("translate")("TOASTR_SUCCESSFULLY_DELETE_CONTACT"));
+}
 ToastrService.prototype.successfullyUpdateContact = function(){
   var self = this;
   self.toastr.success(self.$filter("translate")("TOASTR_SUCCESSFULLY_UPDATE_CONTACT"));
