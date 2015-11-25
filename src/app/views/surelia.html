@@ -71,7 +71,8 @@
         </div>
         <div style="display:inline-block" ng-click="surelia.retrieveMessage(message.seq, message.boxName, message.unread)">
           <span ng-show="message.unread">* </span>
-          <span style="background:{{message.color}};padding:2px;">{{message.avatar}} -</span>
+          <span ng-hide="message.avatarImg" style="background:{{message.color}};padding:2px;">{{message.avatar}} -</span>
+          <img ng-show="message.avatarImg" style="height:40px;width:40px;background:{{message.color}};padding:2px;" src="{{message.avatarImg}}">
           <span>{{message.seq}} -</span>
           <span>{{message.header.subject}} -</span>
           <span ng-hide="surelia.isDraft">{{message.header.from}} -</span>
@@ -106,7 +107,8 @@
           <input type="checkbox" checklist-model="surelia.currentContactSelection" checklist-value="contact"></input>
         </div>
         <div style="display:inline-block" ng-click="surelia.retrieveContact(contact._id)">
-          <span style="background:{{contact.color}};padding:2px;">{{contact.avatar}} -</span>
+          <span ng-hide="contact.avatarImg" style="background:{{contact.color}};padding:2px;">{{contact.avatar}} -</span>
+          <img ng-show="contact.avatarImg" style="height:40px;width:40px;background:{{message.color}};padding:2px;" src="{{contact.avatarImg}}">
           <span >{{contact.name}} -</span>
           <span>{{contact.emailAddress}} -</span>
         </div>
@@ -146,6 +148,11 @@
     
     <!--Contact view-->
     <div ng-show="surelia.view=='contact'" style="width:60%;display:inline-block;vertical-align:top;background:#ECECEC">
+      <img style="width:40px;height:40px;" src="{{surelia.currentContact.avatar}}"><br>
+      <button ngf-select="surelia.uploadAvatar($files, $invalidFiles)" multiple
+        ngf-max-height="1000" ngf-max-size="1MB" accept="image/*" class="btn btn-default btn-file">
+       <i class="fa fa-paperclip"></i> Unggah avatar
+      </button>
       <div ng-show="surelia.currentContact.emailAddress && !surelia.contactForm">
               {{ 'NAME' | translate }} : {{surelia.currentContact.name}}<br>
               {{ 'EMAIL' | translate }} : {{surelia.currentContact.emailAddress}}<br>

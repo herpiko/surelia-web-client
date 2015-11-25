@@ -229,7 +229,7 @@ ImapService.prototype.getAttachment = function(attachmentId, canceler) {
   return promise.promise;
 }
 
-ImapService.prototype.uploadAttachment = function(data, meta, canceler) {
+ImapService.prototype.uploadAttachment = function(data) {
   var self = this;
   var path = "/api/1.0/attachment";
   var token = self.localStorageService.get("token"); 

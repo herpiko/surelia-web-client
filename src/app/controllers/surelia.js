@@ -287,7 +287,6 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
     self.option_delimited = {
       suggest: suggest_email_delimited,
     };
-
 }
 
 Surelia.prototype.clearAutocomplete = function(){
@@ -507,6 +506,14 @@ Surelia.prototype.listBox = function(boxName, opts, canceler){
           self.currentList[i].deleted = true;
         }
       }
+      // Fetch avatar image
+      window.lodash.some(self.currentList, function(message){
+        self.ContactService.getAvatar(message.parsed.from[0].address)
+          .then(function(data, status){
+            message.avatarImg = "data:image/png;base64," + data;
+          })
+          // Do not catch error
+      })
       // calculate pagination nav
       var meta = self.currentListMeta;
       if ((meta.page - 1) > 0) {
@@ -1088,7 +1095,7 @@ Surelia.prototype.uploadFiles = function(files, errFiles) {
       }
     }
     self.newMessage.attachments.push(attachment);
-    self.ImapService.uploadAttachment(file, attachment)
+    self.ImapService.uploadAttachment(file)
       .then(function(res){
         var result = res.data;
         window.lodash.some(self.newMessage.attachments, function(attachment){
@@ -1196,6 +1203,14 @@ Surelia.prototype.retrieveContact = function(id){
       console.log(data);
       self.contactForm = false;
       self.currentContact = data;
+      if (self.currentContact.avatarId) {
+        self.ContactService.getAvatar(self.currentContact.emailAddress)
+          .then(function(data, status){
+            self.currentContact.avatar = "data:image/png;base64," + data;
+            console.log(data, status);
+          })
+          // Do not catch error
+      }
       self.loading.complete();
     })
     .catch(function(data, status){
@@ -1298,6 +1313,14 @@ Surelia.prototype.listContact = function(opts, canceler){
           self.currentContactList[i].color = colors[assignedColor.indexOf(hash)];
         }
       }
+      // Fetch avatar image
+      window.lodash.some(self.currentContactList, function(contact){
+        self.ContactService.getAvatar(contact.emailAddress)
+          .then(function(data, status){
+            contact.avatarImg = "data:image/png;base64," + data;
+          })
+          // Do not catch error
+      })
       // calculate pagination nav
       var meta = self.currentListMeta;
       if ((meta.page - 1) > 0) {
@@ -1353,14 +1376,12 @@ Surelia.prototype.batchDeleteContact = function(){
     if (ids.length > 0) {
       ids += ",";
     }
-    console.log(c);
     ids += c._id;
   })
   self.deleteContact(ids);
 }
-
+t
 Surelia.prototype.deleteContact = function(ids) {
-  console.log("delete " + ids);
   var self = this;
   self.loading.start();
   self.ContactService.delete(ids)
@@ -1413,6 +1434,30 @@ Surelia.prototype.discardEditContact = function(){
   var self = this;
   self.currentContactForm = {};
   self.contactForm = false;
+}
+
+Surelia.prototype.uploadAvatar = function(files, errFiles) {
+  var self = this;
+  angular.forEach(files, function(file) {
+    console.log(file);
+    self.currentAvatar = {
+      progress :{
+        status : "uploading",
+      }
+    }
+    self.ContactService.uploadAvatar(file, self.currentContact.emailAddress)
+      .then(function(res){
+        var result = res.data;
+        self.currentAvatar.progress.status = "uploaded";
+        self.retrieveContact(self.currentContact._id);
+      }, function(res){
+        self.ToastrService.parse(res.data, res.status);
+        self.currentAvatar.progress.status = "failed";
+      }, function(evt){
+        console.log(evt);
+        self.currentAvatar.progress.percentage = parseInt(100 * evt.loaded / evt.total);
+      })
+  });
 }
 
 Surelia.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout", "Upload", "ToastrService", "$sce"];
