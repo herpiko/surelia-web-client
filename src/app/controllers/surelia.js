@@ -114,6 +114,9 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.contactCandidatesAutocomplete = {};
   self.sortBy = null;
   self.sortImportance = "ascending";
+  self.rawAvatar="";
+  self.croppedAvatar="";
+  self.showCropArea = false;
   // This array will be used in "Move to" submenu in multiselect action
   self.moveToBoxes = [];
   self.flags = ["Read", "Unread"];
@@ -1380,7 +1383,6 @@ Surelia.prototype.batchDeleteContact = function(){
   })
   self.deleteContact(ids);
 }
-t
 Surelia.prototype.deleteContact = function(ids) {
   var self = this;
   self.loading.start();
@@ -1436,28 +1438,43 @@ Surelia.prototype.discardEditContact = function(){
   self.contactForm = false;
 }
 
-Surelia.prototype.uploadAvatar = function(files, errFiles) {
+Surelia.prototype.cropAvatar = function(files, errFiles) {
   var self = this;
-  angular.forEach(files, function(file) {
-    console.log(file);
-    self.currentAvatar = {
-      progress :{
-        status : "uploading",
-      }
-    }
-    self.ContactService.uploadAvatar(file, self.currentContact.emailAddress)
-      .then(function(res){
-        var result = res.data;
-        self.currentAvatar.progress.status = "uploaded";
-        self.retrieveContact(self.currentContact._id);
-      }, function(res){
-        self.ToastrService.parse(res.data, res.status);
-        self.currentAvatar.progress.status = "failed";
-      }, function(evt){
-        console.log(evt);
-        self.currentAvatar.progress.percentage = parseInt(100 * evt.loaded / evt.total);
-      })
-  });
+  var reader = new FileReader();
+  reader.onload = function(evt){
+    self.showCropArea = true;
+    self.$scope.$apply(function($scope){
+      self.rawAvatar = evt.target.result;
+    })
+  }
+  reader.readAsDataURL(files[files.length-1]);
+}
+
+Surelia.prototype.cancelCropAvatar = function(){
+  var self = this;
+  self.showCropArea = false;
+  self.rawAvatar="";
+  self.croppedAvatar="";
+}
+
+Surelia.prototype.uploadAvatar = function(){
+  var self = this;
+  console.log(self.croppedAvatar);
+  self.ContactService.uploadAvatar(self.croppedAvatar, self.currentContact.emailAddress)
+    .then(function(data, status){
+      self.showCropArea = false;
+      self.rawAvatar="";
+      self.croppedAvatar="";
+      var currentUpdatedId = self.currentContact._id;
+      self.listContactReload();
+      // Let's wait listContact() to clear self.currentContact first;
+      self.$timeout(function(){
+        self.retrieveContact(currentUpdatedId);
+      }, 500)
+    }) 
+    .catch(function(data, status){
+      self.ErrorHandlerService.parse(data, status);
+    }) 
 }
 
 Surelia.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout", "Upload", "ToastrService", "$sce"];

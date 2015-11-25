@@ -208,12 +208,13 @@ ContactService.prototype.update = function(contact, canceler) {
 
 ContactService.prototype.uploadAvatar = function(data, emailAddress) {
   var self = this;
+  var png = data.split(',')[1];
   var path = "/api/1.0/avatar?emailAddress=" + emailAddress;
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username");
   var req = {
     url : path,
-    data : {content : data},
+    data : {content : png},
     headers : {
       token : token,
       username : username

@@ -149,11 +149,20 @@
     <!--Contact view-->
     <div ng-show="surelia.view=='contact'" style="width:60%;display:inline-block;vertical-align:top;background:#ECECEC">
       <img style="width:40px;height:40px;" src="{{surelia.currentContact.avatar}}"><br>
-      <button ngf-select="surelia.uploadAvatar($files, $invalidFiles)" multiple
+      <button ngf-select="surelia.cropAvatar($files, $invalidFiles)" multiple
         ngf-max-height="1000" ngf-max-size="1MB" accept="image/*" class="btn btn-default btn-file">
-       <i class="fa fa-paperclip"></i> Unggah avatar
-      </button>
-      <div ng-show="surelia.currentContact.emailAddress && !surelia.contactForm">
+       <i class="fa fa-paperclip"></i> {{'UPLOAD' | translate}}
+       </button>
+      <div ng-show="surelia.showCropArea">
+        <div class="cropArea">
+          <img-crop image="surelia.rawAvatar" area-type="square" result-image="surelia.croppedAvatar"></img-crop>
+        </div>
+        <div>Cropped Image:</div>
+        <div><img ng-src="{{surelia.myCroppedImage}}" /></div>
+        <button ng-click="surelia.cancelCropAvatar()">{{'CANCEL' | translate}}</button>
+        <button ng-click="surelia.uploadAvatar()">{{'UPLOAD' | translate}}</button>
+      </div>
+      <div ng-show="surelia.currentContact.emailAddress && !surelia.contactForm && !surelia.showCropArea">
               {{ 'NAME' | translate }} : {{surelia.currentContact.name}}<br>
               {{ 'EMAIL' | translate }} : {{surelia.currentContact.emailAddress}}<br>
               {{ 'OFFICE_ADDRESS' | translate }} : {{surelia.currentContact.officeAddress}}<br>
@@ -162,7 +171,7 @@
         <button ng-click="surelia.editContact()">{{'EDIT' | translate}}</button>
         <button ng-click="surelia.deleteContact(surelia.currentContact._id)">{{'DELETE' | translate}}</button>
       </div>
-      <div ng-show="surelia.contactForm">
+      <div ng-show="surelia.contactForm && !surelia.showCropArea">
               {{'NAME' | translate }} : <input type="text" ng-model="surelia.currentContactForm.name"><br>
               {{'EMAIL' | translate }} : <input type="text" ng-model="surelia.currentContactForm.emailAddress"><br>
               {{'OFFICE_ADDRESS' | translate }} : <input type="text" ng-model="surelia.currentContactForm.officeAddress"><br>
