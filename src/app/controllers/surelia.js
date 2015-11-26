@@ -1210,11 +1210,15 @@ Surelia.prototype.retrieveContact = function(id){
         self.ContactService.getAvatar(self.currentContact.emailAddress)
           .then(function(data, status){
             self.currentContact.avatar = "data:image/png;base64," + data;
-            console.log(data, status);
+            self.loading.complete();
+          })
+          .catch(function(data, status){
+            self.loading.complete();
           })
           // Do not catch error
+      } else {
+        self.loading.complete();
       }
-      self.loading.complete();
     })
     .catch(function(data, status){
       self.ErrorService.parse(data, status);
