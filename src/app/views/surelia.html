@@ -148,7 +148,8 @@
     
     <!--Contact view-->
     <div ng-show="surelia.view=='contact'" style="width:60%;display:inline-block;vertical-align:top;background:#ECECEC">
-      <img style="width:40px;height:40px;" src="{{surelia.currentContact.avatar}}"><br>
+      <span ng-hide="surelia.currentContact.avatarImg" style="background:{{surelia.currentContact.color}};padding:2px;">{{surelia.currentContact.avatar}}</span>
+      <img ng-show="surelia.currentContact.avatarImg" style="width:40px;height:40px;" src="{{surelia.currentContact.avatarImg}}"><br>
       <button ngf-select="surelia.cropAvatar($files, $invalidFiles)" multiple
         ngf-max-height="1000" ngf-max-size="1MB" accept="image/*" class="btn btn-default btn-file">
        <i class="fa fa-paperclip"></i> {{'UPLOAD' | translate}}

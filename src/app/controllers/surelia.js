@@ -1207,11 +1207,18 @@ Surelia.prototype.retrieveContact = function(id){
       console.log(data);
       self.contactForm = false;
       self.currentContact = data;
+      // grab the current Contact avatar color and letter;
+      window.lodash.some(self.currentContactList, function(contact){
+        if (contact.emailAddress == self.currentContact.emailAddress){
+          self.currentContact.color = contact.color;
+          self.currentContact.avatar = contact.avatar;
+        }
+      })
       if (self.currentContact.avatarId) {
         self.ContactService.getAvatar(self.currentContact.emailAddress)
           .then(function(data, status){
             if (data.length > 0) {
-              self.currentContact.avatar = "data:image/png;base64," + data;
+              self.currentContact.avatarImg = "data:image/png;base64," + data;
             }
             self.loading.complete();
           })

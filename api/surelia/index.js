@@ -1641,7 +1641,7 @@ ImapAPI.prototype.getAvatar = function(request, reply) {
         return reply(err).code(500);
       }
       if (!isExist) {
-        return reply({err : new Error("Avatar not found").message}).code(404);
+        return reply("").code(200);
       }
       var file = gfs.createReadStream({ filename : hash });
       var string = "";
