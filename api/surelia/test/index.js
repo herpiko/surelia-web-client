@@ -120,7 +120,9 @@ var smtp,
   newMailBox, 
   newMailBox2, 
   draftsPath,
-  trashPath;
+  trashPath,
+  contactId,
+  contactBatchDelete;
 
 var Mailback = require('mailback');
 var onMessage = function(err, message) {
@@ -1256,6 +1258,7 @@ hoodiecrowServer.listen(1143, function(){
       })
     })
   });
+  // CONTACT
   describe("Address Book", function() {
     it("Get address book collection for autocomplete", function(done){
       server.inject({
@@ -1303,6 +1306,7 @@ hoodiecrowServer.listen(1143, function(){
         should(response.result.data[0].emailAddress.length).greaterThan(0);
         should(response.result.data[0].emailAddress).equal(process.env.TEST_SMTP_USERNAME);
         should(response.result.data[0].account.length).greaterThan(0);
+        sureliaContactId = response.result.data[0]._id;
         done();
       })
     })
@@ -1321,7 +1325,7 @@ hoodiecrowServer.listen(1143, function(){
         done();
       })
     })
-    it("Create new contact and update it", function(done){
+    it("Create new contact", function(done){
       server.inject({
         method: "POST",
         url : "/api/1.0/contact",
@@ -1345,28 +1349,60 @@ hoodiecrowServer.listen(1143, function(){
         should(response.result.officeAddress).equal("Somewhere");
         should(response.result.homeAddress).equal("Here");
         should(response.result.phone).equal("1234567890");
+        contactId = response.result._id;
+        console.log("ContactId : " + contactId);
+        done();
+      });
+    });
+    it("Update existing contact", function(done){
+      server.inject({
+        method: "PUT",
+        url : "/api/1.0/contact",
+        payload : {
+          _id : contactId,
+          emailAddress : "someemail@domain.com",
+          name : "Just Someone",
+          organization : "Org",
+          officeAddress : "There",
+          homeAddress : "Here",
+          phone : 1234567890
+        },
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.result.officeAddress).equal("There");
+        done();
+      });
+    });
+    it("Delete existing contact", function(done){
+      server.inject({
+        method: "DELETE",
+        url : "/api/1.0/contact?id=" + contactId,
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        should(response.statusCode).equal(200);
         server.inject({
-          method: "PUT",
-          url : "/api/1.0/contact",
-          payload : {
-            _id : response.result._id,
-            emailAddress : "someemail@domain.com",
-            name : "Just Someone",
-            organization : "Org",
-            officeAddress : "Somewhere",
-            homeAddress : "Here",
-            phone : 1234567890
-          },
+          method: "GET",
+          url : "/api/1.0/contact?id=" + contactId,
           headers : {
             token : token,
             username : process.env.TEST_SMTP_USERNAME
           }
         }, function(response){
-          console.log(response.result);
+          console.log(response.result.err);
+          should(response.result.err).equal("Contact not found");
+          should(response.statusCode).equal(404);
           done();
         })
       })
-    })
+    });
     it("Create new contact with partial information", function(done){
       server.inject({
         method: "POST",
@@ -1391,7 +1427,7 @@ hoodiecrowServer.listen(1143, function(){
         method: "POST",
         url : "/api/1.0/contact",
         payload : {
-          emailAddress : "someemail@domain.com",
+          emailAddress : "someemail2@domain.com",
           name : "Just Someone",
         },
         headers : {
@@ -1424,6 +1460,101 @@ hoodiecrowServer.listen(1143, function(){
         done();
       })
     })
+    it("Delete multiple contact", function(done){
+      contactBatchDelete = [];
+      // Populate
+      server.inject({
+        method: "POST",
+        url : "/api/1.0/contact",
+        payload : {
+          emailAddress : "tobedeleted1@domain.com",
+          name : "Just Someone",
+        },
+        headers : {
+          token : token,
+          username : process.env.TEST_SMTP_USERNAME
+        }
+      }, function(response){
+        console.log(response.result);
+        contactBatchDelete.push(response.result._id);
+        server.inject({
+          method: "POST",
+          url : "/api/1.0/contact",
+          payload : {
+            emailAddress : "tobedeleted2@domain.com",
+            name : "Just Someone",
+          },
+          headers : {
+            token : token,
+            username : process.env.TEST_SMTP_USERNAME
+          }
+        }, function(response){
+          console.log(response.result);
+          contactBatchDelete.push(response.result._id);
+          server.inject({
+            method: "GET",
+            url : "/api/1.0/contacts",
+            headers : {
+              token : token,
+              username : process.env.TEST_SMTP_USERNAME
+            }
+          }, function(response){
+            console.log(response.result);
+            var totalBeforeDeleted = parseInt(response.result.meta.total);
+            var ids = contactBatchDelete[0] 
+                    + "," + contactBatchDelete[1]
+                    + "," + sureliaContactId;
+            server.inject({
+              method: "DELETE",
+              url : "/api/1.0/contact?id=" + ids,
+              headers : {
+                token : token,
+                username : process.env.TEST_SMTP_USERNAME
+              }
+            }, function(response){
+              console.log(response.result);
+              should(response.statusCode).equal(200);
+              server.inject({
+                method: "GET",
+                url : "/api/1.0/contacts",
+                headers : {
+                  token : token,
+                  username : process.env.TEST_SMTP_USERNAME
+                }
+              }, function(response){
+                console.log(response.result);
+                should(response.result.meta.total).equal(totalBeforeDeleted-3);
+                // refetch message list to collect contact again
+                // Surelia email address shouldn't be collected
+                // because it was deleted before
+                server.inject({
+                  method: "GET",
+                  url : "/api/1.0/list-box?boxName=INBOX",
+                  headers : {
+                    token : token,
+                    username : process.env.TEST_SMTP_USERNAME
+                  }
+                }, function(response){
+                  should(response.result.data.length).greaterThan(0);
+                  server.inject({
+                    method: "GET",
+                    url : "/api/1.0/contacts?q=surelia",
+                    headers : {
+                      token : token,
+                      username : process.env.TEST_SMTP_USERNAME
+                    }
+                  }, function(response){
+                    console.log(response.result);
+                    should(response.result.data.length).equal(0);
+                    done();
+                  })
+                })
+              })
+            })
+          })
+        })
+      });
+    });
   });
   describe("Logout", function() {
     it("Should logout and lost access", function(done){

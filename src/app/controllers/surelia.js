@@ -81,7 +81,7 @@ var mimeTypes = {
     ]
   }
 }
-var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ErrorHandlerService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce, $translate, ContactService){
+var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce, $translate, ContactService){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -89,7 +89,6 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.localStorageService = localStorageService;
   this.$stateParams = $stateParams;
   this.ImapService = ImapService;
-  this.ErrorHandlerService = ErrorHandlerService;
   this.ngProgressFactory = ngProgressFactory;
   this.$compile = $compile;
   this.$timeout = $timeout;
@@ -114,6 +113,9 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.contactCandidatesAutocomplete = {};
   self.sortBy = null;
   self.sortImportance = "ascending";
+  self.rawAvatar="";
+  self.croppedAvatar="";
+  self.showCropArea = false;
   // This array will be used in "Move to" submenu in multiselect action
   self.moveToBoxes = [];
   self.flags = ["Read", "Unread"];
@@ -146,7 +148,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
       self.contactCandidates = data;
     })
     .catch(function(data, status){
-      self.ErrorHandlerService.parse(data, status);
+      self.ToastrService.parse(data, status);
     })
   self.ImapService.getBoxes()
     .success(function(data, status){
@@ -160,7 +162,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
       self.listBox("INBOX", opts);
       self.currentBoxName = "INBOX";
       self.currentBoxPath = "INBOX";
-      self.ErrorHandlerService.parse(data, status);
+      self.ToastrService.parse(data, status);
       // short boxes
       self.boxes = [];
       var shortedEnums = ["INBOX", "Draft", "Sent", "Junk", "Trash"];
@@ -195,7 +197,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
       console.log(data, status);
       loadCompletion.boxes = true;
       loadComplete();
-      self.ErrorHandlerService.parse(data, status);
+      self.ToastrService.parse(data, status);
     })
     self.ImapService.getSpecialBoxes()
       .success(function(data, status){
@@ -219,7 +221,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
         console.log(data, status);
         loadCompletion.boxes = true;
         loadComplete();
-        self.ErrorHandlerService.parse(data, status);
+        self.ToastrService.parse(data, status);
       })
   self.isValidEmail = function(emailString){
     var regExp = /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))){2,6}$/i;
@@ -287,7 +289,6 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
     self.option_delimited = {
       suggest: suggest_email_delimited,
     };
-
 }
 
 Surelia.prototype.clearAutocomplete = function(){
@@ -308,13 +309,13 @@ Surelia.prototype.getBoxes = function(){
     .success(function(data, status){
       self.loading.complete();
       console.log(data);
-      self.ErrorHandlerService.parse(data, status);
+      self.ToastrService.parse(data, status);
       self.boxes = data;
     })
     .error(function(data, status){
       console.log(data, status);
       self.loading.complete();
-      self.ErrorHandlerService.parse(data, status);
+      self.ToastrService.parse(data, status);
     })
 }
 
@@ -507,6 +508,16 @@ Surelia.prototype.listBox = function(boxName, opts, canceler){
           self.currentList[i].deleted = true;
         }
       }
+      // Fetch avatar image
+      window.lodash.some(self.currentList, function(message){
+        self.ContactService.getAvatar(message.parsed.from[0].address)
+          .then(function(data, status){
+            if (data.length > 0) {
+              message.avatarImg = "data:image/png;base64," + data;
+            }
+          })
+          // Do not catch error
+      })
       // calculate pagination nav
       var meta = self.currentListMeta;
       if ((meta.page - 1) > 0) {
@@ -1088,7 +1099,7 @@ Surelia.prototype.uploadFiles = function(files, errFiles) {
       }
     }
     self.newMessage.attachments.push(attachment);
-    self.ImapService.uploadAttachment(file, attachment)
+    self.ImapService.uploadAttachment(file)
       .then(function(res){
         var result = res.data;
         window.lodash.some(self.newMessage.attachments, function(attachment){
@@ -1196,10 +1207,31 @@ Surelia.prototype.retrieveContact = function(id){
       console.log(data);
       self.contactForm = false;
       self.currentContact = data;
-      self.loading.complete();
+      // grab the current Contact avatar color and letter;
+      window.lodash.some(self.currentContactList, function(contact){
+        if (contact.emailAddress == self.currentContact.emailAddress){
+          self.currentContact.color = contact.color;
+          self.currentContact.avatar = contact.avatar;
+        }
+      })
+      if (self.currentContact.avatarId) {
+        self.ContactService.getAvatar(self.currentContact.emailAddress)
+          .then(function(data, status){
+            if (data.length > 0) {
+              self.currentContact.avatarImg = "data:image/png;base64," + data;
+            }
+            self.loading.complete();
+          })
+          .catch(function(data, status){
+            self.loading.complete();
+          })
+          // Do not catch error
+      } else {
+        self.loading.complete();
+      }
     })
     .catch(function(data, status){
-      self.ErrorService.parse(data, status);
+      self.ToastrService.parse(data, status);
       self.loading.complete();
     })
 }
@@ -1298,6 +1330,16 @@ Surelia.prototype.listContact = function(opts, canceler){
           self.currentContactList[i].color = colors[assignedColor.indexOf(hash)];
         }
       }
+      // Fetch avatar image
+      window.lodash.some(self.currentContactList, function(contact){
+        self.ContactService.getAvatar(contact.emailAddress)
+          .then(function(data, status){
+            if (data.length > 0) {
+              contact.avatarImg = "data:image/png;base64," + data;
+            }
+          })
+          // Do not catch error
+      })
       // calculate pagination nav
       var meta = self.currentListMeta;
       if ((meta.page - 1) > 0) {
@@ -1323,7 +1365,7 @@ Surelia.prototype.listContact = function(opts, canceler){
       
     })
     .catch(function(data, status){
-      self.ErrorHandlerService.parse(data, status);
+      self.ToastrService.parse(data, status);
     })
 }
 
@@ -1345,8 +1387,39 @@ Surelia.prototype.addContact = function(contact) {
       self.ToastrService.parse(data, status);
     })
 }
+
+Surelia.prototype.batchDeleteContact = function(){
+  var self = this;
+  var ids = "";
+  window.lodash.some(self.currentContactSelection, function(c){
+    if (ids.length > 0) {
+      ids += ",";
+    }
+    ids += c._id;
+  })
+  self.deleteContact(ids);
+}
+Surelia.prototype.deleteContact = function(ids) {
+  var self = this;
+  self.loading.start();
+  self.ContactService.delete(ids)
+    .then(function(data){
+      console.log(data);
+      self.loading.complete();
+      self.contactForm = false;
+      self.listContactReload();
+      self.ToastrService.successfullyDeleteContact();
+    })
+    .catch(function(data, status){
+      console.log(data, status);
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
+    })
+}
 Surelia.prototype.updateContact = function(contact) {
   var self = this;
+  delete(contact.avatarId);
+  delete(contact.avatar);
   self.loading.start();
   self.ContactService.update(contact)
     .then(function(data){
@@ -1381,6 +1454,47 @@ Surelia.prototype.discardEditContact = function(){
   var self = this;
   self.currentContactForm = {};
   self.contactForm = false;
+}
+
+Surelia.prototype.cropAvatar = function(files, errFiles) {
+  var self = this;
+  var reader = new FileReader();
+  reader.onload = function(evt){
+    self.showCropArea = true;
+    self.$scope.$apply(function($scope){
+      self.rawAvatar = evt.target.result;
+    })
+  }
+  reader.readAsDataURL(files[files.length-1]);
+}
+
+Surelia.prototype.cancelCropAvatar = function(){
+  var self = this;
+  self.showCropArea = false;
+  self.rawAvatar="";
+  self.croppedAvatar="";
+}
+
+Surelia.prototype.uploadAvatar = function(){
+  var self = this;
+  self.loading.start();
+  self.ContactService.uploadAvatar(self.croppedAvatar, self.currentContact.emailAddress)
+    .then(function(data, status){
+      self.showCropArea = false;
+      self.rawAvatar="";
+      self.croppedAvatar="";
+      var currentUpdatedId = self.currentContact._id;
+      self.loading.complete();
+      self.listContactReload();
+      // Let's wait listContact() to clear self.currentContact first;
+      self.$timeout(function(){
+        self.retrieveContact(currentUpdatedId);
+      }, 500)
+    }) 
+    .catch(function(data, status){
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
+    }) 
 }
 
 Surelia.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout", "Upload", "ToastrService", "$sce"];

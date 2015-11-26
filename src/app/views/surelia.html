@@ -71,7 +71,8 @@
         </div>
         <div style="display:inline-block" ng-click="surelia.retrieveMessage(message.seq, message.boxName, message.unread)">
           <span ng-show="message.unread">* </span>
-          <span style="background:{{message.color}};padding:2px;">{{message.avatar}} -</span>
+          <span ng-hide="message.avatarImg" style="background:{{message.color}};padding:2px;">{{message.avatar}} -</span>
+          <img ng-show="message.avatarImg" style="height:40px;width:40px;background:{{message.color}};padding:2px;" src="{{message.avatarImg}}">
           <span>{{message.seq}} -</span>
           <span>{{message.header.subject}} -</span>
           <span ng-hide="surelia.isDraft">{{message.header.from}} -</span>
@@ -98,6 +99,7 @@
       <button ng-click="surelia.listContactReverse('descending')">Z - A</button>
       <br>
       <button ng-click="surelia.newContact()">{{'ADD_CONTACT' | translate }}</button>
+      <button ng-click="surelia.batchDeleteContact()">{{'DELETE' | translate }}</button>
       <br>
       <input type="checkbox" ng-model="surelia.selectAll" ng-true-value="true" ng-false-value="false" ng-change="surelia.checkAllContacts()">
       <div ng-repeat="contact in surelia.currentContactList" style="cursor:pointer;margin-top:3px;background:#ECECEC">
@@ -105,7 +107,8 @@
           <input type="checkbox" checklist-model="surelia.currentContactSelection" checklist-value="contact"></input>
         </div>
         <div style="display:inline-block" ng-click="surelia.retrieveContact(contact._id)">
-          <span style="background:{{contact.color}};padding:2px;">{{contact.avatar}} -</span>
+          <span ng-hide="contact.avatarImg" style="background:{{contact.color}};padding:2px;">{{contact.avatar}} -</span>
+          <img ng-show="contact.avatarImg" style="height:40px;width:40px;background:{{message.color}};padding:2px;" src="{{contact.avatarImg}}">
           <span >{{contact.name}} -</span>
           <span>{{contact.emailAddress}} -</span>
         </div>
@@ -145,15 +148,31 @@
     
     <!--Contact view-->
     <div ng-show="surelia.view=='contact'" style="width:60%;display:inline-block;vertical-align:top;background:#ECECEC">
-      <div ng-show="surelia.currentContact.emailAddress && !surelia.contactForm">
+      <span ng-hide="surelia.currentContact.avatarImg" style="background:{{surelia.currentContact.color}};padding:2px;">{{surelia.currentContact.avatar}}</span>
+      <img ng-show="surelia.currentContact.avatarImg" style="width:40px;height:40px;" src="{{surelia.currentContact.avatarImg}}"><br>
+      <button ngf-select="surelia.cropAvatar($files, $invalidFiles)" multiple
+        ngf-max-height="1000" ngf-max-size="1MB" accept="image/*" class="btn btn-default btn-file">
+       <i class="fa fa-paperclip"></i> {{'UPLOAD' | translate}}
+       </button>
+      <div ng-show="surelia.showCropArea">
+        <div class="cropArea">
+          <img-crop image="surelia.rawAvatar" area-type="square" result-image="surelia.croppedAvatar"></img-crop>
+        </div>
+        <div>Cropped Image:</div>
+        <div><img ng-src="{{surelia.myCroppedImage}}" /></div>
+        <button ng-click="surelia.cancelCropAvatar()">{{'CANCEL' | translate}}</button>
+        <button ng-click="surelia.uploadAvatar()">{{'UPLOAD' | translate}}</button>
+      </div>
+      <div ng-show="surelia.currentContact.emailAddress && !surelia.contactForm && !surelia.showCropArea">
               {{ 'NAME' | translate }} : {{surelia.currentContact.name}}<br>
               {{ 'EMAIL' | translate }} : {{surelia.currentContact.emailAddress}}<br>
               {{ 'OFFICE_ADDRESS' | translate }} : {{surelia.currentContact.officeAddress}}<br>
               {{ 'HOME_ADDRESS' | translate }} : {{surelia.currentContact.homeAddress}}<br>
               {{ 'PHONE' | translate }} : {{surelia.currentContact.phone}}<br>
         <button ng-click="surelia.editContact()">{{'EDIT' | translate}}</button>
+        <button ng-click="surelia.deleteContact(surelia.currentContact._id)">{{'DELETE' | translate}}</button>
       </div>
-      <div ng-show="surelia.contactForm">
+      <div ng-show="surelia.contactForm && !surelia.showCropArea">
               {{'NAME' | translate }} : <input type="text" ng-model="surelia.currentContactForm.name"><br>
               {{'EMAIL' | translate }} : <input type="text" ng-model="surelia.currentContactForm.emailAddress"><br>
               {{'OFFICE_ADDRESS' | translate }} : <input type="text" ng-model="surelia.currentContactForm.officeAddress"><br>

@@ -18,6 +18,10 @@ ToastrService.prototype.successfullyAddContact = function(){
   var self = this;
   self.toastr.success(self.$filter("translate")("TOASTR_SUCCESSFULLY_ADD_CONTACT"));
 }
+ToastrService.prototype.successfullyDeleteContact = function(){
+  var self = this;
+  self.toastr.success(self.$filter("translate")("TOASTR_SUCCESSFULLY_DELETE_CONTACT"));
+}
 ToastrService.prototype.successfullyUpdateContact = function(){
   var self = this;
   self.toastr.success(self.$filter("translate")("TOASTR_SUCCESSFULLY_UPDATE_CONTACT"));
@@ -90,6 +94,13 @@ ToastrService.prototype.parse = function(data, status) {
   var self = this;
   console.log(data);
   console.log(status);
+  if (status == 401) {
+    self.localStorageService.remove("username"); 
+    self.localStorageService.remove("token"); 
+    self.isLoggedIn = false;
+    self.$state.go("Login");
+    return;
+  }
   if ( data && data.err &&  data.err == "Invalid credentials") {
     return self.invalidCredentials();
   }

@@ -198,7 +198,7 @@ ImapAPI.prototype.registerEndPoints = function(){
         }
       },
       payload : {
-        maxBytes: 32457280, 
+        maxBytes: 5000000, 
         output : "stream",
         parse : true,
         allow : "multipart/form-data"
@@ -313,6 +313,21 @@ ImapAPI.prototype.registerEndPoints = function(){
   })
   
   self.server.route({
+    method : "DELETE",
+    path : "/api/1.0/contact",
+    handler : function(request, reply){
+      self.deleteContact(request, reply);
+    },
+    config : {
+      validate : {
+        query : {
+          id : Joi.string().required(),
+        }  
+      }
+    }
+  })
+  
+  self.server.route({
     method : "POST",
     path : "/api/1.0/contact",
     handler : function(request, reply){
@@ -351,6 +366,43 @@ ImapAPI.prototype.registerEndPoints = function(){
           homeAddress : Joi.string().allow(""),
           phone : [Joi.string().allow(""),Joi.number().allow("")]
         }  
+      }
+    }
+  })
+  
+  self.server.route({
+    method : "POST",
+    path : "/api/1.0/avatar",
+    handler : function(request, reply){
+      self.uploadAvatar(request, reply);
+    },
+    config : {
+      validate : {
+        query : {
+          emailAddress : Joi.string().required(),
+        },  
+        payload : {
+          content : Joi.required(),
+        }
+      },
+      payload : {
+        maxBytes: 32457280, 
+        parse : true,
+        allow : "multipart/form-data"
+      }  
+    }
+  })
+  self.server.route({
+    method : "GET",
+    path : "/api/1.0/avatar",
+    handler : function(request, reply){
+      self.getAvatar(request, reply);
+    },
+    config : {
+      validate : {
+        query : {
+          emailAddress : Joi.string().required(),
+        }
       }
     }
   })
@@ -505,7 +557,6 @@ ImapAPI.prototype.send = function(request, reply) {
                     var file = gfs.createReadStream({ _id : attachment.attachmentId });
                     var string = "";
                     file.on("error", function(err){
-                      console.log(err);
                       return reply(err).code(500);
                     })
                     file.on("data", function(chunk){
@@ -868,15 +919,18 @@ ImapAPI.prototype.listBox = function(request, reply) {
               async.eachSeries(addressArray, function(email, cb){
                 // Check if the email address exists in db
                 addressBookModel().findOne({emailAddress:email.address, account : request.headers.username}, function(err, result){
-                  console.log(err);
                   if (result){
                     return cb();
                   }
-                  email.name = email.name || "";
-                  addressBookModel().create({emailAddress : email.address, name : email.name, account : request.headers.username}, function(err){ 
-                    console.log(err);
-                    cb();
-                  });
+                  deletedContactModel().findOne({emailAddress:email.address, account : request.headers.username}, function(err, result){
+                    if (result) {
+                      return cb();
+                    }
+                    email.name = email.name || "";
+                    addressBookModel().create({emailAddress : email.address, name : email.name, account : request.headers.username}, function(err){ 
+                      cb();
+                    });
+                  })
                 })
               }, function(err){
                 resolve();
@@ -906,7 +960,6 @@ ImapAPI.prototype.listBox = function(request, reply) {
                 .then(function(){
                   // Save the new message hash
                   collectedMessageModel().create({hash : hash}, function(err, result){ 
-                    console.log(err)
                     cb();
                   })
                 })
@@ -1066,7 +1119,6 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
                 cb();
               });
               writeStream.on("error", function(err){
-                console.log(err);
                 cb(err);
               });
               var readableStreamBuffer = streamifier.createReadStream(content);
@@ -1157,12 +1209,11 @@ ImapAPI.prototype.getAttachment = function(request, reply) {
         return reply(err).code(500);
       }
       if (!isExist) {
-        reply({err : new Error("Attachment not found").message}).code(404);
+        return reply({err : new Error("Attachment not found").message}).code(404);
       }
       var file = gfs.createReadStream({ _id : request.query.attachmentId });
       var string = "";
       file.on("error", function(err){
-        console.log(err);
         return reply(err).code(500);
       })
       file.on("data", function(chunk){
@@ -1192,7 +1243,6 @@ ImapAPI.prototype.uploadAttachment = function(request, reply) {
       reply({attachmentId : id});
     });
     writeStream.on("error", function(err){
-      console.log(err);
       reply(err);
     });
     request.payload.content.pipe(base64Stream.encode()).pipe(writeStream);
@@ -1376,7 +1426,6 @@ ImapAPI.prototype.getAddressBook = function(request, reply) {
       }
     }
 
-    console.log(query);
     // Count all records first
     addressBookModel().count(query, function(err, count) {
       if (err) {
@@ -1426,11 +1475,15 @@ ImapAPI.prototype.getContact = function(request, reply) {
         organization : 1,
         homeAddress : 1,
         phone : 1,
+        avatarId : 1,
         _id : 1,
       })
       .exec(function(err, result){
         if (err) {
           return reply(err).code(500);
+        }
+        if (!result) {
+          return reply({err : "Contact not found"}).code(404);
         }
         reply(result);
     })
@@ -1445,22 +1498,24 @@ ImapAPI.prototype.getContact = function(request, reply) {
 ImapAPI.prototype.addContact = function(request, reply) {
   var realFunc = function(client, request, reply) {
     request.payload.account = request.headers.username;
-    console.log(request.payload);
-
-    addressBookModel().find({emailAddress : request.payload.emailAddress}, function(err, result){
-      if (err) {
-        return reply(err).code(500);
-      }
-      if (result.length > 0) {
-        return reply({err :new Error("Contact already exists").message}).code(422);
-      }
-      addressBookModel().create(request.payload, function(err, result){
+    deletedContactModel().remove({emailAddress : request.payload.emailAddress}, function(err, result){
+      // Ignore error. If it doesn't exist, go on.
+      addressBookModel().find({emailAddress : request.payload.emailAddress}, function(err, result){
         if (err) {
           return reply(err).code(500);
         }
-        reply(result);
+        if (result.length > 0) {
+          return reply({err :new Error("Contact already exists").message}).code(422);
+        }
+        addressBookModel().create(request.payload, function(err, result){
+          if (err) {
+            return reply(err).code(500);
+          }
+          reply(result);
+        })
       })
     })
+
   }
   
   checkPool(request, reply, realFunc);
@@ -1472,11 +1527,9 @@ ImapAPI.prototype.addContact = function(request, reply) {
 ImapAPI.prototype.updateContact = function(request, reply) {
   var self = this;
   var realFunc = function(client, request, reply) {
-    console.log(request.payload);
     var id = request.payload._id;
     delete(request.payload._id);
     addressBookModel().findOneAndUpdate({_id:id}, request.payload, function(err, result){
-      console.log(err);
       if (err) {
         return reply(err).code(500);
       }
@@ -1488,6 +1541,122 @@ ImapAPI.prototype.updateContact = function(request, reply) {
       })
     })
   }
+  checkPool(request, reply, realFunc);
+}
+
+/**
+ * Delete existing contact
+ */
+ImapAPI.prototype.deleteContact = function(request, reply) {
+  var self = this;
+  var realFunc = function(client, request, reply) {
+    var ids = request.query.id.split(",");
+    async.eachSeries(ids, function(id, cb){
+      var emailAddress;
+      addressBookModel().findOne({_id:id}).exec(function(err, result){
+        if (err) {
+          return cb(err);
+        }
+        if (!result) {
+          return cb({err : "Contact not found"});
+        }
+        emailAddress = result.emailAddress;
+        addressBookModel().remove({_id:id}, function(err, result){
+          if (err) {
+            return cb(err);
+          }
+          deletedContactModel().create({
+            emailAddress : emailAddress,
+            account : request.headers.username
+          }, function(err, result){
+            if (err) {
+              return cb(err);
+            }
+            cb();
+          })
+        })
+      })
+    }, function(err){
+      if (err) {
+        return reply(err).code(500);
+      }
+      reply();
+    })
+  }
+  checkPool(request, reply, realFunc);
+}
+
+
+/**
+ * Upload avatar
+ *
+ */
+ImapAPI.prototype.uploadAvatar = function(request, reply) {
+  var realFunc = function(client, request, reply) {
+    // There are probability of duplicated contact on different account,
+    // Then, query by email address only isn't appropriate.
+    // So does the avatarId, because it doesn't included in listBox result. 
+    // Combined hash of current username
+    // and the contact email address is used both as filename and query key
+    var hash = objectHash(request.headers.username + request.query.emailAddress);
+    fsModel().remove({filename : hash}, function(err, result){
+      // Ignore error
+      var id = mongoose.Types.ObjectId();
+      var writeStream = gfs.createWriteStream({
+        _id : id,
+        filename : hash,
+        meta : {
+          emailAddress : request.query.emailAddress,
+        }
+      });
+      writeStream.on("finish", function(){
+        addressBookModel()
+          .findOneAndUpdate({emailAddress : request.query.emailAddress}, {avatarId : id}, function(err, result){
+            if (err) {
+              return reply(err).code(500);
+            }
+            reply({avatarId : id}).code(200);
+          }) 
+      });
+      writeStream.on("error", function(err){
+        reply(err).code(500);
+      });
+      var readableStreamBuffer = streamifier.createReadStream(request.payload.content);
+      readableStreamBuffer.pipe(writeStream);
+    });
+  }
+  
+  checkPool(request, reply, realFunc);
+}
+
+/**
+ * Get avatar
+ *
+ */
+ImapAPI.prototype.getAvatar = function(request, reply) {
+  var realFunc = function(client, request, reply) {
+    var hash = objectHash(request.headers.username + request.query.emailAddress);
+    gfs.exist({filename : hash}, function(err, isExist) {
+      if (err) {
+        return reply(err).code(500);
+      }
+      if (!isExist) {
+        return reply("").code(200);
+      }
+      var file = gfs.createReadStream({ filename : hash });
+      var string = "";
+      file.on("error", function(err){
+        return reply(err).code(500);
+      })
+      file.on("data", function(chunk){
+        string += chunk;
+      })
+      file.on("end", function(){
+        reply(string).code(200);
+      })
+    })
+  }
+  
   checkPool(request, reply, realFunc);
 }
 
@@ -1543,6 +1712,27 @@ var collectedMessageModel = function() {
   return m;
 }
 
+// If a contact got deleted, the email address should be stored here
+// So, email fetcher will ignore all contacts in this collection
+var deletedContactModel = function() {
+  var registered = false;
+  var m;
+  try {
+    m = mongoose.model("deletedContact");
+    registered = true;
+  } catch(e) {
+  }
+
+  if (registered) return m;
+  var schema = {
+    emailAddress: String,
+    account : String,
+  }
+  var s = new mongoose.Schema(schema);
+  m = mongoose.model("deletedContact", s);
+  return m;
+}
+
 // Email address collection
 var addressBookModel = function() {
   var registered = false;
@@ -1562,6 +1752,7 @@ var addressBookModel = function() {
     officeAddress : String,
     homeAddress : String,
     phone : String,
+    avatarId : String,
   }
   var s = new mongoose.Schema(schema);
   m = mongoose.model("addressBook", s);

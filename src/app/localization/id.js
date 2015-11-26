@@ -14,6 +14,7 @@ module.exports = {
   "TOASTR_SESSION_EXPIRED" : "Batas waktu sesi Anda telah habis. Silakan coba untuk masuk kembali",
   "TOASTR_SUCCESSFULLY_ADD_CONTACT" : "Kontak baru telah disimpan",
   "TOASTR_SUCCESSFULLY_UPDATE_CONTACT" : "Pembaruan kontak telah disimpan",
+  "TOASTR_SUCCESSFULLY_DELETE_CONTACT" : "Kontak telah dihapus",
   "TOASTR_CONTACT_ALREADY_EXISTS" : "Gagal menyimpan. Kontak sudah pernah dibuat",
   
   // Login
@@ -46,6 +47,7 @@ module.exports = {
   "DELETE" : "Hapus",
   "TO" : "Kepada",
   "DISCARD" : "Batal",
+  "UPLOAD" : "Unggah",
   "UPLOADING" : "Mengunggah...",
   "UPLOAD_FAILED" : "Gagal mengunggah",
   "SEND" : "Kirim",

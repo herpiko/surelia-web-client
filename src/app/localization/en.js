@@ -16,6 +16,7 @@ module.exports = {
   "TOASTR_SESSION_EXPIRED" : "Your session is expired. Please try to login again",
   "TOASTR_SUCCESSFULLY_UPDATE_CONTACT" : "Contact update has been saved",
   "TOASTR_SUCCESSFULLY_ADD_CONTACT" : "New contact has been saved",
+  "TOASTR_SUCCESSFULLY_DELETE_CONTACT" : "Contact has been deleted",
   "TOASTR_CONTACT_ALREADY_EXISTS" : "Unable to save. Contact already exists.",
 
   // Login
@@ -48,6 +49,7 @@ module.exports = {
   "DELETE" : "Delete",
   "TO" : "To",
   "DISCARD" : "Discard",
+  "UPLOAD" : "Upload",
   "UPLOADING" : "Uploading...",
   "UPLOAD_FAILED" : "Failed to upload",
   "SEND" : "Send",
