@@ -413,6 +413,7 @@ Surelia.prototype.listReload = function(){
 Surelia.prototype.listBox = function(boxName, opts, canceler){
   var self = this;
   var opts = opts || {};
+  self.currentMessage = {};
   self.sortBy = opts.sortBy || null;
   self.filter = opts.filter || null;
   self.currentSelection = [];
@@ -601,6 +602,7 @@ Surelia.prototype.deleteBox = function(boxName){
 
 Surelia.prototype.retrieveMessage = function(id, boxName){
   var self = this;
+  self.currentMessageContent = self.$sce.trustAsHtml("");
   self.loading.start();
   console.log("retrieve message");
   var isUnread = lodash.some(self.currentList, function(message){
@@ -641,8 +643,6 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
         if (self.currentMessage.attributes.flags.indexOf("\\Deleted") >= 0) {
           self.currentMessage.deleted = true;
         }
-        var e = angular.element(document.querySelector("#messageContent"));
-        e.empty();
         var html = "";
         if (self.currentMessage.parsed.html) {
           console.log("html");
@@ -651,9 +651,7 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
           console.log("text");
           html = "<pre>" + self.currentMessage.parsed.text + "</pre>";
         }
-        var linkFn = self.$compile(html);
-        var content = linkFn(self.$scope);
-        e.append(content);
+        self.currentMessageContent = self.$sce.trustAsHtml(html);
         // Set size and icon
         if (self.currentMessage.parsed.attachments && self.currentMessage.parsed.attachments.length > 0) {
           var attachments = self.currentMessage.parsed.attachments;
