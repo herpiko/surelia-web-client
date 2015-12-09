@@ -16,6 +16,7 @@ module.exports = {
   "TOASTR_SUCCESSFULLY_UPDATE_CONTACT" : "Pembaruan kontak telah disimpan",
   "TOASTR_SUCCESSFULLY_DELETE_CONTACT" : "Kontak telah dihapus",
   "TOASTR_CONTACT_ALREADY_EXISTS" : "Gagal menyimpan. Kontak sudah pernah dibuat",
+  "TOASTR_ATTACHMENT_UPLOAD_NOT_FINISHED_YET" : "Unggahan lampiran masih belum seelesai",
   
   // Login
   "WELCOME" : "Selamat Datang",

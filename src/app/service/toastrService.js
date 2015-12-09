@@ -10,6 +10,10 @@ var ToastrService = function($http, localStorageService, $rootScope, $state, $q,
   this.ImapService = ImapService;
 }
 
+ToastrService.prototype.attachmentUploadNotFinishedYet = function(){
+  var self = this;
+  self.toastr.success(self.$filter("translate")("TOASTR_ATTACHMENT_UPLOAD_NOT_FINISHED_YET"));
+}
 ToastrService.prototype.contactAlreadyExists = function(){
   var self = this;
   self.toastr.success(self.$filter("translate")("TOASTR_CONTACT_ALREADY_EXISTS"));

@@ -643,8 +643,6 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
         if (self.currentMessage.attributes.flags.indexOf("\\Deleted") >= 0) {
           self.currentMessage.deleted = true;
         }
-        /* var e = angular.element(document.querySelector("#messageContent")); */
-        /* e.empty(); */
         var html = "";
         if (self.currentMessage.parsed.html) {
           console.log("html");
@@ -656,10 +654,6 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
         self.currentMessage.content = self.$sce.trustAsHtml(html);
         console.log(self.currentMessage.content);
 
-        /* var linkFn = self.$compile(html); */
-        /* var content = linkFn(self.$scope); */
-        /* e.append(content); */
-        // Set size and icon
         if (self.currentMessage.parsed.attachments && self.currentMessage.parsed.attachments.length > 0) {
           var attachments = self.currentMessage.parsed.attachments;
           for (var i = 0; i < attachments.length;i++) {
@@ -738,6 +732,16 @@ Surelia.prototype.logout = function(){
 
 Surelia.prototype.sendMessage = function(msg){
   var self = this;
+  // Attachment upload should be finished first
+  var isUploading = window.lodash.some(msg.attachments, function(a){
+    console.log(a);
+    return (a.progress.status == "uploading");
+  });
+  console.log("YOLOO");
+  console.log(isUploading);
+  if (isUploading) {
+    return self.ToastrService.attachmentUploadNotFinishedYet();
+  }
   self.clearAutocomplete();
   var msg = angular.copy(msg);
   // Recipients should not be empty
@@ -1128,7 +1132,7 @@ Surelia.prototype.uploadFiles = function(files, errFiles) {
       }, function(res){
         self.ToastrService.parse(res.data, res.status);
         window.lodash.some(self.newMessage.attachments, function(attachment){
-          if (attachment.fileName == file.filename) {
+          if (attachment.fileName === file.filename && attachment.progress.status === "uploading") {
             attachment.progress.status = "failed";
           }
         })
