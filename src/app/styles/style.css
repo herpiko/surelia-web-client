@@ -139,4 +139,7 @@ img-crop canvas {
   width:500px;
   height:350px;
 }
-
+#message-content-frame {
+  width : 500px;
+  height : 500px;
+}
