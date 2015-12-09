@@ -1,285 +1,485 @@
 <div ng-controller="SureliaCtrl as surelia">
-  <div style="width:100%;background:#ECECEC;padding:10px">
-    <button ng-click="surelia.composeMessage()">{{'COMPOSE' | translate}}</button>
-    <button ng-click="surelia.logout()">{{'LOGOUT' | translate}}</button>
-    <span>{{'QUOTA' | translate}} : {{surelia.quota.usage | SizeFilter }}/{{surelia.quota.limit | SizeFilter }}  ({{surelia.quota.percentage}})</span>
-    <br>
-  </div>
-  <div>
-    <!--Sidebar-->
-    <div style="width:300px;display:inline-block;vertical-align:top;padding:10px;background:#ECECEC;">
-      <ul>
-              <li ng-repeat="box in surelia.boxes" ng-click="surelia.listBox(box.boxName,{},true)" style="cursor:pointer">
-              {{box.boxName | FirstLetterCapitalize }} 
-              <span ng-show="box.meta.count > 0"> ({{box.meta.count}})</span>
-              <span ng-show="surelia.currentBoxName==box.boxName"> *</span>
-              </li>
-              <li ng-repeat="special in surelia.specialBoxes" ng-click="surelia.listBox(special.path, {}, true)" style="cursor:pointer">
-              {{special.specialName | FirstLetterCapitalize}} <span ng-show="surelia.currentBoxName==special.specialName"> *</span>
-              <span ng-show="special.meta.count > 0"> ({{special.meta.count}})</span>
-              </li>
-              <li ng-click="surelia.listContact({search : null}, true)" style="cursor:pointer">
+    <!-- Sidebar -->
+    <div id="sidebar-wrapper">
+		<div class="sidebar-nav-wrapper">
+			<ul class="sidebar-nav">
+				<li class="sidebar-brand">
+					<a href="#">
+						<img class="img-responsive" src="images/pnsmail-logo.svg">
+					</a>
+				</li>
+				<hr>
+				<li>
+        <a href="" ng-click="surelia.composeMessage()"><i class="fa fa-envelope sidebar-icon">&nbsp;&nbsp;</i>{{'COMPOSE' | translate}}</a>
+				</li>
+				<li ng-repeat="box in surelia.boxes" ng-class="{'mailbox-selected':surelia.currentBoxName==box.boxName}">
+					<a href="" ng-click="surelia.listBox(box.boxName, {}, true)"><i class="fa fa-inbox sidebar-icon" ng-class="{'mailbox-selected':surelia.currentBoxName==box.boxName}">&nbsp;&nbsp;</i>
+						<span ng-class="{'mailbox-selected':surelia.currentBoxName==box.boxName}">{{box.boxName | FirstLetterCapitalize}}</span>
+						<span class="mailbox-count" ng-show="box.meta.count > 0"> {{box.meta.count}}</span>
+					</a> 
+				</li>
+				<li ng-repeat="special in surelia.specialBoxes" ng-class="{'mailbox-selected':surelia.currentBoxName==special.specialName}">
+					<a href="" ng-click="surelia.listBox(special.path, {}, true)" ng-class="{'mailbox-selected':surelia.currentBoxName==special.specialName}">
+						<!-- Mapping specific icon for special boxes-->
+						<i ng-show="special.specialName=='Drafts'" class="fa fa-edit sidebar-icon" ng-class="{'mailbox-selected':surelia.currentBoxName==special.specialName}">&nbsp;&nbsp;</i>
+						<i ng-show="special.specialName=='Sent'" class="fa fa-send sidebar-icon" ng-class="{'mailbox-selected':surelia.currentBoxName==special.specialName}">&nbsp;&nbsp;</i>
+						<i ng-show="special.specialName=='Junk'" class="fa fa-trash-o sidebar-icon" ng-class="{'mailbox-selected':surelia.currentBoxName==special.specialName}">&nbsp;&nbsp;</i>
+						<i ng-show="special.specialName=='Trash'" class="fa fa-trash sidebar-icon" ng-class="{'mailbox-selected':surelia.currentBoxName==special.specialName}">&nbsp;&nbsp;</i>
+						<i ng-show="special.specialName=='All'" class="fa fa-folder-open sidebar-icon" ng-class="{'mailbox-selected':surelia.currentBoxName==special.specialName}">&nbsp;&nbsp;</i>
+							<span ng-class="{'mailbox-selected':surelia.currentBoxName==special.specialName}">{{special.specialName | FirstLetterCapitalize}}</span>
+							<span class="mailbox-count" ng-show="special.meta.count > 0"> {{special.meta.count}}</span>
+					</a>
+          </li>
+          <li ng-class="{'mailbox-selected':surelia.listView=='contacts'}">
+            <a href="" ng-click="surelia.listContact({search : null}, true)" ng-class="{'mailbox-selected':surelia.listView=='contacts'}">
+              <i class="fa fa-book sidebar-icon" ng-class="{'mailbox-selected':surelia.listView=='contacts'}">&nbsp;&nbsp;</i>
               {{ 'CONTACTS' | translate }}
-              </li>
-      </ul>
-      <div>
-        <p>
-          {{currentUsername}}
-        </p>
-        <br>
-        <a href="" ng-click="surelia.switchLang('en')">English</a> |
-        <a href="" ng-click="surelia.switchLang('id')">Bahasa Indonesia</a>
-      </div>
+            </a>
+          </li>
+			</ul>
+		</div>
+		<div class="quota-username">	
+			<div class="quota" ng-show="surelia.quota.usage !== -1">
+        <p>{{'QUOTA' | translate}}: {{ surelia.quota.usage | SizeFilter }}/{{ surelia.quota.limit | SizeFilter }}</p>
+				<div class="progress">
+					<div class="progress-bar progress-bar-danger progress-bar-striped" role="progressbar" aria-valuenow="{{surelia.quota.usage}}" aria-valuemin="0" aria-valuemax="{{surelia.quota.limit}}" style="width: {{surelia.quota.percentage}}">
+						<span class="sr-only"></span>
+					</div>
+				</div>
+			</div>
+			<div class="username">
+				<button href="" class="btn btn-danger" title="Keluar" ng-click="surelia.logout()">
+					<i class="fa fa-sign-out"></i>
+				</button>
+				<button type="button" class="btn btn-default btn-account">
+					<i class="fa fa-user"></i>
+					{{currentUsername}}
+				</button>
+			</div>        
+		</div>
     </div>
+    <!-- /#sidebar -->
     
-    
-    <!--Message List view-->
-    <div style="width:60%;display:inline-block;vertical-align:top;" ng-show="surelia.listView=='messages'">
-      <form ng-submit="surelia.listBox('search', {page : 1, limit : 10, search : surelia.searchString}, true)">
-        <input ng-model="surelia.searchString" placeholder="{{'SEARCH_PLACEHOLDER' | translate}}"></input>
-      </form>
-            {{surelia.currentListMeta.listStart}} - {{surelia.currentListMeta.listEnd}} / {{surelia.currentListMeta.total}}
-      <button ng-click="surelia.listBoxPrev()">&larr;</button>
-      <button ng-click="surelia.listBoxNext()">&rarr;</button>
-      <button ng-click="surelia.listReload()">{{'RELOAD' | translate}}</button>
-      <br>
-      {{'SORT_BY' | translate}}  : 
-      <button ng-click="surelia.listSort('DATE')">{{'DATE' | translate}}</button> 
-      <button ng-click="surelia.listSort('FROM')">{{'FROM' | translate}}</button> 
-      <button ng-click="surelia.listSort('SUBJECT')">{{'SUBJECT' | translate}}</button> 
-      <button ng-click="surelia.listSort('SIZE')">{{'SIZE' | translate}}</button> | 
-      <button ng-click="surelia.listReverse('ascending')">A - Z</button> 
-      <button ng-click="surelia.listReverse('descending')">Z - A</button>
-      <br>
-      {{'MOVE_TO' | translate}}  : 
-      <button ng-click="surelia.moveMessage('Archive')">{{'ARCHIVE' | translate}}</button>
-      <button>Spam</button>
-      <button ng-click="surelia.moveMessage('Trash')">{{'TRASH' | translate}}</button>
-      <button ng-repeat="box in surelia.moveToBoxes" ng-hide="(box.indexOf(surelia.currentBoxName) > -1)" ng-click="surelia.moveMessage(box)">{{box}}</button>
-      <br>
-      {{'FILTER' | translate}}  : 
-      <button ng-click="surelia.listFilter('UNSEEN')">{{'UNREAD' | translate}}</button>
-      <br>
-      {{'FLAG_AS' | translate}}  : 
-      <button ng-click="surelia.flagMessage('UNREAD')">{{'UNREAD' | translate}}</button>
-      <button ng-click="surelia.flagMessage('READ')">{{'READ' | translate}}</button>
-      <br>
-      <input type="checkbox" ng-model="surelia.selectAll" ng-true-value="true" ng-false-value="false" ng-change="surelia.checkAll()">
-      <div ng-repeat="message in surelia.currentList" style="cursor:pointer;margin-top:3px;background:#ECECEC">
-        <div style="display:inline-block">
-          <input type="checkbox" checklist-model="surelia.currentSelection" checklist-value="message"></input>
+    <!--Compose-->
+    <form ng-show="surelia.compose" ng-submit="surelia.sendMessage(surelia.newMessage)" ng-class="{'compose-container':(surelia.composeMode=='corner' || surelia.composeMode=='minimaze' ), 'compose-container-maximaze':surelia.composeMode=='maximaze'}" class="compose-box">
+		<div class="compose-row compose-header">
+			<div class='compose-form'>{{'COMPOSE' | translate}}
+				<span class="compose-header-button" ng-click="surelia.saveDraft()"><i class="fa fa-close"></i></span>
+				<span class="compose-header-button" ng-hide="surelia.composeMode=='maximaze' || surelia.composeMode=='minimaze'" ng-click="surelia.resizeCompose('maximaze')"><i class="fa fa-expand"></i></span>
+				<span class="compose-header-button" ng-hide="surelia.composeMode=='corner'" ng-click="surelia.resizeCompose('corner')"><i class="fa fa-compress"></i></span>
+				<span class="compose-header-button" ng-hide="surelia.composeMode=='minimaze'" ng-click="surelia.resizeCompose('minimaze')"><i class="fa fa-minus"></i></span>
+			</div>
+			<div ng-hide="surelia.composeMode=='minimaze'">
+				<div class="form-group" mass-autocomplete>
+					<span class="compose-label">{{'TO' | translate}}</span>
+					<span class="compose-label-cc-button" ng-hide="surelia.cc" ng-click="surelia.showCc()">Cc</span>
+					<span class="compose-label-bcc-button" ng-hide="surelia.bcc" ng-click="surelia.showBcc()">Bcc</span>
+						<input type="text" ng-model="surelia.newMessage.recipients" class="compose-input compose-input-to form-control"  mass-autocomplete-item="surelia.option_delimited" ng-change="surelia.currentAutocomplete='recipients'">
         </div>
-        <div style="display:inline-block" ng-click="surelia.retrieveMessage(message.seq, message.boxName, message.unread)">
-          <span ng-show="message.unread">* </span>
-          <span ng-hide="message.avatarImg" style="background:{{message.color}};padding:2px;">{{message.avatar}} -</span>
-          <img ng-show="message.avatarImg" style="height:40px;width:40px;background:{{message.color}};padding:2px;" src="{{message.avatarImg}}">
-          <span>{{message.seq}} -</span>
-          <span>{{message.header.subject}} -</span>
-          <span ng-hide="surelia.isDraft">{{message.header.from}} -</span>
-          <span ng-show="surelia.isDraft"><span ng-repeat="to in message.header.to">{{to}} </span> -</span>
-          <span am-time-ago="message.header.date"></span>
-          <span ng-show="message.hasAttachments">[attachment]</span>
-          <span ng-show="message.answered">[answered]</span>
+        <div class="ac-container" ng-show="surelia.contactCandidatesAutocomplete.recipients.length > 0" style="position:absolute;">
+          <ul class="ac-menu">
+            <li ng-repeat="result in surelia.contactCandidatesAutocomplete.recipients"
+              ng-if="$index > -1"
+              class="ac-menu-item"
+              ng-class="$index == selected_index ? 'ac-state-focus' : ''">
+              <a href ng-click="surelia.select_suggested(result.value, 'recipients')" ng-bind-html=result.label> </a>
+            </li>
+          </ul>
         </div>
-      </div>
-    </div>
-    
-    <!--Contact List view-->
-    <div style="width:60%;display:inline-block;vertical-align:top;" ng-show="surelia.listView=='contacts'">
-      <form ng-submit="surelia.listContact({page : 1, limit : 10, search : surelia.searchString}, true)">
-        <input ng-model="surelia.searchString" placeholder="{{'SEARCH_PLACEHOLDER' | translate}}"></input>
-      </form>
-            {{surelia.currentListMeta.listStart}} - {{surelia.currentListMeta.listEnd}} / {{surelia.currentListMeta.total}}
-      <button ng-click="surelia.listContactPrev()">&larr;</button>
-      <button ng-click="surelia.listContactNext()">&rarr;</button>
-      <button ng-click="surelia.listContactReload()">{{'RELOAD' | translate}}</button>
-      <br>
-      {{'SORT_BY' | translate}}  : 
-      <button ng-click="surelia.listContactReverse('ascending')">A - Z</button> 
-      <button ng-click="surelia.listContactReverse('descending')">Z - A</button>
-      <br>
-      <button ng-click="surelia.newContact()">{{'ADD_CONTACT' | translate }}</button>
-      <button ng-click="surelia.batchDeleteContact()">{{'DELETE' | translate }}</button>
-      <br>
-      <input type="checkbox" ng-model="surelia.selectAll" ng-true-value="true" ng-false-value="false" ng-change="surelia.checkAllContacts()">
-      <div ng-repeat="contact in surelia.currentContactList" style="cursor:pointer;margin-top:3px;background:#ECECEC">
-        <div style="display:inline-block">
-          <input type="checkbox" checklist-model="surelia.currentContactSelection" checklist-value="contact"></input>
-        </div>
-        <div style="display:inline-block" ng-click="surelia.retrieveContact(contact._id)">
-          <span ng-hide="contact.avatarImg" style="background:{{contact.color}};padding:2px;">{{contact.avatar}} -</span>
-          <img ng-show="contact.avatarImg" style="height:40px;width:40px;background:{{message.color}};padding:2px;" src="{{contact.avatarImg}}">
-          <span >{{contact.name}} -</span>
-          <span>{{contact.emailAddress}} -</span>
-        </div>
-      </div>
-    </div>
-    
-    <!--Message view-->
-    <div ng-show="surelia.view=='message' && surelia.currentMessage.parsed" style="width:60%;display:inline-block;vertical-align:top;background:#ECECEC">
-            <div>
-              <button ng-click="surelia.composeMessage(surelia.currentMessage, 'reply')">{{'REPLY' | translate}}</button>
-              <button ng-click="surelia.composeMessage(surelia.currentMessage, 'all')">{{'REPLY_ALL' | translate}}</button>
-              <button ng-click="surelia.composeMessage(surelia.currentMessage, 'forward')">{{'FORWARD' | translate}}</button>
-              <button ng-click="">{{'ARCHIVE' | translate}}</button>
-              <button ng-click="">Spam</button>
-              <button ng-hide="surelia.currentMessage.deleted" ng-click="surelia.removeMessage(surelia.currentMessage.seq, surelia.currentMessage.parsed.messageId, surelia.currentMessage.boxName)">{{'DELETE' | translate}}</button>
-              <button ng-show="surelia.currentMessage.deleted" ng-click="surelia.removeMessage(surelia.currentMessage.attributes.uid, surelia.currentMessage.parsed.messageId, surelia.currentMessage.boxName, { permanentDelete : true })">{{'DELETE' | translate}}</button>
-            </div>
-            <div><b>{{surelia.currentMessage.parsed.subject}}</b></div>
-            <div>{{'FROM' | translate}} : {{surelia.currentMessage.parsed.headers.from}}</div>
-            <div>{{'TO' | translate}} : {{surelia.currentMessage.parsed.headers.to}}<span ng-show="surelia.currentMessage.parsed.headers.cc">, {{surelia.currentMessage.parsed.headers.cc}}</span>
-            </div>
-            <div>
-              <span am-time-ago="surelia.currentMessage.parsed.date"></span>
-               ({{surelia.currentMessage.parsed.date | amDateFormat:'dddd, DD MMMM YYYY, HH:mm'}})</div>
-            <hr>
-            <iframe srcdoc="{{surelia.currentMessage.content}}" id="message-content-frame"></iframe>
-            <hr>
-            <span ng-show="surelia.currentMessage.hasAttachments">[attachment]</span>
-            <div>
-              <ul>
-                  <li ng-repeat="attachment in surelia.currentMessage.parsed.attachments" class="{{attachment.icon}}">
-                  <span style="cursor:pointer" ng-click="surelia.getAttachment(attachment)">{{attachment.fileName}} - {{attachment.size | SizeFilter }}</span>
-                </li>
-              </ul>
-            </div>
-    </div>
-    
-    <!--Contact view-->
-    <div ng-show="surelia.view=='contact'" style="width:60%;display:inline-block;vertical-align:top;background:#ECECEC">
-      <span ng-hide="surelia.currentContact.avatarImg" style="background:{{surelia.currentContact.color}};padding:2px;">{{surelia.currentContact.avatar}}</span>
-      <img ng-show="surelia.currentContact.avatarImg" style="width:40px;height:40px;" src="{{surelia.currentContact.avatarImg}}"><br>
-      <button ngf-select="surelia.cropAvatar($files, $invalidFiles)" multiple
-        ngf-max-height="1000" ngf-max-size="1MB" accept="image/*" class="btn btn-default btn-file">
-       <i class="fa fa-paperclip"></i> {{'UPLOAD' | translate}}
-       </button>
-      <div ng-show="surelia.showCropArea">
-        <div class="cropArea">
-          <img-crop image="surelia.rawAvatar" area-type="square" result-image="surelia.croppedAvatar"></img-crop>
-        </div>
-        <div>Cropped Image:</div>
-        <div><img ng-src="{{surelia.myCroppedImage}}" /></div>
-        <button ng-click="surelia.cancelCropAvatar()">{{'CANCEL' | translate}}</button>
-        <button ng-click="surelia.uploadAvatar()">{{'UPLOAD' | translate}}</button>
-      </div>
-      <div ng-show="surelia.currentContact.emailAddress && !surelia.contactForm && !surelia.showCropArea">
-              {{ 'NAME' | translate }} : {{surelia.currentContact.name}}<br>
-              {{ 'EMAIL' | translate }} : {{surelia.currentContact.emailAddress}}<br>
-              {{ 'OFFICE_ADDRESS' | translate }} : {{surelia.currentContact.officeAddress}}<br>
-              {{ 'HOME_ADDRESS' | translate }} : {{surelia.currentContact.homeAddress}}<br>
-              {{ 'PHONE' | translate }} : {{surelia.currentContact.phone}}<br>
-        <button ng-click="surelia.editContact()">{{'EDIT' | translate}}</button>
-        <button ng-click="surelia.deleteContact(surelia.currentContact._id)">{{'DELETE' | translate}}</button>
-      </div>
-      <div ng-show="surelia.contactForm && !surelia.showCropArea">
-              {{'NAME' | translate }} : <input type="text" ng-model="surelia.currentContactForm.name"><br>
-              {{'EMAIL' | translate }} : <input type="text" ng-model="surelia.currentContactForm.emailAddress"><br>
-              {{'OFFICE_ADDRESS' | translate }} : <input type="text" ng-model="surelia.currentContactForm.officeAddress"><br>
-              {{'HOME_ADDRESS' | translate }} : <input type="text" ng-model="surelia.currentContactForm.homeAddress"><br>
-              {{'PHONE' | translate }} : <input type="text" ng-model="surelia.currentContactForm.phone"><br>
-        <button ng-click="surelia.discardEditContact()">{{'DISCARD' | translate}}</button>
-        <button ng-show="surelia.contactFormMode=='edit'" ng-click="surelia.updateContact(surelia.currentContactForm)">{{'UPDATE' | translate}}</button>
-        <button ng-show="surelia.contactFormMode=='add'" ng-click="surelia.addContact(surelia.currentContactForm)">{{'ADD' | translate}}</button>
-      </div>
 
-    </div>
-    
-
-    <!--Compose view-->
-    <form ng-show="surelia.compose" ng-submit="surelia.sendMessage(surelia.newMessage)" ng-class="{'compose-container':(surelia.composeMode=='corner' || surelia.composeMode=='minimaze' ), 'compose-container-maximaze':surelia.composeMode=='maximaze'}">
-      <div class='compose-header'>{{'COMPOSE' | translate}}
-        <span class="compose-header-button" ng-click="surelia.saveDraft()">X</span>
-        <span class="compose-header-button" ng-hide="surelia.composeMode=='maximaze' || surelia.composeMode=='minimaze'" ng-click="surelia.resizeCompose('maximaze')">/</span>
-        <span class="compose-header-button" ng-hide="surelia.composeMode=='corner'" ng-click="surelia.resizeCompose('corner')">[]</span>
-        <span class="compose-header-button" ng-click="surelia.resizeCompose('minimaze')">-</span>
-      </div>
-      <div class='inner' ng-hide="surelia.composeMode=='minimaze'">
-        <fieldset>
-          <div class="form-group">
-            <div class="col-lg-12" mass-autocomplete>
-             <span class="compose-label">Kepada</span>
-             <span class="compose-label-cc-button" ng-hide="surelia.cc" ng-click="surelia.showCc()">Cc</span>
-             <span class="compose-label-bcc-button" ng-hide="surelia.bcc" ng-click="surelia.showBcc()">Bcc</span>
-              <input type="text" ng-model="surelia.newMessage.recipients" class="compose-input-to form-control" mass-autocomplete-item="surelia.option_delimited" ng-change="surelia.currentAutocomplete='recipients'">
-            </div>
-          </div>
-          <div class="ac-container" ng-show="surelia.contactCandidatesAutocomplete.recipients.length > 0" style="position:absolute;">
-            <ul class="ac-menu">
-              <li ng-repeat="result in surelia.contactCandidatesAutocomplete.recipients"
-                ng-if="$index > -1"
-                class="ac-menu-item"
-                ng-class="$index == selected_index ? 'ac-state-focus' : ''">
-                <a href ng-click="surelia.select_suggested(result.value, 'recipients')" ng-bind-html=result.label> </a>
-              </li>
-            </ul>
-          </div>
-          <div class="form-group" ng-show="surelia.cc">
-            <div class="col-lg-12" mass-autocomplete>
-             <span class="compose-label">Cc</span>
-              <input type="text" ng-model="surelia.newMessage.cc" class="compose-input-cc form-control" mass-autocomplete-item="surelia.option_delimited" ng-change="surelia.currentAutocomplete='cc'">
-            </div>
-          </div>
-          <div class="ac-container" ng-show="surelia.contactCandidatesAutocomplete.cc.length > 0" style="position:absolute;">
-            <ul class="ac-menu">
-              <li ng-repeat="result in surelia.contactCandidatesAutocomplete.cc"
-                ng-if="$index > -1"
-                class="ac-menu-item"
-                ng-class="$index == selected_index ? 'ac-state-focus' : ''">
-                <a href ng-click="surelia.select_suggested(result.value, 'cc')" ng-bind-html=result.label> </a>
-              </li>
-            </ul>
-          </div>
-          <div class="form-group" ng-show="surelia.bcc">
-            <div class="col-lg-12" mass-autocomplete>
-             <span class="compose-label">Bcc</span>
-              <input type="text" ng-model="surelia.newMessage.bcc" class="compose-input-bcc form-control" mass-autocomplete-item="surelia.option_delimited" ng-change="surelia.currentAutocomplete='bcc'">
-            </div>
-          </div>
-          <div class="form-group">
-            <div class="col-lg-12">
-             <span class="compose-label">Judul</span>
-              <input type="text"  ng-model="surelia.newMessage.subject" class="compose-input-subject form-control">
-            </div>
-          </div>
-          <div class="ac-container" ng-show="surelia.contactCandidatesAutocomplete.bcc.length > 0" style="position:absolute;">
-            <ul class="ac-menu">
-              <li ng-repeat="result in surelia.contactCandidatesAutocomplete.bcc"
-                ng-if="$index > -1"
-                class="ac-menu-item"
-                ng-class="$index == selected_index ? 'ac-state-focus' : ''">
-                <a href ng-click="surelia.select_suggested(result.value, 'bcc')" ng-bind-html=result.label> </a>
-              </li>
-            </ul>
-          </div>
-          <div>
-              <text-angular ta-unsafe-sanitizer="true" ng-model="surelia.newMessage.html"></text-angular>
-          </div>
-          <div class="form-group">
-            <div class="col-lg-10">
-             <button ngf-select="surelia.uploadFiles($files, $invalidFiles)" multiple
-               ngf-max-height="1000" ngf-max-size="15MB" class="btn btn-default btn-file">
-              <i class="fa fa-paperclip"></i> Lampiran
-             </button>
-           </div>
-           <ul>
-             <li ng-show="surelia.newMessage.attachments.length > 0" ng-repeat="a in surelia.newMessage.attachments" class="compose-attachments">
-              {{a.filename}}
-               <span ng-show="a.progress.status=='uploading'"> - {{'UPLOADING' | translate}}</span>
-               <span ng-show="a.progress.status=='failed'"> - {{'UPLOAD_FAILED' | translate}} </span>
-               <span ng-show="a.progress.status=='uploaded'"><i class="fa fa-check"></i></span> 
-                <span ng-show="a.progress.percentage && a.progress.status=='uploading'">{{a.progress.percentage}} %</span>
-             </li>
-           </ul>
-          </div>
-        </fieldset>
-        <div class='button-bar'>
-            <button class="btn btn-success" type="reset" ng-click="surelia.discardDraft()"><i class="fa fa-envelope-o"></i> {{'DISCARD' | translate}}</button>
-            <button type="submit" class="btn btn-success"><i class="fa fa-envelope-o"></i> {{'SEND' | translate}}</button>
+				<div class="form-group" ng-show="surelia.cc" mass-autocomplete>
+					<span class="compose-label">Cc</span>
+				  		<input type="text" ng-model="surelia.newMessage.cc" class="compose-input compose-input-cc form-control" mass-autocomplete-item="surelia.option_delimited" ng-change="surelia.currentAutocomplete='cc'">
+				</div>
+        <div class="ac-container" ng-show="surelia.contactCandidatesAutocomplete.cc.length > 0" style="position:absolute;">
+          <ul class="ac-menu">
+            <li ng-repeat="result in surelia.contactCandidatesAutocomplete.cc"
+              ng-if="$index > -1"
+              class="ac-menu-item"
+              ng-class="$index == selected_index ? 'ac-state-focus' : ''">
+              <a href ng-click="surelia.select_suggested(result.value, 'cc')" ng-bind-html=result.label> </a>
+            </li>
+          </ul>
         </div>
-      </div>
+				<div class="form-group" ng-show="surelia.bcc" mass-autocomplete>
+					<span class="compose-label">Bcc</span>
+				  		<input type="text" ng-model="surelia.newMessage.bcc" class="compose-input compose-input-bcc form-control" mass-autocomplete-item="surelia.option_delimited" ng-change="surelia.currentAutocomplete='bcc'">
+				</div>
+        <div class="ac-container" ng-show="surelia.contactCandidatesAutocomplete.bcc.length > 0" style="position:absolute;">
+          <ul class="ac-menu">
+            <li ng-repeat="result in surelia.contactCandidatesAutocomplete.bcc"
+              ng-if="$index > -1"
+              class="ac-menu-item"
+              ng-class="$index == selected_index ? 'ac-state-focus' : ''">
+              <a href ng-click="surelia.select_suggested(result.value, 'bcc')" ng-bind-html=result.label> </a>
+            </li>
+          </ul>
+        </div>
+				<div class="form-group">
+					<span class="compose-label">{{'SUBJECT' | translate}}</span>
+				  		<input type="text"  ng-model="surelia.newMessage.subject" class="compose-input compose-input-subject form-control">
+				</div>
+			</div>
+		</div>
+		<div class="compose-row compose-content" ng-hide="surelia.composeMode=='minimaze'">
+			<text-angular ta-unsafe-sanitizer="true" ng-model="surelia.newMessage.html"></text-angular>
+			<div>
+				<div class="button-bar-attachment">
+					<button ngf-select="surelia.uploadFiles($files, $invalidFiles)" multiple
+						ngf-max-height="1000" ngf-max-size="15MB" class="btn btn-default btn-file btn-circle btn-lg" title="{{'ATTACHMENTS' | translate}}">
+						<i class="fa fa-paperclip"></i>
+					</button>
+				</div>
+				<div class='button-bar button-bar-compose'>
+					<button type="reset" class="btn btn-warning btn-circle btn-lg" title="{{'DISCARD' | translate}}" ng-click="surelia.discardDraft()">
+						<i class="fa fa-trash-o"></i>
+					</button>
+					<button type="submit" class="btn btn-success btn-circle btn-lg" title="{{'SEND' | translate}}">
+						<i class="fa fa-envelope-o"></i>
+					</button>
+				</div>			
+			</div>
+		</div>
+		<div class="compose-row compose-footer" ng-hide="surelia.composeMode=='minimaze'" >
+			<div class="form-group">
+				<div>
+					<div style="display:inline-block;margin:5px;overflow:hidden;white-space:nowrap; text-overflow: ellipsis;max-width:150px;vertical-align:top;" 
+					ng-show="surelia.newMessage.attachments.length > 0" 
+					ng-repeat="a in surelia.newMessage.attachments" 
+					class="compose-attachments">
+
+						<div style="display:inline-block;overflow:hidden;white-space:nowrap; text-overflow: ellipsis;max-width:90px;vertical-align:top">{{a.filename}}</div>
+						<div style="display:inline;width:20px;">
+							<span ng-show="a.progress.status=='uploading'"><i class="fa fa-spinner"></i></span>
+							<span ng-show="a.progress.status=='failed'"><i class="fa fa-warning"></i></span>
+							<span ng-show="a.progress.status=='uploaded'"><i class="fa fa-check"></i></span> 
+							<span ng-show="a.progress.status=='uploading'"> {{a.progress.percentage}}%</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
     </form>
 
+    <div id="wrapper" ng-hide="surelia.view=='compose'" > 
+        <div class="container-fluid bootcards-container push-right">
+            <div class="row">
+                <!--Mail List-->
+                <div class="col-sm-4 bootcards-list mail-container" ng-show="surelia.listView=='messages'">
+                    <div class="panel panel-default">      
+                        <div class="panel-body">
+                            <div class="search-form">
+                                <div class="row">
+                                    <div class="search-form-container">
+                                        <form class="form-group" ng-submit="surelia.listBox('search', {page : 1, limit : 10, search : surelia.searchString}, true)">
+                                            <input ng-model="surelia.searchString" type="text" class="form-control" placeholder="{{'SEARCH_PLACEHOLDER' | translate}}">
+                                            <i class="fa fa-search"></i>
+                                        </form>
+                                    </div>
+                                </div>
+                                <br>
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <div class="checkbox pull-left checkbox-list-all">
+                                          <label><input type="checkbox" ng-model="surelia.selectAll" ng-true-value="true" ng-false-value="false" ng-change="surelia.checkAll()"></label>
+                                        </div>
+                                        <div>
+                                            <div class="pull-right control-box">
+											{{surelia                   .currentListMeta.listStart}} - {{surelia.currentListMeta.listEnd}} / {{surelia.currentListMeta.total}}
+                                              <div class="btn-group">
+                                                <button class="btn btn-default btn-sm" ng-click="surelia.listBoxPrev()"><i class="fa fa-chevron-left"></i></button>
+													                      <div class="btn-group" dropdown>
+													                      	<button type="button" class="btn btn-default btn-sm dropdown-toggle" dropdown-toggle>
+													                      		<i class="fa fa-sort"></i> <span class="caret"></span>
+													                      	</button>
+													                      		<ul class="dropdown-menu dropdown-menu-right" dropdown-menu>
+                                                     <li class="dropdown-header">{{'SORT_BY' | translate}}</li>
+													                      			<li ng-click="surelia.listSort('DATE')"><a href="">{{'DATE' | translate}}</a></li>
+													                      			<li ng-click="surelia.listSort('FROM')"><a href="">{{'FROM' | translate}}</a></li>
+													                      			<li ng-click="surelia.listSort('SUBJECT')"><a href="">{{'SUBJECT' | translate}}</a></li>
+													                      			<li ng-click="surelia.listSort('SIZE')"><a href="">{{'SIZE' | translate}}</a></li>
+													                      			<li role="separator" class="divider"></li>
+                                                     <li class="dropdown-header">Filter</li>
+													                      			<li ng-click="surelia.listFilter('UNSEEN')"><a href="">{{'UNREAD' | translate}}</a></li>
+													                      			<li role="separator" class="divider"></li>
+													                      			<li ng-click="surelia.listReverse('ascending')"><a href="">A &rarr; Z</a></li>
+													                      			<li ng-click="surelia.listReverse('descending')"><a href="">Z &rarr; A</a></li>
+													                      		</ul>
+													                      </div>
+													                      <div class="btn-group" dropdown>
+													                      	<button type="button" class="btn btn-default btn-sm dropdown-toggle" dropdown-toggle>
+													                      		<i class="fa fa-file-o"></i> <span class="caret"></span>
+													                      	</button>
+													                      		<ul class="dropdown-menu dropdown-menu-right" dropdown-menu>
+													                      			<li ng-click="surelia.moveMessage('Archive')"><a href=""><i class="fa fa-archive"></i> {{'ARCHIVE' | translate}}</a></li>
+													                      			<li><a href=""><i class="fa fa-filter"></i> Spam</a></li>
+                                                     <li ng-click="surelia.moveMessage('Trash')"><a href=""><i class="fa fa-trash-o"></i> {{'DELETE' | translate}}</a></li>
+													                      			<li role="separator" class="divider"></li>
+                                                      <li class="dropdown-header">{{'MOVE_TO' | translate}}</li>
+                                                     <li ng-repeat="box in surelia.moveToBoxes" ng-hide="(box.indexOf(surelia.currentBoxName) > -1)" ng-click="surelia.moveMessage(box)"><a href=""><i class="fa fa-archive"></i> {{box | FirstLetterCapitalize}}</a></li>
+													                      			<li role="separator" class="divider"></li>
+                                                      <li class="dropdown-header">{{'FLAG_AS' | translate}}</li>
+                                                     <li ng-click="surelia.flagMessage('UNREAD')"><a href=""><i class="fa fa-flag"></i> {{'UNREAD' | translate}}</a></li>
+                                                     <li ng-click="surelia.flagMessage('READ')"><a href=""><i class="fa fa-flag"></i> {{'READ' | translate}}</a></li>
+													                      		</ul>
+													                      </div>
+                                                <button class="btn btn-default btn-sm" ng-click="surelia.listBoxNext()"><i class="fa fa-chevron-right"></i></button>
+													                    </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>                
+                            </div>          
+                        </div>
+                        
+                        <div class="list-group mail-list">
+                            <div class="list-group-item pointer list-group-message" ng-repeat="message in surelia.currentList">
+                                <div class="checkbox pull-left checkbox-list">
+									                <label><input type="checkbox" checklist-model="surelia.currentSelection" checklist-value="message"></label>
+                                </div>
+                                <div ng-click="surelia.retrieveMessage(message.seq, message.boxName, message.unread)">
+                                  <div ng-hide="message.avatarImg" class="avatar-letter">{{message.avatar}}</div>
+                                  <img ng-hide="message.avatarImg" style="background:{{message.color}}" class="img-rounded pull-left">
+                                  <img ng-show="message.avatarImg" ng-src={{message.avatarImg}} style="background:{{contact.color}}" class="img-rounded pull-left">
+                                  <p ng-class="{'mail-unread':message.unread}" ng-hide="surelia.isDraft" class="mailbox-name">{{message.header.from}}</p>
+                                  <p ng-show="surelia.isDraft" class="mailbox-name"><span ng-repeat="to in message.header.to">{{to}} </span></p>
+                                  <p class="list-group-item-text"><span am-time-ago="message.header.date"></span></p>
+                                  <p>
+                                    <span ng-show="message.answered" class="list-group-item-text pull-right"><i class="fa fa-mail-reply list-status-flag"></i></span>
+                                    <span ng-show="message.hasAttachments" class="list-group-item-text pull-right"><i class="fa fa-paperclip list-status-flag"></i></span> 
+                                  </p>
+                                  <p class="list-group-item-text">{{message.header.subject}}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- End of Mail List -->
+                
+                <!-- Contact List-->
+                <div class="col-sm-4 bootcards-list mail-container" ng-show="surelia.listView=='contacts'">
+                    <div class="panel panel-danger">       
+                        <div class="panel-heading">
+                            <h3 class="panel-title">{{'CONTACT_LIST' | translate}}</h3>
+                        </div>       
+                        <div class="panel-body">
+                            <div class="search-form">
+                                <div class="row">
+                                    <div class="search-form-container">
+                                            <form class="form-group" ng-submit="surelia.listContact({page : 1, limit : 10, search : surelia.searchString}, true)">
+                                            <input ng-model="surelia.searchString" type="text" class="form-control" placeholder="{{'SEARCH_PLACEHOLDER' | translate}}">
+                                            <i class="fa fa-search"></i>
+                                        </form>
+                                    </div>
+                                </div>
+                                <br>
+                                <div class="row">
+                                    <div class="">
+                                        <div class="checkbox pull-left checkbox-list-all">
+                                          <label><input type="checkbox" ng-model="surelia.selectAll" ng-true-value="true" ng-false-value="false" ng-change="surelia.checkAllContacts()"></label>
+                                        </div>
+                                        <div>
+                                          <div class="pull-right control-box">
+											                        {{surelia.currentListMeta.listStart}} - {{surelia.currentListMeta.listEnd}} / {{surelia.currentListMeta.total}}
+                                            <div class="btn-group">
+                                                <button class="btn btn-default btn-sm" ng-click="surelia.listContactPrev()"><i class="fa fa-chevron-left"></i></button>
+                                                <button class="btn btn-default btn-sm" ng-click="surelia.newContact()"><i class="fa fa-plus"></i></button>
+                                                <button class="btn btn-default btn-sm" ng-click="surelia.batchDeleteContact()"><i class="fa fa-trash"></i></button>
+													                      <div class="btn-group" dropdown>
+													                      	<button type="button" class="btn btn-default btn-sm dropdown-toggle" dropdown-toggle>
+													                      		<i class="fa fa-sort"></i> <span class="caret"></span>
+													                      	</button>
+													                      		<ul class="dropdown-menu dropdown-menu-right" dropdown-menu>
+													                      			<li ng-click="surelia.listContactReverse('ascending')"><a href="">A &rarr; Z</a></li>
+													                      			<li ng-click="surelia.listContactReverse('descending')"><a href="">Z &rarr; A</a></li>
+													                      		</ul>
+													                      </div>
+                                                <button class="btn btn-default btn-sm" ng-click="surelia.listContactNext()"><i class="fa fa-chevron-right"></i></button>
+													                    </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>                
+                            </div>          
+                        </div>
+                        
+                        <div class="list-group contact-list">
+                            <div class="list-group-item pointer list-group-message" ng-repeat="contact in surelia.currentContactList">
+                                <div class="checkbox pull-left checkbox-list">
+									                <label><input type="checkbox" checklist-model="surelia.currentContactSelection" checklist-value="contact"></label>
+                                </div>
+                                <div ng-click="surelia.retrieveContact(contact._id)">
+                                  <div ng-hide="contact.avatarImg" class="avatar-letter">{{contact.avatar}}</div>
+                                  <img ng-hide="contact.avatarImg" style="background:{{contact.color}}" class="img-rounded pull-left">
+                                  <img ng-show="contact.avatarImg" ng-src="{{contact.avatarImg}}" style="background:{{contact.color}}" class="img-rounded pull-left">
+                                  <p ng-show="contact.name.length > 0" class="mailbox-name">{{contact.name}}</p>
+                                  <p ng-show="contact.name.length == 0" class="mailbox-name">-</p>
+                                  <p class="list-group-item-text">{{contact.emailAddress}}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- End of Contact List -->
 
-  </div>
-</div>
+                <!--Mail Content-->
+                <div class="col-sm-8 bootcards-cards mail-container mail-content" ng-show="surelia.view=='message' && surelia.currentMessage.parsed.headers">
+                    <div class="" style="height:100vh">
+                    <!--div class="panel panel-default bootcards-richtext"-->
+                        <div class="mail-actions btn-group pull-right panel-message-button" role="group" ng-show="surelia.currentMessage.parsed">
+                            <button ng-click="surelia.composeMessage(surelia.currentMessage, 'reply')" type="button" class="btn btn-default" title="{{'REPLY' | translate}}"><i class="fa fa-mail-reply"></i></button>
+                            <button ng-click="surelia.composeMessage(surelia.currentMessage, 'all')" type="button" class="btn btn-default" title="{{'REPLY_ALL' | translate}}"><i class="fa fa-mail-reply-all"></i></button>
+                            <button ng-click="surelia.composeMessage(surelia.currentMessage, 'forward')" type="button" class="btn btn-default" title="{{'FORWARD' | translate}}"><i class="fa fa-mail-forward"></i></button>
+                            <button type="button" class="btn btn-default" title="{{'ARCHIVE' | translate}}"><i class="fa fa-archive"></i></button>
+                            <button type="button" class="btn btn-default" title="Spam"><i class="fa fa-filter"></i></button>
+                            <button ng-click="surelia.removeMessage(surelia.currentMessage.seq, surelia.currentMessage.parsed.messageId, surelia.currentMessage.boxName)" type="button" class="btn btn-default" title="{{'DELETE' | translate}}"><i class="fa fa-trash-o"></i></button>
+                        </div>
+                        <div class="panel-heading panel-message-meta" ng-show="surelia.currentMessage.parsed">
+                          <h3>{{surelia.currentMessage.parsed.subject}}</h3>
+                          <h5><i class="fa fa-user"></i>&nbsp;&nbsp;{{'FROM' | translate}} : <b>{{surelia.currentMessage.parsed.headers.from}}</b></h5>
+                          <h5><i class="fa fa-envelope-o"> </i>&nbsp;&nbsp;{{'TO' | translate}} : {{surelia.currentMessage.parsed.headers.to}}<span ng-show="surelia.currentMessage.parsed.headers.cc">, {{surelia.currentMessage.parsed.headers.cc}}</span></h5>
+                          <p><i class="fa fa-calendar"></i>&nbsp;&nbsp;{{surelia.currentMessage.parsed.date | amDateFormat:'dddd, DD MMMM YYYY, HH:mm'}}</p>
+                        </div>
+                        <iframe border="0" srcdoc={{surelia.currentMessage.content}} id="message-content-frame"></iframe>
+                        <!--div class="panel-body">
+                        </div-->
+                        <div class="panel-footer" ng-show="surelia.currentMessage.hasAttachments">
+                            <div class="row mailbox-attachments clearfix">
+                                <div class="col-sm-4" ng-repeat="attachment in surelia.currentMessage.parsed.attachments">
+                                    <span class="mailbox-attachment-icon"><i class="fa fa-{{attachment.icon}}"></i></span>
+                                    <div class="mailbox-attachment-info">
+                                        <a href="#" class="mailbox-attachment-name"><i class="fa fa-paperclip"></i> {{attachment.fileName}}</a>
+                                        <span class="mailbox-attachment-size">
+                                            {{attachment.size | SizeFilter }}
+                                            <a href="#" class="btn btn-default btn-xs pull-right" ng-click="surelia.getAttachment(attachment)"><i class="fa fa-cloud-download"></i></a>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div> 
+                    </div>
+                </div>
+                <!--Contact Details-->
+                <div class="col-sm-8 bootcards-cards mail-container mail-content" ng-show="surelia.view=='contact' && (surelia.currentContact.emailAddress || surelia.contactFormMode=='add' || surelia.contactFormMode=='edit')">
+                  <div class="panel panel-danger">
+                    <div class="panel-heading">
+                      <h3 class="panel-title">Detil Kontak</h3>
+                    </div>
+                    <div class="panel-body">
+                      <div class="row" ng-show="surelia.showCropArea">
+                        <div class="cropArea centered">
+                          <img-crop image="surelia.rawAvatar" area-type="square" result-image="surelia.croppedAvatar"></img-crop>
+                        </div>
+                        <br>
+                        <div class="content-centered">
+                          <button class="btn btn-avatar btn-default" ng-click="surelia.cancelCropAvatar()">{{'DISCARD' | translate}}</button>
+                          <button class="btn btn-avatar btn-default" ng-click="surelia.uploadAvatar()">{{'UPLOAD' | translate}}</button>
+                        </div>
+                      </div>
+                      <div class="row" ng-hide="surelia.showCropArea">
+                        <div class="col-xs-12">
+                          <button ng-hide="surelia.contactForm" class="btn-avatar-upload" ngf-select="surelia.cropAvatar($files, $invalidFiles)" multiple
+                            ngf-max-height="1000" ngf-max-size="5MB" accept="image/*">
+                            <div ng-hide="surelia.currentContact.avatarImg" class="avatar-letter-big">
+                            <div class="avatar-letter-big-container">
+                                    {{surelia.currentContact.avatar}}
+                            </div>
+                            </div>
+                            <img ng-hide="surelia.currentContact.avatarImg" style="background:{{surelia.currentContact.color}}" class="img-rounded avatar-contact-detail">
+                            <img ng-show="surelia.currentContact.avatarImg" class="img-rounded avatar-contact-detail" ng-src="{{surelia.currentContact.avatarImg}}">
+                          </button>
+                          <button ng-hide="surelia.contactForm" class="btn btn-contact-detail btn-default pull-right" ng-click="surelia.editContact()">{{'EDIT' | translate}}</button>
+                          <button ng-show="surelia.contactFormMode=='add' && surelia.contactForm" class="btn btn-contact-detail btn-default pull-right" ng-click="surelia.addContact(surelia.currentContactForm)">{{'ADD' | translate}}</button>
+                          <button ng-hide="surelia.contactForm" class="btn btn-contact-detail btn-default pull-right" ng-click="surelia.deleteContact(surelia.currentContact._id)">{{'DELETE' | translate}}</button>
+                          <button ng-show="surelia.contactFormMode=='edit' && surelia.contactForm" class="btn btn-contact-detail btn-default pull-right" ng-click="surelia.updateContact(surelia.currentContactForm)">{{'UPDATE' | translate}}</button>
+                          <button ng-show="surelia.contactForm" class="btn btn-contact-detail btn-default pull-right" ng-click="surelia.discardEditContact()">{{'DISCARD' | translate}}</button>
+                        </div>
+                      </div>
+                      <br>
+                      <div class="row" ng-show="surelia.currentContact.emailAddress && !surelia.contactForm && !surelia.showCropArea">
+                        <div class="col-xs-12 contact-detail">
+                          <p ng-show="surelia.currentContact.name"><i class="fa fa-user"></i>&nbsp; 
+                            <span>{{surelia.currentContact.name}}</span>
+                          </p>
+                          <p><i class="fa fa-at"></i>&nbsp; 
+                            <span ng-show="surelia.currentContact.emailAddress">{{surelia.currentContact.emailAddress}}</span>
+                          </p>
+                          <p ng-show="surelia.currentContact.organization"><i class="fa fa-institution"></i>&nbsp; 
+                            <span>{{surelia.currentContact.organization}}</span>
+                          </p>
+                          <p ng-show="surelia.currentContact.officeAddress"><i class="fa fa-building"></i>&nbsp; 
+                            <span>{{surelia.currentContact.officeAddress}}</span>
+                          </p>
+                          <p ng-show="surelia.currentContact.homeAddress"><i class="fa fa-home"></i>&nbsp; 
+                            <span>{{surelia.currentContact.homeAddress}}</span>
+                          </p>
+                          <p ng-show="surelia.currentContact.phone"><i class="fa fa-phone"></i>&nbsp; 
+                            <span>{{surelia.currentContact.phone}}</span>
+                          </p>
+                        </div>
+                      </div>
+                      <div class="row" ng-show="surelia.contactForm && !surelia.showCropArea">
+                        <form class="col-xs-12 contact-detail">
+                          <p><i class="fa fa-user"></i>&nbsp; <b>Nama</b>
+                          <input type="text" class="form-control form-contact" placeholder="{{'NAME' | translate}}" ng-model="surelia.currentContactForm.name">
+                          </p>
+                          <p><i class="fa fa-at"></i>&nbsp; <b>Surat Elektronik</b>
+                          <input type="text" class="form-control form-contact" placeholder="{{'EMAIL' | translate}}" ng-model="surelia.currentContactForm.emailAddress">
+                          </p>
+                          <p><i class="fa fa-institution"></i>&nbsp; <b>Institusi / Organisasi</b>
+                          <input type="text" class="form-control form-contact" placeholder="{{'ORGANIZATION' | translate}}" ng-model="surelia.currentContactForm.organization">
+                          </p>
+                          <p><i class="fa fa-building"></i>&nbsp; <b>Alamat Kantor</b>
+                          <input type="text" class="form-control form-contact" placeholder="{{'OFFICE_ADDRESS' | translate}}" ng-model="surelia.currentContactForm.officeAddress">
+                          </p>
+                          <p><i class="fa fa-home"></i>&nbsp; <b>Alamat Rumah</b>
+                          <input type="text" class="form-control form-contact" placeholder="{{'HOME_ADDRESS' | translate}}" ng-model="surelia.currentContactForm.homeAddress">
+                          </p>
+                          <p><i class="fa fa-phone"></i>&nbsp; <b>Nomor Telepon</b>
+                          <input type="text" class="form-control form-contact" placeholder="{{'PHONE' | translate}}" ng-model="surelia.currentContactForm.phone">
+                          </p>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="js/jquery-2.1.4.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+
+        <!-- Bootcards JS -->
+        <script src="js/bootcards.js"></script>
+
+        <!--FTLabs FastClick library-->
+        <script src="js/fastclick.min.js"></script>
+
+        <script type="text/javascript">
+
+/*
+* Initialize Bootcards.
+ * 
+ * Parameters:
+ * - offCanvasBackdrop (boolean): show a backdrop when the offcanvas is shown
+ * - offCanvasHideOnMainClick (boolean): hide the offcanvas menu on clicking outside the off canvas
+ * - enableTabletPortraitMode (boolean): enable single pane mode for tablets in portraitmode
+ * - disableRubberBanding (boolean): disable the iOS rubber banding effect
+ * - disableBreakoutSelector (boolean) : for iOS apps that are added to the home screen:
+ jQuery selector to target links for which a fix should be added to not
+ allow those links to break out of fullscreen mode.
+ */
+                            bootcards.init( {
+                                offCanvasBackdrop : true,
+                                offCanvasHideOnMainClick : true,
+                                enableTabletPortraitMode : true,
+                                disableRubberBanding : true 
+                            });
+
+//enable FastClick
+window.addEventListener('load', function() {
+    FastClick.attach(document.body);
+}, false);
+
+        </script>
+    </div>

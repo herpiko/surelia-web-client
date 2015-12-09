@@ -1,34 +1,395 @@
+.ng-hide-add {
+  display: none !important;
+}
 
-.compose-header {
+body {
+	background-color: #ecf0f1;
+	overflow: hidden;
+	height: 100vh;
+}
+
+a {
+    color: #C0392B;
+    text-decoration: none;
+}
+
+wrapper {
+	padding-right: 20px;
+}
+
+.sidebar-icon {
+	font-size:150%;
+}
+
+.sidebar-nav > .sidebar-active > a {
+    background-color: #E74C3C;
+    color: #faf6e7;
+}
+
+.quota-username {
+	margin-top: 20%;
+	margin-left: 10px;
+	margin-right: 10px;
+	margin-bottom: 10px;
+	bottom: 0;
+	position: fixed;
+}
+
+.quota {
+	font-size:small;
+	height: 8%;
+}
+
+.username {
+	font-size:medium;
+	margin-top: 10px;
+}
+
+.sidebar-nav li .username-dropdown {
+	text-indent: 0px;
+}
+
+.bootcards-list .search-form .btn, .bootcards-list form .btn {
+    color: #333;
+}
+
+.search-form-container {
+  padding-left:15px !important;
+  padding-right:15px !important;
+}
+
+.list-group-item.active, .list-group-item.active:focus, .list-group-item.active:hover {
+    z-index: 2;
+    color: #fff;
+    background-color: #E74C3C;
+    border-color: #E74C3C;
+}
+
+.list-group-message {
+  padding-left:15px !important;
+  margin-left:0px !important;
+}
+
+div.list-group-item:focus,
+div.list-group-item:hover,
+button.list-group-item:focus,
+button.list-group-item:hover{
+	color:#fff;
+	text-decoration:none;
+	background-color:#C0392B;
+}
+
+.list-status-flag {
+  width:10px !important;
+}
+
+.mailbox-name {
+	font-size: 16px;
+	margin-top: 0;
+  margin-bottom: 5px;
+  overflow:hidden;
+  white-space:nowrap; 
+  text-overflow: ellipsis;
+}
+.mailbox-selected {
+	font-weight:bold;
+    color: #fff !important;
+    background: #C0392B !important;
+}
+.mailbox-count {
+  background: #4E637B;
+  border-radius: 2px;
+  color: white;
+  padding: 2px 4px 2px 4px;
+}
+
+.container {
+	padding-right: 0px;	
+	margin-right: -50px;	
+}
+
+.btn.btn-file {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn.btn-file>input[type='file'] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 100px;
+    text-align: right;
+    opacity: 0;
+    filter: alpha(opacity=0);
+    outline: none;
+    background: white;
+    cursor: inherit;
+    display: block;
+}
+
+btn-default {
+    color: #fff;
+    background-color: #C0392B;
+    border-color: #ccc;
+}
+
+.btn-contact-detail {
+  margin-left:5px;
+}
+
+.panel-default .panel-heading {
+    color: #333;
+    background-color: #ECF0F1;
+    border-color: #ddd;
+}
+
+.panel-footer {
+    background-color: #ECF0F1;
+}
+
+/* Mail */
+
+.mail-container {
+	padding-right: 0px;
+	padding-left: 0px;
+	overflow-y: hidden;
+	max-height: 100vh;
+}
+
+.mail-unread {
+	font-weight: bold;
+}
+
+/* Attachment */
+.mailbox-attachments li {
+  float: left;
+  width: 200px;
+  border: 1px solid #eee;
+  margin-bottom: 10px;
+  margin-right: 10px;
+}
+.mailbox-attachment-name {
+  font-weight: bold;
+  color: #666;
+}
+.mailbox-attachment-icon,
+.mailbox-attachment-info,
+.mailbox-attachment-size {
+  display: block;
+}
+.mailbox-attachment-info {
+  padding: 10px;
+  background: #f4f4f4;
+}
+.mailbox-attachment-size {
+  color: #999;
+  font-size: 12px;
+}
+.mailbox-attachment-icon {
+  text-align: center;
+  font-size: 65px;
+  color: #666;
+  padding: 20px 10px;
+}
+.mailbox-attachment-icon.has-img {
+  padding: 0;
+}
+.mailbox-attachment-icon.has-img > img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Login */
+
+.container-login {
+	background: url(../images/bg.png) no-repeat center center fixed; 
+	-webkit-background-size: cover;
+	-moz-background-size: cover;
+	-o-background-size: cover;
+	background-size: cover;
+	height: 100vh;
+}
+
+.login-body {
+  padding-top: 40px;
+  padding-bottom: 40px;
+}
+
+@media only screen 
+  and (min-device-width: 320px) 
+  and (max-device-width: 736px) 
+  and (orientation: landscape) {
+	body {
+		overflow: auto;
+	}
+	.container-login {
+		height: 100%;
+	}
+}
+
+.form-signin {
+  max-width: 330px;
+  padding: 15px;
+  margin: 0 auto;
+}
+.form-signin .form-signin-heading,
+.form-signin .checkbox {
+  margin-bottom: 10px;
+}
+.form-signin .checkbox {
+  font-weight: normal;
+}
+.form-signin .form-control {
+  position: relative;
+  height: auto;
+  -webkit-box-sizing: border-box;
+     -moz-box-sizing: border-box;
+          box-sizing: border-box;
+  padding: 10px;
+  font-size: 16px;
+}
+.form-signin .form-control:focus {
+  z-index: 2;
+}
+.form-signin input[type="email"] {
+  margin-bottom: -1px;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.form-signin input[type="password"] {
+  margin-bottom: 10px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.btn-login {
+	color: #fff;
+    background-color: #E74C3C;
+    border-color: #E74C3C;
+}
+
+.btn-login:hover {
+	color: #fff;
+    background-color: #C0392B;
+    border-color: #C0392B;
+}
+
+.well-login {
+	background-color: #DCD0C0;
+}
+
+.navbar-fixed-bottom {
+	padding-right: 25px;
+	padding-left: 25px;
+}
+
+.copyright {
+	padding-top: 15px;
+	padding-bottom: 15px;
+	color: #fff;
+}
+
+.navbar-default .navbar-nav>li>a {
+    color: #fff;
+}
+
+/* Styling for the ngProgress itself */
+#ngProgress {
+    margin: 0;
+    padding: 0;
+    z-index: 99998;
+    background-color: green;
+    color: green;
+    box-shadow: 0 0 10px 0; /* Inherits the font color */
+    height: 2px;
+    opacity: 0;
+
+    /* Add CSS3 styles for transition smoothing */
+    -webkit-transition: all 0.5s ease-in-out;
+    -moz-transition: all 0.5s ease-in-out;
+    -o-transition: all 0.5s ease-in-out;
+    transition: all 0.5s ease-in-out;
+}
+
+/* Styling for the ngProgress-container */
+#ngProgress-container {
+    position: fixed;
+    margin: 0;
+    padding: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 99999;
+}
+.btn-account {
+  overflow:hidden;
+  white-space:nowrap; 
+  text-overflow: ellipsis;
+  width:180px;
+}
+.account-menu {
+  margin-left:22px;
+}
+
+/* Override bootstrap style */
+/*.btn {
+  border-radius : 0px !important;
+}
+*/
+.form-control {
+  border-radius : 0px !important;
+}
+
+.compose-box {
+  display: flex;
+  flex-flow: column;
+  /* height: 100%; */
+}
+.compose-box .compose-row {
+  flex: 0 1 auto;
+}
+.compose-box .compose-row.compose-header {
+  flex: 0 1 auto;
+}
+.compose-box .compose-row.compose-content {
+  flex: 1 1 auto;
+  padding-top:1px;
+}
+.compose-box .compose-row.compose-footer {
+  flex: 0 1 auto;
+}
+
+.compose-form {
   background: #C0392B;
   color: white;
   padding: 5px;
   padding-left: 10px;
-  margin-bottom:15px;
 }
 .compose-container-maximaze {
-  min-width: 90%;
-  min-height: 90%;
+  width: 90%;
+  max-height: 90%;
   position: fixed;
   top: 5%;
   left: 5%;
-  border: 1px solid black;
+  border: 1px solid #C0392B;
   background-color: white;
   z-index: 9999;
 }
 .compose-container {
-  min-width: 500px;
+  width: 500px;
   position: fixed;
   bottom: 0px;
   right: 10px;
-  border: 1px solid black;
+  border: 1px solid #C0392B;
   background-color: white;
   z-index:9999;
 }
-
 .compose-header-button {
   width:15px;
   height:15px;
+  margin-left:5px;
   float:right;
   cursor:pointer;
 }
@@ -37,7 +398,11 @@
 }
 .compose-label {
   position:absolute;
+  margin-top:7px;
   margin-left:10px;
+}
+.compose-input {
+  margin-bottom:-16px;
 }
 .compose-input-to {
   padding-left:75px;
@@ -70,6 +435,280 @@
 }
 
 
+/* add generic styling for the editor */
+.ta-hidden-input {
+  display:none;
+}
+[ta-button="ta-button"] {
+  border-width:0px !important;
+  margin-left:1px !important;
+}
+.ta-root.focussed > .ta-scroll-window.form-control {
+	border-color: white !important;
+	outline: 0 !important;
+  height:50% !important;
+}
+
+.ta-editor.ta-html, .ta-scroll-window.form-control {
+	overflow: auto !important;
+	font-family: inherit !important;
+	font-size: 100% !important;
+	min-height: 300px !important;
+	max-height: 50vh !important;
+  height:90%;
+}
+
+.ta-scroll-window.form-control {
+	position: relative !important;
+	padding: 0 !important;
+	min-height: 300px !important;
+}
+.ta-scroll-window > .ta-bind {
+	min-height: 300px !important;
+	padding: 6px 12px !important;
+}
+
+/* Compose */
+
+.button-bar-compose {
+	float: right;
+	margin-right: 15px;
+	margin-bottom: 15px;
+	margin-top: 15px;
+}
+
+.button-bar-attachment {
+	float: left;
+	margin-left: 15px;
+	margin-bottom: 15px;
+	margin-top: 15px;
+}
+
+.btn-circle {
+  width: 30px;
+  height: 30px;
+  text-align: center;
+  padding: 6px 0;
+  font-size: 12px;
+  line-height: 1.428571429;
+  border-radius: 15px;
+}
+.btn-circle.btn-lg {
+  width: 50px;
+  height: 50px;
+  padding: 10px 16px;
+  font-size: 18px;
+  line-height: 1.33;
+  border-radius: 25px;
+}
+.btn-circle.btn-xl {
+  width: 70px;
+  height: 70px;
+  padding: 10px 16px;
+  font-size: 24px;
+  line-height: 1.33;
+  border-radius: 35px;
+}
+
+.compose-footer {
+	max-height: 100px;
+	overflow: auto;
+}
+
+.avatar-contact-detail {
+  height:175px;
+  width:175px;
+}
+
+.avatar {
+  height:150px;
+  width:150px;
+}
+.avatar-letter {
+  position: absolute;
+  height: 40px;
+  width: 40px;
+  margin-top: 10px;
+  margin-left: 20px;
+  text-align: center;
+  color:white;
+}
+
+.avatar-letter-big {
+  position: absolute;
+  font-size:100px;
+  color:white;
+}
+
+.avatar-letter-big-container {
+  text-align:center;
+  width: 175px;
+  height: 175px;
+  padding-top: 15px;
+}
+
+/* Sidebar */
+.sidebar-nav-wrapper {
+    overflow-x: hidden;
+    overflow-y: auto;
+	max-height: 80%;
+}
+
+/* Override bootstrap glow and shadow on focus */
+textarea:focus,
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="datetime"]:focus,
+input[type="datetime-local"]:focus,
+input[type="date"]:focus,
+input[type="month"]:focus,
+input[type="time"]:focus,
+input[type="week"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+input[type="url"]:focus,
+input[type="search"]:focus,
+input[type="tel"]:focus,
+input[type="color"]:focus,
+.btn:focus,
+.btn:active,
+.uneditable-input:focus {
+  border-color: rgba(82, 168, 236, 0.8);
+  outline: 0;
+  outline: thin dotted \9;
+  /* IE6-9 */
+
+  -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,0), 0 0 8px rgba(0, 0, 0, 0) !important;
+  -moz-box-shadow: inset 0 1px 1px rgba(0,0,0,0), 0 0 8px rgba(0, 0, 0, 0) !important;
+  box-shadow: inset 0 1px 1px rgba(0,0,0,0), 0 0 8px rgba(0, 0, 0, 0) !important;
+}
+
+/* Mail List Box */
+
+.control-box {
+	margin-top: 5px; 
+	margin-right: 10px;
+}
+
+.checkbox-list-all {
+	margin-left: 10px;
+}
+
+.checkbox-list {
+  z-index:99 !important;
+}
+
+.pointer {
+  cursor : pointer !important;
+}
+
+/* Scroll */
+
+.panel-body-mail-list {
+	height: 20vh;
+}
+
+.mail-list {
+	overflow-y: scroll;
+	height: 80vh;
+}
+
+.contact-content {
+	overflow-y: scroll;
+	max-height: 100vh;
+}
+.mail-content {
+	overflow-y: scroll;
+	max-height: 100vh;
+}
+
+@media screen 
+  and (max-device-height: 768px) 
+  and (orientation: landscape) {
+	.panel-body-mail-list {
+		height: 15vh;
+	}
+
+	.mail-list {
+		overflow-y: scroll;
+		height: 78vh;
+	}	
+}
+
+@media screen 
+  and (min-device-height: 800px) 
+  and (max-device-height: 960px) 
+  and (orientation: landscape) {
+	.panel-body-mail-list {
+		height: 15vh;
+	}
+
+	.mail-list {
+		overflow-y: scroll;
+		height: 85vh;
+	}	
+}
+
+@media screen 
+  and (min-device-height: 1024px) 
+  and (max-device-height: 1200px) 
+  and (orientation: landscape) {
+	.panel-body-mail-list {
+		height: 12vh;
+	}
+
+	.mail-list {
+		overflow-y: scroll;
+		height: 88vh;
+	}	
+}
+
+@media screen 
+  and (min-device-height: 1536px) 
+  and (max-device-height: 1600px) 
+  and (orientation: landscape) {
+	.panel-body-mail-list {
+		height: 10vh;
+	}
+
+	.mail-list {
+		overflow-y: scroll;
+		height: 90vh;
+	}	
+}
+
+@media screen 
+  and (device-height: 2048px) 
+  and (orientation: landscape) {
+	.panel-body-mail-list {
+		height: 8vh;
+	}
+
+	.mail-list {
+		overflow-y: scroll;
+		height: 92vh;
+	}	
+}
+
+/* Message Content */
+
+.bootcards-richtext>.panel-body {
+    padding: 0;
+	max-width: 100%;
+	overflow-x: auto;
+    margin-right: 10px;
+    margin-left: 10px;
+}
+
+
+body, td, th {
+	font-family: "Helvetica Neue",Helvetica,Arial,sans-serif !important;
+    font-size: 14px !important;
+    line-height: 1.42857143 !important;
+    text-align: initial !important;
+}
+
+/* Auto complete */
 .ac-container {
   -webkit-backface-visibility: hidden;
   -moz-backface-visibility: hidden;
@@ -113,8 +752,110 @@
   background-color: #e0eaff;
 }
 
+/* Contact */
+
+.panel-danger .panel-heading {
+    color: #fff;
+    background-color: #C0392B;
+    border-color: #C0392B;
+}
+
+.form-contact {
+	margin-top: 10px;
+	margin-bottom: 20px;
+}
+
+.panel-body-contact-list {
+	height: 18vh;
+
+}
+
+.contact-list {
+	overflow-y: scroll;
+	height: 74vh;
+
+}
+
+@media screen 
+  and (max-device-height: 768px) 
+  and (orientation: landscape) {
+	.panel-body-contact-list {
+		height: 16vh;
+	}
+
+	.contact-list {
+		overflow-y: scroll;
+		height: 72vh;
+	}	
+}
+
+@media screen 
+  and (min-device-height: 800px) 
+  and (max-device-height: 960px) 
+  and (orientation: landscape) {
+	.panel-body-contact-list {
+		height: 16vh;
+	}
+
+	.contact-list {
+		overflow-y: scroll;
+		height: 77vh;
+	}	
+}
+
+@media screen 
+  and (min-device-height: 1024px) 
+  and (max-device-height: 1200px) 
+  and (orientation: landscape) {
+	.panel-body-contact-list {
+		height: 12vh;
+	}
+
+	.contact-list {
+		overflow-y: scroll;
+		height: 82vh;
+	}	
+}
+
+@media screen 
+  and (min-device-height: 1536px) 
+  and (max-device-height: 1600px) 
+  and (orientation: landscape) {
+	.panel-body-contact-list {
+		height: 8vh;
+	}
+
+	.contact-list {
+		overflow-y: scroll;
+		height: 88vh;
+	}	
+}
+
+@media screen 
+  and (device-height: 2048px) 
+  and (orientation: landscape) {
+	.panel-body-contact-list {
+		height: 7vh;
+	}
+
+	.contact-list {
+		overflow-y: scroll;
+		height: 90vh;
+	}	
+}
+
+
+.btn-avatar {
+  margin-right:5px;
+}
+
+.btn-avatar-upload {
+  border: 0;
+  padding: 0;
+  background: none;
+}
+
 /* Avatar Crop */
-/* line 1, ../../source/scss/ng-img-crop.scss */
 img-crop {
   width: 100%;
   height: 100%;
@@ -122,7 +863,6 @@ img-crop {
   position: relative;
   overflow: hidden;
 }
-/* line 7, ../../source/scss/ng-img-crop.scss */
 img-crop canvas {
   display: block;
   position: absolute;
@@ -130,16 +870,39 @@ img-crop canvas {
   left: 50%;
   outline: none;
   -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
-  /* mobile webkit */
 }
-
 .cropArea {
   background: #E4E4E4;
   overflow: hidden;
   width:500px;
   height:350px;
 }
+
+.centered {
+  margin:0 auto !important;
+}
+.content-centered {
+  text-align:center;
+}
+
 #message-content-frame {
-  width : 500px;
-  height : 500px;
+  width:100%;
+  height:100%;
+  padding-top:180px;
+  padding-bottom:20px;
+  background:white;
+  position:absolute;
+  z-index:997
+}
+
+.panel-message-meta {
+  width:100%;
+  height:180px;
+  position:absolute;
+  background: #ECF0F1;
+  padding-top:15px;
+  z-index:998
+}
+.panel-message-button {
+  z-index:999;
 }
