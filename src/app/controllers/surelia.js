@@ -292,6 +292,15 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
     };
 }
 
+Surelia.prototype.toggleMobileMenu = function() {
+  var self = this;
+  if (self.showMobileMenu) {
+    self.showMobileMenu = false;
+  } else {
+    self.showMobileMenu = true;
+  }
+}
+
 Surelia.prototype.clearAutocomplete = function(){
   var self = this;
   self.contactCandidatesAutocomplete = {};
@@ -422,6 +431,7 @@ Surelia.prototype.listBox = function(boxName, opts, canceler){
   self.listView = "messages";
   self.view = "message";
   self.selectAll = false;
+  self.showMobileMenu = false;
   console.log("list box content");
   if (boxName.indexOf("Drafts") > -1) {
     self.isDraft = true;
@@ -737,8 +747,6 @@ Surelia.prototype.sendMessage = function(msg){
     console.log(a);
     return (a.progress.status == "uploading");
   });
-  console.log("YOLOO");
-  console.log(isUploading);
   if (isUploading) {
     return self.ToastrService.attachmentUploadNotFinishedYet();
   }
