@@ -116,6 +116,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.rawAvatar="";
   self.croppedAvatar="";
   self.showCropArea = false;
+  self.$sce = $sce;
   // This array will be used in "Move to" submenu in multiselect action
   self.moveToBoxes = [];
   self.flags = ["Read", "Unread"];
@@ -641,8 +642,8 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
         if (self.currentMessage.attributes.flags.indexOf("\\Deleted") >= 0) {
           self.currentMessage.deleted = true;
         }
-        var e = angular.element(document.querySelector("#messageContent"));
-        e.empty();
+        /* var e = angular.element(document.querySelector("#messageContent")); */
+        /* e.empty(); */
         var html = "";
         if (self.currentMessage.parsed.html) {
           console.log("html");
@@ -651,9 +652,12 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
           console.log("text");
           html = "<pre>" + self.currentMessage.parsed.text + "</pre>";
         }
-        var linkFn = self.$compile(html);
-        var content = linkFn(self.$scope);
-        e.append(content);
+        self.currentMessage.content = self.$sce.trustAsHtml(html);
+        console.log(self.currentMessage.content);
+
+        /* var linkFn = self.$compile(html); */
+        /* var content = linkFn(self.$scope); */
+        /* e.append(content); */
         // Set size and icon
         if (self.currentMessage.parsed.attachments && self.currentMessage.parsed.attachments.length > 0) {
           var attachments = self.currentMessage.parsed.attachments;
@@ -869,7 +873,10 @@ Surelia.prototype.composeMessage = function(message, action){
       if (msg.parsed.html) {
         var trimmed = self.$templateCache.get("trimmed-message.html");
         console.log(trimmed);
-        self.newMessage.html = trimmed.replace("CONTENT", msg.parsed.html)
+        var content = msg.parsed.text || window.html2text(msg.parsed.html);
+        content = window.monowrap(content, {width:72,}).replace(new RegExp('\r?\n','g'), '<br>');
+        console.log(content);
+        self.newMessage.html = trimmed.replace("CONTENT", content)
                                 .replace("DATE", msg.parsed.date)
                                 .replace("ADDRESS", msg.parsed.from[0].address);
       }
