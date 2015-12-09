@@ -677,6 +677,13 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
             })
           }
         }
+        window.lodash.some(self.currentList, function(message){
+          if (message.seq == id) {
+            message.selected = true;
+          } else {
+            message.selected = false;
+          }
+        });
       }
 
     })
