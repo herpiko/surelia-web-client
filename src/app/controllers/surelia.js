@@ -602,6 +602,7 @@ Surelia.prototype.deleteBox = function(boxName){
 
 Surelia.prototype.retrieveMessage = function(id, boxName){
   var self = this;
+  self.currentMessage = {};
   self.loading.start();
   console.log("retrieve message");
   var isUnread = lodash.some(self.currentList, function(message){
