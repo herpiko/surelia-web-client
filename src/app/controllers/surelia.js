@@ -1318,6 +1318,7 @@ Surelia.prototype.listContact = function(opts, canceler){
   if (!opts.search) {
     self.searchString = null;
   }
+  self.showMobileMenu = false;
   self.currentBoxName = "";
   self.currentBoxPath = "";
   self.sortBy = opts.sortBy || null;
