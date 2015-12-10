@@ -1003,6 +1003,13 @@ Surelia.prototype.composeMessage = function(message, action){
 
 Surelia.prototype.saveDraft = function(){
   var self = this;
+  var isUploading = window.lodash.some(self.newMessage.attachments, function(a){
+    console.log(a);
+    return (a.progress.status == "uploading");
+  });
+  if (isUploading) {
+    return self.ToastrService.attachmentUploadNotFinishedYet();
+  }
   self.clearAutocomplete();
   self.compose = false;
   var msg = angular.copy(self.newMessage);
