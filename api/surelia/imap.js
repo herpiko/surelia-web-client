@@ -15,7 +15,7 @@ var lodash = require("lodash");
 
 /**
  * Imap Constructor
- *
+ * @param {Object} credentials - Credentials object
  */
 
 var Imap = function(credentials) {
@@ -219,9 +219,9 @@ Imap.prototype.getBoxes = function() {
  * Lists the contents of the mail box. This function returns a list of messages' header and attributes
  *
  * @param {String} name - The name of the box
- * @param {Number} start - The offset
  * @param {Number} limit - The expected number of result
- * @param {Object} search - Search parameters
+ * @param {Number} page - The page number
+ * @param {Object} opts - Option, could countains search parameters
  * @returns {Promise}
  * 
  */
@@ -450,6 +450,7 @@ Imap.prototype.listBox = function(name, limit, page, opts) {
 /**
  * Creates a box
  *
+ * @param {String} name - New box name
  * @returns {Promise}
  */
 Imap.prototype.createBox = function(name) {
@@ -508,6 +509,10 @@ Imap.prototype.renameBox = function(oldName, newName) {
 /**
  * Add flags
  * The third parameter is required if the box need to be closed at the end
+ *
+ * @param {String} seq - Sequence number
+ * @param {String} flag - Flag that will be added to the box
+ * @param {String} boxName - The box name
  */
 
 
@@ -545,6 +550,10 @@ Imap.prototype.addFlag = function(seqs, flag, boxName) {
 /**
  * Remove flags
  * The third parameter is required if the box need to be closed at the end
+ *
+ * @param {String} seq - Sequence number
+ * @param {String} flag - Flag that will be removed from the box
+ * @param {String} boxName - The box name
  */
 
 Imap.prototype.removeFlag = function(seqs, flag, boxName) {
@@ -726,6 +735,7 @@ Imap.prototype.moveMessage = function(seqs, oldBox, newBox) {
  *
  * @param {Integer} id - The Id of the message
  * @param {String} boxName - The name of the box which the message is being removed from
+ * @param {Object} opts - Option
  * @returns {Promise}
  */
 Imap.prototype.removeMessage = function(seqs, boxName, opts) {
@@ -812,6 +822,7 @@ Imap.prototype.removeMessage = function(seqs, boxName, opts) {
  * Creates an new email message in the Draft box
  *
  * @param {String} messageData - The id of the message, in string or buffer
+ * @param {String} draftPath - The path of draft box
  * @returns {Promise}
  */
 Imap.prototype.newMessage = function(messageData, draftPath) {

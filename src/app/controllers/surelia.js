@@ -116,6 +116,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.rawAvatar="";
   self.croppedAvatar="";
   self.showCropArea = false;
+  self.$sce = $sce;
   // This array will be used in "Move to" submenu in multiselect action
   self.moveToBoxes = [];
   self.flags = ["Read", "Unread"];
@@ -291,6 +292,15 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
     };
 }
 
+Surelia.prototype.toggleMobileMenu = function() {
+  var self = this;
+  if (self.showMobileMenu) {
+    self.showMobileMenu = false;
+  } else {
+    self.showMobileMenu = true;
+  }
+}
+
 Surelia.prototype.clearAutocomplete = function(){
   var self = this;
   self.contactCandidatesAutocomplete = {};
@@ -421,6 +431,7 @@ Surelia.prototype.listBox = function(boxName, opts, canceler){
   self.listView = "messages";
   self.view = "message";
   self.selectAll = false;
+  self.showMobileMenu = false;
   console.log("list box content");
   if (boxName.indexOf("Drafts") > -1) {
     self.isDraft = true;
@@ -601,6 +612,7 @@ Surelia.prototype.deleteBox = function(boxName){
 
 Surelia.prototype.retrieveMessage = function(id, boxName){
   var self = this;
+  self.currentMessage = {};
   self.loading.start();
   console.log("retrieve message");
   var isUnread = lodash.some(self.currentList, function(message){
@@ -641,8 +653,6 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
         if (self.currentMessage.attributes.flags.indexOf("\\Deleted") >= 0) {
           self.currentMessage.deleted = true;
         }
-        var e = angular.element(document.querySelector("#messageContent"));
-        e.empty();
         var html = "";
         if (self.currentMessage.parsed.html) {
           console.log("html");
@@ -651,10 +661,9 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
           console.log("text");
           html = "<pre>" + self.currentMessage.parsed.text + "</pre>";
         }
-        var linkFn = self.$compile(html);
-        var content = linkFn(self.$scope);
-        e.append(content);
-        // Set size and icon
+        self.currentMessage.content = self.$sce.trustAsHtml(html);
+        console.log(self.currentMessage.content);
+
         if (self.currentMessage.parsed.attachments && self.currentMessage.parsed.attachments.length > 0) {
           var attachments = self.currentMessage.parsed.attachments;
           for (var i = 0; i < attachments.length;i++) {
@@ -672,6 +681,13 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
             })
           }
         }
+        window.lodash.some(self.currentList, function(message){
+          if (message.seq == id) {
+            message.selected = true;
+          } else {
+            message.selected = false;
+          }
+        });
       }
 
     })
@@ -726,6 +742,14 @@ Surelia.prototype.logout = function(){
 
 Surelia.prototype.sendMessage = function(msg){
   var self = this;
+  // Attachment upload should be finished first
+  var isUploading = window.lodash.some(msg.attachments, function(a){
+    console.log(a);
+    return (a.progress.status == "uploading");
+  });
+  if (isUploading) {
+    return self.ToastrService.attachmentUploadNotFinishedYet();
+  }
   self.clearAutocomplete();
   var msg = angular.copy(msg);
   // Recipients should not be empty
@@ -869,7 +893,10 @@ Surelia.prototype.composeMessage = function(message, action){
       if (msg.parsed.html) {
         var trimmed = self.$templateCache.get("trimmed-message.html");
         console.log(trimmed);
-        self.newMessage.html = trimmed.replace("CONTENT", msg.parsed.html)
+        var content = msg.parsed.text || window.html2text(msg.parsed.html);
+        content = window.monowrap(content, {width:72,}).replace(new RegExp('\r?\n','g'), '<br>');
+        console.log(content);
+        self.newMessage.html = trimmed.replace("CONTENT", content)
                                 .replace("DATE", msg.parsed.date)
                                 .replace("ADDRESS", msg.parsed.from[0].address);
       }
@@ -976,6 +1003,13 @@ Surelia.prototype.composeMessage = function(message, action){
 
 Surelia.prototype.saveDraft = function(){
   var self = this;
+  var isUploading = window.lodash.some(self.newMessage.attachments, function(a){
+    console.log(a);
+    return (a.progress.status == "uploading");
+  });
+  if (isUploading) {
+    return self.ToastrService.attachmentUploadNotFinishedYet();
+  }
   self.clearAutocomplete();
   self.compose = false;
   var msg = angular.copy(self.newMessage);
@@ -1113,7 +1147,7 @@ Surelia.prototype.uploadFiles = function(files, errFiles) {
       }, function(res){
         self.ToastrService.parse(res.data, res.status);
         window.lodash.some(self.newMessage.attachments, function(attachment){
-          if (attachment.fileName == file.filename) {
+          if (attachment.fileName === file.filename && attachment.progress.status === "uploading") {
             attachment.progress.status = "failed";
           }
         })
@@ -1291,6 +1325,7 @@ Surelia.prototype.listContact = function(opts, canceler){
   if (!opts.search) {
     self.searchString = null;
   }
+  self.showMobileMenu = false;
   self.currentBoxName = "";
   self.currentBoxPath = "";
   self.sortBy = opts.sortBy || null;

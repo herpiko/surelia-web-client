@@ -80,6 +80,7 @@
           <span am-time-ago="message.header.date"></span>
           <span ng-show="message.hasAttachments">[attachment]</span>
           <span ng-show="message.answered">[answered]</span>
+          <span ng-show="message.selected"> *</span>
         </div>
       </div>
     </div>
@@ -134,7 +135,7 @@
               <span am-time-ago="surelia.currentMessage.parsed.date"></span>
                ({{surelia.currentMessage.parsed.date | amDateFormat:'dddd, DD MMMM YYYY, HH:mm'}})</div>
             <hr>
-            <div id="messageContent"></div>
+            <iframe srcdoc="{{surelia.currentMessage.content}}" id="message-content-frame"></iframe>
             <hr>
             <span ng-show="surelia.currentMessage.hasAttachments">[attachment]</span>
             <div>

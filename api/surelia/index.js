@@ -639,8 +639,8 @@ var checkPool = function(request, reply, realFunc) {
           }
           var now = moment();
           if (moment(keyPair.sessionExpiry) > now) {
-            if (moment(keyPair.sessionExpiry) < moment().add(1, "d")) {
-              keyPair.sessionExpiry = moment().add(1, "d");
+            if (moment(keyPair.sessionExpiry) < moment().add(1, "h")) {
+              keyPair.sessionExpiry = moment().add(1, "h");
               keyPair.save();
             }
             // Do not wait
@@ -796,9 +796,9 @@ var checkPool = function(request, reply, realFunc) {
               keyPair.privateKey = forge.pki.privateKeyToPem(keys.privateKey);
               // Set session expiration
               if (request.payload.rememberMe) {
-                keyPair.sessionExpiry = moment().add(14, "d");
+                keyPair.sessionExpiry = moment().add(7, "d");
               } else {
-                keyPair.sessionExpiry = moment().add(1, "d");
+                keyPair.sessionExpiry = moment().add(1, "h");
               }
               keyModel().create(keyPair, function(err, result){
                 if (err) {
