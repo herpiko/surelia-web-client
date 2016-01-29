@@ -21,7 +21,9 @@ var ImapAPI = function(server, options, next) {
   this.server = server;
   this.options = options || {};
   this.registerEndPoints();
-  this.gearmanClient = gearmanode.client({servers : [{ host : options.gearmanServer}] })
+  if (options.gearmanServer) {
+    this.gearmanClient = gearmanode.client({servers : [{ host : options.gearmanServer}] })
+  }
 }
 
 ImapAPI.prototype.registerEndPoints = function(){
@@ -1688,6 +1690,9 @@ ImapAPI.prototype.getAvatar = function(request, reply) {
 ImapAPI.prototype.setPassword = function(request, reply) {
   var self = this;
   var realFunc = function(client, request, reply) {
+    if (!self.gearmanClient) {
+      return reply({"err":"Set password feature is not supported"}).code(500);
+    }
     var params = JSON.stringify({
       username : request.payload.username,
       oldPassword : request.payload.oldPassword,

@@ -128,6 +128,9 @@ var app = angular.module("App", [
     if (conf.lang == "id") {
       amMoment.changeLocale(conf.lang);
     }
+    if (conf.gearman) {
+      $rootScope.gearman = true;
+    }
   }
 ])
 
