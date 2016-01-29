@@ -121,7 +121,7 @@
     
     <!--Setting List view-->
     <div style="width:60%;display:inline-block;vertical-align:top;" ng-show="surelia.listView=='settings'">
-      <div style="cursor:pointer;margin-top:3px;background:#ECECEC" ng-click="surelia.view='setPassword';surelia.pwd={}">
+      <div style="cursor:pointer;margin-top:3px;background:#ECECEC" ng-click="surelia.view='setPassword';surelia.pwd={}" ng-show="gearman">
         {{'SET_PASSWORD' | translate}} 
       </div>
     </div>
