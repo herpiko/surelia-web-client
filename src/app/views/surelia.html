@@ -21,6 +21,9 @@
               <li ng-click="surelia.listContact({search : null}, true)" style="cursor:pointer">
               {{ 'CONTACTS' | translate }}
               </li>
+              <li ng-click="surelia.listView='settings';" style="cursor:pointer">
+              {{ 'SETTINGS' | translate }}
+              </li>
       </ul>
       <div>
         <p>
@@ -116,6 +119,13 @@
       </div>
     </div>
     
+    <!--Setting List view-->
+    <div style="width:60%;display:inline-block;vertical-align:top;" ng-show="surelia.listView=='settings'">
+      <div style="cursor:pointer;margin-top:3px;background:#ECECEC" ng-click="surelia.view='setPassword';surelia.pwd={}">
+        {{'SET_PASSWORD' | translate}} 
+      </div>
+    </div>
+    
     <!--Message view-->
     <div ng-show="surelia.view=='message' && surelia.currentMessage.parsed" style="width:60%;display:inline-block;vertical-align:top;background:#ECECEC">
             <div>
@@ -145,6 +155,15 @@
                 </li>
               </ul>
             </div>
+    </div>
+    
+    <!--Settings - setPassword view-->
+    <div ng-show="surelia.view=='setPassword'" style="width:60%;display:inline-block;vertical-align:top;background:#ECECEC">
+      <div>
+              {{'OLD_PASSWORD' | translate }} : <input type="password" ng-model="surelia.pwd.oldPassword"><br>
+              {{'NEW_PASSWORD' | translate }} : <input type="password" ng-model="surelia.pwd.newPassword"><br>
+        <button ng-click="surelia.setPassword(surelia.currentUsername, surelia.pwd.oldPassword, surelia.pwd.newPassword)">{{'UPDATE' | translate}}</button>
+      </div>
     </div>
     
     <!--Contact view-->

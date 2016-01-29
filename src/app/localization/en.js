@@ -19,6 +19,7 @@ module.exports = {
   "TOASTR_SUCCESSFULLY_DELETE_CONTACT" : "Contact has been deleted",
   "TOASTR_CONTACT_ALREADY_EXISTS" : "Unable to save. Contact already exists.",
   "TOASTR_ATTACHMENT_UPLOAD_NOT_FINISHED_YET" : "Attachment uploading not yet finished",
+  "TOASTR_ATTACHMENT_SET_PASSWORD_SUCCEEDED" : "Password has been changed successfuly",
 
   // Login
   "WELCOME" : "Welcome",
@@ -74,4 +75,10 @@ module.exports = {
   "EDIT" : "Edit",
   "UPDATE" : "Update",
   "CONTACT_LIST" : "Contact List",
+
+  // Settings
+  "SETTINGS" : "Settings",
+  "SET_PASSWORD" : "Change password",
+  "OLD_PASSWORD" : "Old password",
+  "NEW_PASSWORD" : "New password"
 }

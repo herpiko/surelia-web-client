@@ -13,6 +13,7 @@ var Grid = require("gridfs-stream");
 var streamifier = require("streamifier");
 var base64Stream = require("base64-stream");
 var objectHash = require("object-hash");
+var gearmanode = require("gearmanode");
 Grid.mongo = mongoose.mongo;
 gfs = Grid(mongoose.connection.db);
 
@@ -20,6 +21,7 @@ var ImapAPI = function(server, options, next) {
   this.server = server;
   this.options = options || {};
   this.registerEndPoints();
+  this.gearmanClient = gearmanode.client({servers : [{ host : options.gearmanServer}] })
 }
 
 ImapAPI.prototype.registerEndPoints = function(){
@@ -403,6 +405,22 @@ ImapAPI.prototype.registerEndPoints = function(){
         query : {
           emailAddress : Joi.string().required(),
         }
+      }
+    }
+  })
+  self.server.route({
+    method : "POST",
+    path : "/api/1.0/settings/set-password",
+    handler : function(request, reply){
+      self.setPassword(request, reply);
+    },
+    config : {
+      validate : {
+        payload : {
+          username : Joi.string().email().required(),
+          oldPassword : Joi.string().required(),
+          newPassword : Joi.string().required(),
+        }  
       }
     }
   })
@@ -1660,7 +1678,29 @@ ImapAPI.prototype.getAvatar = function(request, reply) {
   checkPool(request, reply, realFunc);
 }
 
+/**
+ * Set new password 
+ * @param {String} username - Email address
+ * @param {String} oldPassword - Old password
+ * @param {String} newPassword - New password
+ */
 
+ImapAPI.prototype.setPassword = function(request, reply) {
+  var self = this;
+  var realFunc = function(client, request, reply) {
+    var params = JSON.stringify({
+      username : request.payload.username,
+      oldPassword : request.payload.oldPassword,
+      newPassword : request.payload.newPassword
+    })
+    var job = self.gearmanClient.submitJob("setPassword", params)
+    job.on("complete", function(){
+      reply(job.response);
+    })
+  }
+  
+  checkPool(request, reply, realFunc);
+}
 
 // Model
 

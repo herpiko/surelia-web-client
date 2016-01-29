@@ -17,8 +17,11 @@ require("angular-mass-autocomplete");
 window.rangy = require("rangy/lib/rangy-core");
 window.randomcolor = require("randomcolor");
 window.rangy.saveSelection = require("rangy/lib/rangy-selectionsaverestore");
+// Make global
+window.taTools = {};
 require("textangular/dist/textAngular-sanitize.min");
-require("textangular");
+require("textangular/dist/textAngularSetup");
+require("textangular/dist/textAngular");
 require("angular-translate");
 window.objectHash = require("object-hash");
 window.lodash = require("lodash");

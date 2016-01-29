@@ -81,7 +81,7 @@ var mimeTypes = {
     ]
   }
 }
-var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce, $translate, ContactService){
+var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce, $translate, ContactService, SettingsService){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -98,6 +98,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.$sce = $sce;
   this.$translate = $translate;
   this.ContactService = ContactService;
+  this.SettingsService = SettingsService;
   var self = this;
   self.listView = "messages";
   self.list = "message";
@@ -1531,6 +1532,21 @@ Surelia.prototype.uploadAvatar = function(){
       self.ToastrService.parse(data, status);
     }) 
 }
+
+Surelia.prototype.setPassword = function(username, oldPassword, newPassword){
+  var self = this;
+  self.loading.start();
+  self.SettingsService.setPassword(username, oldPassword, newPassword)
+    .then(function(data, status){
+      self.loading.complete();
+      alert("Password change succeeded");
+    })
+    .catch(function(data, status){
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
+    }) 
+}
+
 
 Surelia.inject = [ "$scope", "$rootScope", "$state", "$window", "$stateParams", "localStorageService", "$timeout", "Upload", "ToastrService", "$sce"];
 
