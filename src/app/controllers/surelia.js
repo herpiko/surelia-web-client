@@ -1539,7 +1539,13 @@ Surelia.prototype.setPassword = function(username, oldPassword, newPassword){
   self.SettingsService.setPassword(username, oldPassword, newPassword)
     .then(function(data, status){
       self.loading.complete();
-      alert("Password change succeeded");
+      if (data.result) {
+        self.ToastrService.setPasswordSucceeded();
+        alert("Password change succeeded");
+      } else if (!data.result) {
+        self.ToastrService.setPasswordFailed();
+        alert("Password change failed");
+      }
     })
     .catch(function(data, status){
       self.loading.complete();

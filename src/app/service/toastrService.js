@@ -95,6 +95,10 @@ ToastrService.prototype.setPasswordSucceeded = function() {
   var self = this;
   self.toastr.success(self.$filter("translate")("TOASTR_MESSAGE_SET_PASSOWRD_SUCCEEDED"));
 }
+ToastrService.prototype.setPasswordFailed = function() {
+  var self = this;
+  self.toastr.error(self.$filter("translate")("TOASTR_MESSAGE_SET_PASSOWRD_FAILED"));
+}
 
 // This function intended to parse a request error
 // so we could just simply put it in each .catch() / .error() scope
