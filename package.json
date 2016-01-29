@@ -89,7 +89,7 @@
     "gulp-streamify": "^1.0.2",
     "gulp-uglify": "^1.2.0",
     "gulp-util": "^3.0.6",
-    "hoodiecrow": "git@github.com:KodeKreatif/hoodiecrow#v1.2.0",
+    "hoodiecrow": "https://github.com/KodeKreatif/hoodiecrow.git#v1.2.0",
     "karma": "^0.12.37",
     "mailback": "^1.0.0",
     "mocha": "^2.2.5",
