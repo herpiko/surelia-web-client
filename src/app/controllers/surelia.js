@@ -1533,18 +1533,24 @@ Surelia.prototype.uploadAvatar = function(){
     }) 
 }
 
-Surelia.prototype.setPassword = function(username, oldPassword, newPassword){
+Surelia.prototype.setPassword = function(username, pwd){
   var self = this;
+  if (!pwd.oldPassword) {
+    self.ToastrService.oldPasswordMustBeFilled();
+    return;
+  }
+  if (pwd.newPassword !== pwd.confirmNewPassword) {
+    self.ToastrService.setPasswordConfirmDoesNotMatch();
+    return;
+  }
   self.loading.start();
-  self.SettingsService.setPassword(username, oldPassword, newPassword)
+  self.SettingsService.setPassword(username, pwd.oldPassword, pwd.newPassword)
     .then(function(data, status){
       self.loading.complete();
       if (data.result) {
         self.ToastrService.setPasswordSucceeded();
-        alert("Password change succeeded");
       } else if (!data.result) {
         self.ToastrService.setPasswordFailed();
-        alert("Password change failed");
       }
     })
     .catch(function(data, status){

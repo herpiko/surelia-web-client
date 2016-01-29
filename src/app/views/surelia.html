@@ -162,7 +162,8 @@
       <div>
               {{'OLD_PASSWORD' | translate }} : <input type="password" ng-model="surelia.pwd.oldPassword"><br>
               {{'NEW_PASSWORD' | translate }} : <input type="password" ng-model="surelia.pwd.newPassword"><br>
-        <button ng-click="surelia.setPassword(surelia.currentUsername, surelia.pwd.oldPassword, surelia.pwd.newPassword)">{{'UPDATE' | translate}}</button>
+              {{'CONFIRM_NEW_PASSWORD' | translate }} : <input type="password" ng-model="surelia.pwd.confirmNewPassword"><br>
+        <button ng-click="surelia.setPassword(surelia.currentUsername, surelia.pwd)">{{'UPDATE' | translate}}</button>
       </div>
     </div>
     
