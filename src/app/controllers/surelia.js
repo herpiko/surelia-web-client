@@ -1548,6 +1548,7 @@ Surelia.prototype.setPassword = function(username, pwd){
     .then(function(data, status){
       self.loading.complete();
       if (data.result) {
+        self.pwd = {};
         self.ToastrService.setPasswordSucceeded();
       } else if (!data.result) {
         self.ToastrService.setPasswordFailed();
