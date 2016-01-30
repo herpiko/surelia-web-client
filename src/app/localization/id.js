@@ -82,5 +82,5 @@ module.exports = {
   "SET_PASSWORD" : "Ganti kata sandi",
   "OLD_PASSWORD" : "Kata sandi lama",
   "NEW_PASSWORD" : "Kata sandi baru",
-  "CONFIRM_NEW_PASSWORD" : "Confirm new password"
+  "CONFIRM_NEW_PASSWORD" : "Konfirmasi kata sandi baru"
 }
