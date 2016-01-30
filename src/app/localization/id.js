@@ -17,6 +17,10 @@ module.exports = {
   "TOASTR_SUCCESSFULLY_DELETE_CONTACT" : "Kontak telah dihapus",
   "TOASTR_CONTACT_ALREADY_EXISTS" : "Gagal menyimpan. Kontak sudah pernah dibuat",
   "TOASTR_ATTACHMENT_UPLOAD_NOT_FINISHED_YET" : "Unggahan lampiran masih belum seelesai",
+  "TOASTR_SET_PASSWORD_SUCCEEDED" : "Kata sandi berhasil diganti",
+  "TOASTR_SET_PASSWORD_FAILED" : "Kata sandi lama tidak benar",
+  "TOASTR_SET_PASSWORD_CONFIRM_DOES_NOT_MATCH" : "Konfirmasi kata sandi baru tidak cocok",
+  "TOASTR_OLD_PASSWORD_MUST_BE_FILLED" : "Kata sandi lama harus diisi",
   
   // Login
   "WELCOME" : "Selamat Datang",
@@ -72,4 +76,11 @@ module.exports = {
   "EDIT" : "Sunting",
   "UPDATE" : "Perbarui",
   "CONTACT_LIST" : "Daftar Kontak",
+  
+  // Settings
+  "SETTINGS" : "Pengaturan",
+  "SET_PASSWORD" : "Ganti kata sandi",
+  "OLD_PASSWORD" : "Kata sandi lama",
+  "NEW_PASSWORD" : "Kata sandi baru",
+  "CONFIRM_NEW_PASSWORD" : "Confirm new password"
 }

@@ -1,3 +1,7 @@
+var sureliaConf = JSON.parse(require('fs').readFileSync(__dirname + '/../../api/surelia.settings.json', 'utf8'));
+if (sureliaConf.options.gearmanServer) {
+  sureliaConf.options.gearmanServer = true;
+}
 var config = {
   imap: {
     host: 'imap.gmail.com',
@@ -7,7 +11,8 @@ var config = {
     host: 'smtp.gmail.com',
     port: 465 
   },
-  lang : "id"
+  lang : "id",
+  gearman : sureliaConf.options.gearmanServer
 }
 
 module.exports = config;

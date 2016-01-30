@@ -91,6 +91,23 @@ ToastrService.prototype.permanentlyDeleted = function() {
   self.toastr.success(self.$filter("translate")("TOASTR_MESSAGE_PERMANENTLY_DELETED"));
 }
 
+ToastrService.prototype.setPasswordSucceeded = function() {
+  var self = this;
+  self.toastr.success(self.$filter("translate")("TOASTR_SET_PASSWORD_SUCCEEDED"));
+}
+ToastrService.prototype.setPasswordFailed = function() {
+  var self = this;
+  self.toastr.error(self.$filter("translate")("TOASTR_SET_PASSWORD_FAILED"));
+}
+ToastrService.prototype.setPasswordConfirmDoesNotMatch = function() {
+  var self = this;
+  self.toastr.error(self.$filter("translate")("TOASTR_SET_PASSWORD_CONFIRM_DOES_NOT_MATCH"));
+}
+ToastrService.prototype.oldPasswordMustBeFilled = function() {
+  var self = this;
+  self.toastr.error(self.$filter("translate")("TOASTR_OLD_PASSWORD_MUST_BE_FILLED"));
+}
+
 // This function intended to parse a request error
 // so we could just simply put it in each .catch() / .error() scope
 // instead of writing a bunch of toastr functions.
