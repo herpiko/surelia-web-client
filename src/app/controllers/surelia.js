@@ -658,6 +658,17 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
         if (self.currentMessage.parsed.html) {
           console.log("html");
           html = "<div>" + self.currentMessage.parsed.html + "</div>";
+          // Assign inline attachment
+          if (Object.keys(self.currentMessage.inlineAttachments).length > 0) {
+            var inlineAttachments = self.currentMessage.inlineAttachments;
+            var contentIds = html.split("img src=\"cid:")
+            contentIds.shift();
+            html = html.replace(/img src="cid:/g, "img src=\"data:image/png;base64,");
+            for (var i in contentIds) {
+              contentIds[i] = contentIds[i].split("\"")[0];
+              html = html.replace(contentIds[i], inlineAttachments[contentIds[i]]);
+            }
+          }
         } else {
           console.log("text");
           html = "<pre>" + self.currentMessage.parsed.text + "</pre>";
