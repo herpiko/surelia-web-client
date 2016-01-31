@@ -14,6 +14,7 @@ var streamifier = require("streamifier");
 var base64Stream = require("base64-stream");
 var objectHash = require("object-hash");
 var gearmanode = require("gearmanode");
+var Utils = require("./utils");
 Grid.mongo = mongoose.mongo;
 gfs = Grid(mongoose.connection.db);
 
@@ -1110,58 +1111,73 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
           message.isDraft = true;
         }
 
-
         if (!message.hasAttachments && !message.parsed.attachments) {
           return reply(message);
         }
-        // Save attachments to uploadAttachment collection in purpose of drafts and forward
-        gfs.exist({ filename : message.parsed.messageId}, function(err, isExist){
+        message.inlineAttachments = {};
+        async.eachSeries(message.parsed.attachments, function(attachment, cb){
+          if (attachment.contentDisposition.toLowerCase() === "inline") {
+            message.inlineAttachments[attachment.contentId] = Utils.ab2Base64(attachment.content);
+          }
+          return cb();
+        }, function(err){
           if (err) {
             return reply(err).code(500);
           }
-          if (!isExist) {
-            async.eachSeries(message.parsed.attachments, function(attachment, cb){
-              // Prepare streams
-              var id = mongoose.Types.ObjectId();
-              var file = {
-                _id : id,
-                filename :  message.parsed.messageId,
-                contentType : attachment.contentType,
-                metadata : {
-                  filename : attachment.fileName,
+          // Save attachments to uploadAttachment collection in purpose of drafts and forward
+          gfs.exist({ filename : message.parsed.messageId}, function(err, isExist){
+            if (err) {
+              return reply(err).code(500);
+            }
+            if (!isExist) {
+              async.eachSeries(message.parsed.attachments, function(attachment, cb){
+                console.log(attachment);
+                if (attachment.contentDisposition.toLowerCase() === "inline") {
+                  message.inlineAttachments[attachment.contentId] = attachment;
+                  cb();
                 }
-              }
-              var content = attachment.content;
-              attachment.attachmentId = id;
-              
-              var writeStream = gfs.createWriteStream(file);
-              writeStream.on("finish", function(){
-                cb();
-              });
-              writeStream.on("error", function(err){
-                cb(err);
-              });
-              var readableStreamBuffer = streamifier.createReadStream(content);
-              readableStreamBuffer.pipe(base64Stream.encode()).pipe(writeStream);
-            }, function(err){
-              if (err) {
-                return reply({err : err.message}).code(500);
-              }
-              reply(message);
-            })
-          } else {
-            // Assign the attachment Id
-            gfs.files.find({filename : message.parsed.messageId}).toArray(function(err, files){
-              lodash.some(message.parsed.attachments, function(attachment){
-                lodash.some(files, function(file){
-                  if (file.metadata && file.metadata.filename == attachment.fileName) {
-                    attachment.attachmentId = file._id; 
+                // Prepare streams
+                var id = mongoose.Types.ObjectId();
+                var file = {
+                  _id : id,
+                  filename :  message.parsed.messageId,
+                  contentType : attachment.contentType,
+                  metadata : {
+                    filename : attachment.fileName,
                   }
-                })
+                }
+                var content = attachment.content;
+                attachment.attachmentId = id;
+                
+                var writeStream = gfs.createWriteStream(file);
+                writeStream.on("finish", function(){
+                  cb();
+                });
+                writeStream.on("error", function(err){
+                  cb(err);
+                });
+                var readableStreamBuffer = streamifier.createReadStream(content);
+                readableStreamBuffer.pipe(base64Stream.encode()).pipe(writeStream);
+              }, function(err){
+                if (err) {
+                  return reply({err : err.message}).code(500);
+                }
+                reply(message);
               })
-              reply(message);
-            })
-          }
+            } else {
+              // Assign the attachment Id
+              gfs.files.find({filename : message.parsed.messageId}).toArray(function(err, files){
+                lodash.some(message.parsed.attachments, function(attachment){
+                  lodash.some(files, function(file){
+                    if (file.metadata && file.metadata.filename == attachment.fileName) {
+                      attachment.attachmentId = file._id; 
+                    }
+                  })
+                })
+                reply(message);
+              })
+            }
+          })
         })
       })
       .catch(function(err){
