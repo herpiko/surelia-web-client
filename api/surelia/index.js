@@ -1131,11 +1131,6 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
             }
             if (!isExist) {
               async.eachSeries(message.parsed.attachments, function(attachment, cb){
-                console.log(attachment);
-                if (attachment.contentDisposition.toLowerCase() === "inline") {
-                  message.inlineAttachments[attachment.contentId] = attachment;
-                  cb();
-                }
                 // Prepare streams
                 var id = mongoose.Types.ObjectId();
                 var file = {
