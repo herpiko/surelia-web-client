@@ -659,7 +659,7 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
           console.log("html");
           html = "<div>" + self.currentMessage.parsed.html + "</div>";
           // Assign inline attachment
-          if (Object.keys(self.currentMessage.inlineAttachments).length > 0) {
+          if (self.currentMessage.inlineAttachments && Object.keys(self.currentMessage.inlineAttachments).length > 0) {
             var inlineAttachments = self.currentMessage.inlineAttachments;
             var contentIds = html.split("img src=\"cid:")
             contentIds.shift();
