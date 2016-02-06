@@ -712,7 +712,7 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
 
 Surelia.prototype.getAttachment = function(attachment) {
   var self = this;
-  self.ImapService.getAttachment(attachment.attachmentId)
+  self.ImapService.getAttachment(attachment.attachmentId, attachment.key)
     .then(function(data){
       self.loading.complete();
 
