@@ -4,6 +4,16 @@ var inspect = require("util").inspect;
 var MailParser = require("mailparser").MailParser;
 var moment = require("moment");
 var lodash = require("lodash");
+var fs = require("fs");
+var Utils = require("./utils");
+var crypto = require('crypto');
+var base64Stream = require("base64-stream");
+var Stream = require('stream');
+var mongoose = require("mongoose");
+var Grid = require("gridfs-stream");
+Grid.mongo = mongoose.mongo;
+gfs = Grid(mongoose.connection.db);
+
 
 /**
  * @typedef Promise
@@ -608,7 +618,6 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
       if (err) {
         return reject(err);
       }
-      var mail = {}
       if (parseInt(id) > box.messages.total) {
         return reject(new Error("Nothing to fetch"));
       }
@@ -621,35 +630,88 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
         return reject(err);
       }
       f.on("message", function(msg, seqno){
+        var mailparser = new MailParser({streamAttachments:true});
+        var attachments = [];
         var prefix = "(#" + seqno + ")";
+        var mail = {}
+        mailparser.on("attachment", function(attachment, mail) {
+          var id = mongoose.Types.ObjectId();
+          // Encrypt the attachment before it superimposed to fs
+          var now = new Date().valueOf();
+          var key = id.toString() + new Date().valueOf().toString();
+          var cipher = crypto.createCipher('aes192', key);
+          var file = {
+            _id : id,
+            filename :  mail.meta.messageId,
+            contentType : attachment.contentType,
+            metadata : {
+              attachmentId : id,
+              key : key,
+              contentType : attachment.contentType,
+              charset : attachment.charset,
+              fileName : attachment.fileName,
+              contentDisposition: attachment.contentDisposition,
+              transferEncoding : attachment.transferEncoding,
+              generatedFileName : attachment.generatedFileName,
+              contentId : attachment.contentId,
+              checksum : attachment.checksum,
+              length : attachment.length
+            }
+          }
+          if (attachment.contentDisposition.toLowerCase() === 'inline') {
+            mail.hasInlineAttachments = true;
+            file.metadata.content = '';
+            attachment.stream.pipe(base64Stream.encode())
+              .on('data', function(chunk){
+                file.metadata.content += chunk.toString('utf8');
+              })
+              .on('finish', function(){
+                attachments.push(file.metadata);
+              })
+          } else {
+            attachments.push(file.metadata);
+          }
+          file.metadata.attachmentId = id;
+          var gfsWs = gfs.createWriteStream(file);
+          attachment.stream.pipe(base64Stream.encode()).pipe(cipher).pipe(gfsWs);
+        })
         msg.on("body", function(stream, info) {
-          var buffer = "";
-          stream.on("data", function(chunk) {
-            buffer += chunk.toString("utf8");
-          });
-          stream.once("end", function(attrs){
-            mail.original = buffer;
-          });
+          stream.pipe(mailparser);
         })
         msg.once("attributes", function(attrs) {
-            mail.hasAttachments = false;
-            for (var i = 0; i < attrs.struct.length; i++) {
-              if (attrs.struct[i]
-                && attrs.struct[i][0]
-                && attrs.struct[i][0].disposition
-                && (attrs.struct[i][0].disposition.type === "ATTACHMENT"
-                || attrs.struct[i][0].disposition.type === "attachment")
-              ) {
-                mail.hasAttachments = true;
-                break;
-              }
+          mail.hasAttachments = false;
+          for (var i = 0; i < attrs.struct.length; i++) {
+            if (attrs.struct[i]
+              && attrs.struct[i][0]
+              && attrs.struct[i][0].disposition
+              && (attrs.struct[i][0].disposition.type === "ATTACHMENT"
+              || attrs.struct[i][0].disposition.type === "attachment")
+            ) {
+              mail.hasAttachments = true;
+              break;
             }
-            mail.attributes = attrs;
+          }
+          mail.attributes = attrs;
         })
         msg.once("end", function(){
-          var mailparser = new MailParser();
-          mailparser.on("end", function(mailObject){
+          // Do nothing
+        })
+        mailparser.on("end", function(mailObject){
+          setTimeout(function(){
             mail.parsed = mailObject;
+            // Assign attachment Id and decipher key
+            mail.inlineAttachments = {}
+            for (var i in attachments) {
+                for (var j in mail.parsed.attachments) {
+                  if (attachments[i].contentId === mail.parsed.attachments[j].contentId) {
+                    mail.parsed.attachments[j].attachmentId = attachments[i].attachmentId;
+                    mail.parsed.attachments[j].key = attachments[i].key;
+                    if (attachments[i].content) {
+                      mail.inlineAttachments[attachments[i].contentId] = attachments[i].content;
+                    }
+                  }
+                }
+            }
             mail.parsed.date = moment(new Date(mail.parsed.date));
             mail.parsed.receivedDate = moment(new Date(mail.parsed.receivedDate));
             mail.boxName = (isSearch) ? "search" : boxName;
@@ -670,9 +732,7 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
                   return reject(err);
                 });
             }
-          })
-          mailparser.write(mail.original);
-          mailparser.end();
+          }, 1000);
         })
         msg.once("error", function(err) {
           return reject(err);

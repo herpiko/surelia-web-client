@@ -1217,9 +1217,11 @@ hoodiecrowServer.listen(1143, function(){
                     username : process.env.TEST_SMTP_USERNAME
                   }
                 }, function(response){
+                  console.log(response);
+                  var key = response.result.parsed.attachments[0].key;
                   server.inject({
-                    method: "GET",
-                    url : "/api/1.0/attachment?attachmentId=" + attachmentId,
+                    method: "GET",  
+                    url : "/api/1.0/attachment?attachmentId=" + attachmentId + "&key=" + key,
                     headers : {
                       token : token,
                       username : process.env.TEST_SMTP_USERNAME
