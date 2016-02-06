@@ -198,14 +198,14 @@ ImapService.prototype.retrieveMessage = function(id, boxName, canceler) {
   return promise.promise;
 }
 
-ImapService.prototype.getAttachment = function(attachmentId, canceler) {
+ImapService.prototype.getAttachment = function(attachmentId, key, canceler) {
   var self = this;
   var promise = self.$q.defer();
   if (self.$rootScope.getAttachmentCanceler) {
     self.$rootScope.getAttachmentCanceler.resolve();
   }
   self.$rootScope.getAttachmentCanceler = self.$q.defer();
-  var path = "/api/1.0/attachment?attachmentId=" + attachmentId;
+  var path = "/api/1.0/attachment?attachmentId=" + attachmentId + "&key=" + key;
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username"); 
   var req = {
