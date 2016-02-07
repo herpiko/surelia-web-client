@@ -73,6 +73,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.auth(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         payload : {
           username : Joi.string().email().required(),
