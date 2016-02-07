@@ -1185,7 +1185,7 @@ ImapAPI.prototype.getAttachment = function(request, reply) {
         return reply({err : new Error("Attachment not found").message}).code(404);
       }
       var file = gfs.createReadStream({ _id : request.query.attachmentId });
-      var decipher = crypto.createDecipher('aes192', request.query.key);
+      var decipher = crypto.createDecipher('aes192', request.query.key.toString());
       reply(file.pipe(decipher));
     })
   }
