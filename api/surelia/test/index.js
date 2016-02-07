@@ -1217,6 +1217,7 @@ hoodiecrowServer.listen(1143, function(){
                     username : process.env.TEST_SMTP_USERNAME
                   }
                 }, function(response){
+                  console.log(response);
                   var key = response.parsed.attachments[0].key;
                   server.inject({
                     method: "GET",  
