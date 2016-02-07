@@ -1,5 +1,8 @@
 {
   "options" : {
-    "gearmanServer" : false
+    "gearmanServer" : false,
+    "cookieOptions" : {
+      "clearInvalid" : true
+    }
   }
 }
