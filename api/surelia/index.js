@@ -29,6 +29,10 @@ var ImapAPI = function(server, options, next) {
 
 ImapAPI.prototype.registerEndPoints = function(){
   var self = this;
+  var stateConfigs = {
+    parse : true,
+    failAction : 'ignore'
+  }
   self.server.route({
     method : "POST",
     path : "/api/1.0/send",
@@ -36,6 +40,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.send(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         payload : {
           recipients : Joi.array().items(Joi.string().email()).required(),
@@ -89,6 +94,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/special-boxes",
     handler : function(request, reply){
       self.getSpecialBoxes(request, reply);
+    },
+    config : {
+      state : stateConfigs,
     }
   })
   self.server.route({
@@ -96,6 +104,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/boxes",
     handler : function(request, reply){
       self.getBoxes(request, reply);
+    },
+    config : {
+      state : stateConfigs,
     }
   })
   self.server.route({
@@ -105,6 +116,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.listBox(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         query : {
           boxName : Joi.string().required(),
@@ -123,6 +135,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/box",
     handler : function(request, reply){
       self.addBox(request, reply);
+    },
+    config : {
+      state : stateConfigs,
     }
   })
   self.server.route({
@@ -130,6 +145,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/rename-box",
     handler : function(request, reply){
       self.renameBox(request, reply);
+    },
+    config : {
+      state : stateConfigs,
     }
   })
   self.server.route({
@@ -137,6 +155,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/box",
     handler : function(request, reply){
       self.removeBox(request, reply);
+    },
+    config : {
+      state : stateConfigs,
     }
   })
   self.server.route({
@@ -144,6 +165,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/message",
     handler : function(request, reply){
       self.retrieveMessage(request, reply);
+    },
+    config : {
+      state : stateConfigs,
     }
   })
   self.server.route({
@@ -153,6 +177,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.moveMessage(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         payload : {
           seqs : Joi.array().items(Joi.number()).required(),
@@ -167,6 +192,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/message",
     handler : function(request, reply){
       self.removeMessage(request, reply);
+    },
+    config : {
+      state : stateConfigs,
     }
   })
   self.server.route({
@@ -174,6 +202,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/message",
     handler : function(request, reply){
       self.newMessage(request, reply);
+    },
+    config : {
+      state : stateConfigs,
     }
   })
   self.server.route({
@@ -181,6 +212,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/logout",
     handler : function(request, reply){
       self.logout(request, reply);
+    },
+    config : {
+      state : stateConfigs,
     }
   })
   self.server.route({
@@ -188,6 +222,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/attachment",
     handler : function(request, reply){
       self.getAttachment(request, reply);
+    },
+    config : {
+      state : stateConfigs,
     }
   })
   self.server.route({
@@ -197,6 +234,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.uploadAttachment(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         payload : {
           content : Joi.required(),
@@ -215,6 +253,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/attachment",
     handler : function(request, reply){
       self.removeAttachment(request, reply);
+    },
+    config : {
+      state : stateConfigs,
     }
   })
   
@@ -225,6 +266,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.saveDraft(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         payload : {
           recipients : Joi.array().items(Joi.string()).allow(""),
@@ -256,6 +298,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/quota-info",
     handler : function(request, reply){
       self.quotaInfo(request, reply);
+    },
+    config : {
+      state : stateConfigs,
     }
   })
   
@@ -266,6 +311,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.setFlag(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         payload : {
           flag : Joi.string().required(),
@@ -283,6 +329,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.getAddressBook(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         query : {
           page : Joi.number().allow(""),
@@ -299,6 +346,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/contacts/candidates",
     handler : function(request, reply){
       self.getContactCandidates(request, reply);
+    },
+    config : {
+      state : stateConfigs,
     }
   })
   
@@ -309,6 +359,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.getContact(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         query : {
           id : Joi.string().allow(""),
@@ -324,6 +375,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.deleteContact(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         query : {
           id : Joi.string().required(),
@@ -339,6 +391,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.addContact(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         payload : {
           emailAddress : Joi.string().required(""),
@@ -382,6 +435,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.uploadAvatar(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         query : {
           emailAddress : Joi.string().required(),
@@ -404,6 +458,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.getAvatar(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         query : {
           emailAddress : Joi.string().required(),
@@ -418,6 +473,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.setPassword(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         payload : {
           username : Joi.string().email().required(),
