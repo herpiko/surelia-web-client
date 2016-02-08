@@ -1,5 +1,5 @@
 {
   "options" : {
-    "gearmanServer" : false
+    "gearmanServer" : "10.31.2.77"
   }
 }

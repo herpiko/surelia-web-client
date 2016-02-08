@@ -1171,7 +1171,7 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
       io : self.io,
       room : request.headers.username
     }
-    client.retrieveMessage(request.query.id, request.query.boxName, request)
+    client.retrieveMessage(request.query.id, request.query.boxName, socket)
       .then(function(message){
         delete(message.original);
         if (request.query.boxName.indexOf("Drafts") > -1) {
