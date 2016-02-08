@@ -604,7 +604,7 @@ Imap.prototype.removeFlag = function(seqs, flag, boxName) {
  * @param {Integer} id - The id of the message
  * @returns {Promise}
  */
-Imap.prototype.retrieveMessage = function(id, boxName) {
+Imap.prototype.retrieveMessage = function(id, boxName, socket) {
   var self = this;
   return new Promise(function(resolve, reject){
     var result = [];
@@ -674,6 +674,12 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
           file.metadata.attachmentId = id;
           var gfsWs = gfs.createWriteStream(file);
           attachment.stream.pipe(base64Stream.encode()).pipe(cipher).pipe(gfsWs);
+          attachment.stream.on('end', function(){
+            if (socket && socket.io && socket.room) {
+              console.log('emit to ' + socket.room);
+              socket.io.to(socket.room).emit('attachmentReady', key);
+            }
+          })
         })
         msg.on("body", function(stream, info) {
           stream.pipe(mailparser);

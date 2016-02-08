@@ -26,6 +26,8 @@ var ImapAPI = function(server, options, next) {
   if (options.gearmanServer) {
     this.gearmanClient = gearmanode.client({servers : [{ host : options.gearmanServer}] })
   }
+  this.io = server.plugins['hapi-io'].io;
+  var self = this;
 }
 
 ImapAPI.prototype.registerEndPoints = function(){
@@ -691,6 +693,7 @@ var createPool = function(request, reply, credential, callback){
   try {
     var client = pool.create(id, null, createFunc, destroyFunc);
   } catch(err) {
+    console.log(err);
     return reply(err);
   }
   callback(client);
@@ -1162,8 +1165,13 @@ ImapAPI.prototype.renameBox = function(request, reply) {
  *
  */
 ImapAPI.prototype.retrieveMessage = function(request, reply) {
+  var self = this;
   var realFunc = function(client, request, reply) {
-    client.retrieveMessage(request.query.id, request.query.boxName)
+    var socket = {
+      io : self.io,
+      room : request.headers.username
+    }
+    client.retrieveMessage(request.query.id, request.query.boxName, request)
       .then(function(message){
         delete(message.original);
         if (request.query.boxName.indexOf("Drafts") > -1) {

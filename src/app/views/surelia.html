@@ -151,7 +151,8 @@
             <div>
               <ul>
                   <li ng-repeat="attachment in surelia.currentMessage.parsed.attachments" class="{{attachment.icon}}">
-                  <span style="cursor:pointer" ng-click="surelia.getAttachment(attachment)">{{attachment.fileName}} - {{attachment.size | SizeFilter }}</span>
+                  <span ng-show="attachment.ready" style="cursor:pointer" ng-click="surelia.getAttachment(attachment)">{{attachment.fileName}} - {{attachment.size | SizeFilter }}</span>
+                  <span ng-hide="attachment.ready">{{attachment.fileName}} - {{attachment.size | SizeFilter }} <i class="fa fa-spinner"></i></span>
                 </li>
               </ul>
             </div>
