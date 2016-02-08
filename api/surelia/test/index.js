@@ -1218,7 +1218,7 @@ hoodiecrowServer.listen(1143, function(){
                   }
                 }, function(response){
                   console.log(response);
-                  var key = response.parsed.attachments[0].key;
+                  var key = response.result.parsed.attachments[0].key;
                   server.inject({
                     method: "GET",  
                     url : "/api/1.0/attachment?attachmentId=" + attachmentId + "&key=" + key,
