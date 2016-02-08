@@ -284,12 +284,13 @@
              </button>
            </div>
            <ul>
-             <li ng-show="surelia.newMessage.attachments.length > 0" ng-repeat="a in surelia.newMessage.attachments" class="compose-attachments">
+             <li ng-show="surelia.newMessage.attachments.length > 0" ng-repeat="a in surelia.newMessage.attachments" class="compose-attachments" ng-mouseenter="a.hover=true" ng-mouseleave="a.hover=false">
               {{a.filename}}
-               <span ng-show="a.progress.status=='uploading'"> - {{'UPLOADING' | translate}}</span>
-               <span ng-show="a.progress.status=='failed'"> - {{'UPLOAD_FAILED' | translate}} </span>
-               <span ng-show="a.progress.status=='uploaded'"><i class="fa fa-check"></i></span> 
-                <span ng-show="a.progress.percentage && a.progress.status=='uploading'">{{a.progress.percentage}} %</span>
+               <span ng-show="!a.hover && a.progress.status=='uploading'"> - {{'UPLOADING' | translate}}</span>
+               <span ng-show="!a.hover && a.progress.status=='failed'"> - {{'UPLOAD_FAILED' | translate}} </span>
+               <span ng-show="!a.hover && a.progress.status=='uploaded'"><i class="fa fa-check"></i></span> 
+               <span ng-show="!a.hover && a.progress.percentage && a.progress.status=='uploading'">{{a.progress.percentage}} %</span>
+               <span ng-show="a.hover" ng-click="surelia.cancelAttachment(a, $index)"><i class="fa fa-close"></i></span> 
              </li>
            </ul>
           </div>
