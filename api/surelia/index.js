@@ -1167,7 +1167,7 @@ ImapAPI.prototype.renameBox = function(request, reply) {
 ImapAPI.prototype.retrieveMessage = function(request, reply) {
   var self = this;
   var realFunc = function(client, request, reply) {
-    client.retrieveMessage(self.io, request)
+    client.retrieveMessage(request.query.id, request.query.boxName, self.io)
       .then(function(message){
         delete(message.original);
         if (request.query.boxName.indexOf("Drafts") > -1) {
