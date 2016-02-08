@@ -604,7 +604,7 @@ Imap.prototype.removeFlag = function(seqs, flag, boxName) {
  * @param {Integer} id - The id of the message
  * @returns {Promise}
  */
-Imap.prototype.retrieveMessage = function(id, boxName) {
+Imap.prototype.retrieveMessage = function(id, boxName, socket) {
   var self = this;
   return new Promise(function(resolve, reject){
     var result = [];
@@ -674,6 +674,12 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
           file.metadata.attachmentId = id;
           var gfsWs = gfs.createWriteStream(file);
           attachment.stream.pipe(base64Stream.encode()).pipe(cipher).pipe(gfsWs);
+          gfsWs.on('close', function(){
+            if (socket && socket.io && socket.room) {
+              console.log('emit to ' + socket.room);
+              socket.io.to(socket.room).emit('attachmentReady', key);
+            }
+          })
         })
         msg.on("body", function(stream, info) {
           stream.pipe(mailparser);
@@ -697,42 +703,40 @@ Imap.prototype.retrieveMessage = function(id, boxName) {
           // Do nothing
         })
         mailparser.on("end", function(mailObject){
-          setTimeout(function(){
-            mail.parsed = mailObject;
-            // Assign attachment Id and decipher key
-            mail.inlineAttachments = {}
-            for (var i in attachments) {
-                for (var j in mail.parsed.attachments) {
-                  if (attachments[i].contentId === mail.parsed.attachments[j].contentId) {
-                    mail.parsed.attachments[j].attachmentId = attachments[i].attachmentId;
-                    mail.parsed.attachments[j].key = attachments[i].key;
-                    if (attachments[i].content) {
-                      mail.inlineAttachments[attachments[i].contentId] = attachments[i].content;
-                    }
+          mail.parsed = mailObject;
+          // Assign attachment Id and decipher key
+          mail.inlineAttachments = {}
+          for (var i in attachments) {
+              for (var j in mail.parsed.attachments) {
+                if (attachments[i].contentId === mail.parsed.attachments[j].contentId) {
+                  mail.parsed.attachments[j].attachmentId = attachments[i].attachmentId;
+                  mail.parsed.attachments[j].key = attachments[i].key;
+                  if (attachments[i].content) {
+                    mail.inlineAttachments[attachments[i].contentId] = attachments[i].content;
                   }
                 }
-            }
-            mail.parsed.date = moment(new Date(mail.parsed.date));
-            mail.parsed.receivedDate = moment(new Date(mail.parsed.receivedDate));
-            mail.boxName = (isSearch) ? "search" : boxName;
-            // flag it as SEEN
-            if (isSearch) {
-              self.client.addFlags(id.toString(), ["\\Seen"], function(err){
-                if (err) {
-                  return reject(err);
-                }
+              }
+          }
+          mail.parsed.date = moment(new Date(mail.parsed.date));
+          mail.parsed.receivedDate = moment(new Date(mail.parsed.receivedDate));
+          mail.boxName = (isSearch) ? "search" : boxName;
+          // flag it as SEEN
+          if (isSearch) {
+            self.client.addFlags(id.toString(), ["\\Seen"], function(err){
+              if (err) {
+                return reject(err);
+              }
+              resolve(mail);
+            }); 
+          } else {
+            self.addFlag(id, "Seen", boxName)
+              .then(function(){
                 resolve(mail);
-              }); 
-            } else {
-              self.addFlag(id, "Seen", boxName)
-                .then(function(){
-                  resolve(mail);
-                })
-                .catch(function(err){
-                  return reject(err);
-                });
-            }
-          }, 1000);
+              })
+              .catch(function(err){
+                return reject(err);
+              });
+          }
         })
         msg.once("error", function(err) {
           return reject(err);

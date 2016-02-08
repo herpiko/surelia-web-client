@@ -128,6 +128,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   
   if (self.localStorageService.get("username")) {
     self.$rootScope.currentUsername = self.localStorageService.get("username");
+    self.$rootScope.socket.emit("join", self.$rootScope.currentUsername);
   }
   // getBoxes() and getSpecialBoxes are running in async
   // Make sure loading progress get completed 
@@ -291,6 +292,30 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
     self.option_delimited = {
       suggest: suggest_email_delimited,
     };
+  // Socket event
+  var attachmentReady = function(key) {
+    console.log(key)
+    for (var i in self.currentMessage.parsed.attachments) {
+      if (self.currentMessage.parsed.attachments[i].key === key) {
+        self.currentMessage.parsed.attachments[i].ready = true;
+      }
+    }
+  }
+  $rootScope.socket.on('attachmentReady', function(key){
+    // Maximum estimated time until the message is loaded to DOM
+    if (
+      self.currentMessage && 
+      self.currentMessage.parsed && 
+      self.currentMessage.parsed.attachments && 
+      self.currentMessage.parsed.attachments.length > 0
+    ) {
+      attachmentReady(key);
+    } else {
+      self.$timeout(function(){
+        attachmentReady(key);
+      }, 3000);
+    }
+  })
 }
 
 Surelia.prototype.toggleMobileMenu = function() {
@@ -749,6 +774,7 @@ Surelia.prototype.getAttachment = function(attachment) {
 
 Surelia.prototype.logout = function(){
   var self = this;
+  self.$rootScope.socket.emit("leave", self.$rootScope.currentUsername);
   self.ImapService.logout();
 }
 
