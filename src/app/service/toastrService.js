@@ -122,14 +122,14 @@ ToastrService.prototype.parse = function(data, status) {
     self.$state.go("Login");
     return;
   }
-  if ( data && data.err &&  data.err == "Invalid credentials") {
+  if (data && data.err &&  data.err == "Invalid credentials") {
     return self.invalidCredentials();
   }
-  if (data.err === "Session expired") {
+  if (data && data.err === "Session expired") {
     self.ImapService.logout();
     return self.sessionExpired();
   }
-  if (data.err == "Contact already exists") {
+  if (data && data.err == "Contact already exists") {
     return self.contactAlreadyExists();
   }
   if (status === 500) {
