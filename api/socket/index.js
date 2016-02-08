@@ -15,6 +15,10 @@ var Socket = function(server, options, next) {
         console.log("a client leave " + id + " room");
         socket.leave(id);
       })
+      socket.on("updateSeq", function(id){
+        console.log("update seq for " + id + " room");
+        socket.broadcast.to(id).emit("updateSeq");
+      })
   })
 }
 

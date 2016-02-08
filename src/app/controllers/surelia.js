@@ -316,6 +316,10 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
       }, 3000);
     }
   })
+  $rootScope.socket.on('updateSeq', function(){
+    console.log('Update sequence');
+    self.listReload();
+  })
 }
 
 Surelia.prototype.toggleMobileMenu = function() {
@@ -727,6 +731,8 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
         });
       }
 
+      // Update seq in other client instance
+      self.$rootScope.socket.emit("updateSeq", self.$rootScope.currentUsername);
     })
     .catch(function(data, status){
       self.loading.complete();
@@ -869,6 +875,8 @@ Surelia.prototype.sendMessage = function(msg){
           }
         });
       }
+      // Update seq in other client instance
+      self.$rootScope.socket.emit("updateSeq", self.$rootScope.currentUsername);
        
     })
     .error(function(data, status){
@@ -898,6 +906,8 @@ Surelia.prototype.removeMessage = function(seq, messageId, boxName){
         self.ToastrService.deleted();
       }
       self.listReload();
+      // Update seq in other client instance
+      self.$rootScope.socket.emit("updateSeq", self.$rootScope.currentUsername);
     })
     .error(function(data, status){
       console.log(data, status);
@@ -1102,6 +1112,8 @@ Surelia.prototype.saveDraft = function(){
             } 
           });
         }
+        // Update seq in other client instance
+        self.$rootScope.socket.emit("updateSeq", self.$rootScope.currentUsername);
       })
       .error(function(data, status, header){
         self.loading.complete();
@@ -1133,6 +1145,8 @@ Surelia.prototype.discardDraft = function(id){
       .success(function(data, status, header){
         self.listBox(draftPath);
         self.loading.complete();
+        // Update seq in other client instance
+        self.$rootScope.socket.emit("updateSeq", self.$rootScope.currentUsername);
       })
       .error(function(data, status, header){
         self.loading.complete();
@@ -1244,6 +1258,8 @@ Surelia.prototype.moveMessage = function(boxName) {
   self.ImapService.moveMessage(seqs, oldBoxName, boxName)
     .then(function(data, status){
       self.listReload();
+      // Update seq in other client instance
+      self.$rootScope.socket.emit("updateSeq", self.$rootScope.currentUsername);
     })
     .catch(function(data, status){
       self.loading.complete();
@@ -1271,6 +1287,8 @@ Surelia.prototype.flagMessage = function(flag) {
   self.ImapService.flagMessage(seqs, flag, boxName)
     .then(function(data, status){
       self.listReload();
+      // Update seq in other client instance
+      self.$rootScope.socket.emit("updateSeq", self.$rootScope.currentUsername);
     })
     .catch(function(data, status){
       self.loading.complete();
