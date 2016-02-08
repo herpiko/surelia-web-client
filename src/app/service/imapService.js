@@ -229,11 +229,12 @@ ImapService.prototype.getAttachment = function(attachmentId, key, canceler) {
   return promise.promise;
 }
 
-ImapService.prototype.uploadAttachment = function(data) {
+ImapService.prototype.uploadAttachment = function(data, cancel) {
   var self = this;
   var path = "/api/1.0/attachment";
   var token = self.localStorageService.get("token"); 
   var username = self.localStorageService.get("username");
+  var canceler = self.$q.defer();
   var req = {
     url : path,
     data : {content : data},
@@ -242,6 +243,10 @@ ImapService.prototype.uploadAttachment = function(data) {
       username : username
     }
   }
+  if (canceler) {
+    req.timeout = canceler.promise;
+  }
+  cancel(canceler);
   return self.Upload.upload(req)
 }
 

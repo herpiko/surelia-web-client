@@ -1132,6 +1132,12 @@ Surelia.prototype.showBcc = function(){
   self.bcc = true;
 }
 
+Surelia.prototype.cancelAttachment = function(a, index){
+  var self = this;
+  a.canceler.resolve();
+  self.newMessage.attachments.splice(index,1);
+}
+
 Surelia.prototype.uploadFiles = function(files, errFiles) {
   var self = this;
   angular.forEach(files, function(file) {
@@ -1144,8 +1150,10 @@ Surelia.prototype.uploadFiles = function(files, errFiles) {
         status : "uploading",
       }
     }
-    self.newMessage.attachments.push(attachment);
-    self.ImapService.uploadAttachment(file)
+    self.ImapService.uploadAttachment(file, function(canceler){
+      attachment.canceler = canceler;
+      self.newMessage.attachments.push(attachment);
+    })
       .then(function(res){
         var result = res.data;
         window.lodash.some(self.newMessage.attachments, function(attachment){
