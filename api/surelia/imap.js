@@ -675,9 +675,9 @@ Imap.prototype.retrieveMessage = function(id, boxName, socket) {
           var gfsWs = gfs.createWriteStream(file);
           attachment.stream.pipe(base64Stream.encode()).pipe(cipher).pipe(gfsWs);
           attachment.stream.on('end', function(){
-            if (socket) {
-              console.log('emit to ' + request.headers.username);
-              socket.to(request.headers.username).emit('attachmentReady', key);
+            if (socket && socket.io && socket.room) {
+              console.log('emit to ' + socket.room);
+              socket.io.to(socket.room).emit('attachmentReady', key);
             }
           })
         })
