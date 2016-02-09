@@ -118,6 +118,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.croppedAvatar="";
   self.showCropArea = false;
   self.$sce = $sce;
+  self.spamBox = null;
   // This array will be used in "Move to" submenu in multiselect action
   self.moveToBoxes = [];
   self.flags = ["Read", "Unread"];
@@ -206,6 +207,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
         loadCompletion.boxes = true;
         loadComplete();
         self.specialBoxes = data;
+        self.searchForSpamBox(data, true);
         window.lodash.some(self.specialBoxes, function(box){
           if (box && box.specialName && 
             (box.specialName.indexOf("Trash") > -1 || box.specialName.indexOf("Sent") > -1 )
@@ -291,6 +293,29 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
     self.option_delimited = {
       suggest: suggest_email_delimited,
     };
+  
+  // Search for spam box
+  self.searchForSpamBox = function(boxes, isSpecial){
+    if (iSpecial) {
+      var keys = Object.keys(boxes);
+      for (var key in keys) {
+        if (self.spamBox && boxes[key].specialName.toLowerCase().indexOf('spam') > -1) {
+          self.spamBox = boxes[key].path;
+        } else if (!self.spamBox && boxes[key].specialName.toLowerCase().indexOf('junk') > -1) {
+          self.spamBox = boxes[key].path;
+        }
+      }
+    } else {
+      window.lodash(boxes, function(box) {
+        if (!self.spamBox && box.boxName.toLowerCase().indexOf('spam') > -1) {
+          self.spamBox = box;
+        } else if (!self.spamBox && box.boxName.toLowerCase().indexOf('junk') > -1) {
+          self.spamBox = box;
+        }
+      })
+    }
+  }
+
 }
 
 Surelia.prototype.toggleMobileMenu = function() {
@@ -322,6 +347,7 @@ Surelia.prototype.getBoxes = function(){
       console.log(data);
       self.ToastrService.parse(data, status);
       self.boxes = data;
+      self.searchForSpamBox(data);
     })
     .error(function(data, status){
       console.log(data, status);
@@ -1193,9 +1219,11 @@ Surelia.prototype.moveMessage = function(boxName) {
   var self = this;
   // Collect seq number
   var seqs = [];
+  var messageIds = [];
   window.lodash.some(self.currentSelection, function(msg){
-    if (msg.seq) {
+    if (msg.seq && msg.header['message-id'][0]) {
       seqs.push(msg.seq);
+      messageIds.push(msg.header['message-id'][0]);
     }
   });
   if (self.currentBoxName.indexOf(boxName) > -1) {
@@ -1207,7 +1235,7 @@ Surelia.prototype.moveMessage = function(boxName) {
   self.loading.start();
   var oldBoxName = self.currentBoxName;
   console.log(seqs, oldBoxName, boxName);
-  self.ImapService.moveMessage(seqs, oldBoxName, boxName)
+  self.ImapService.moveMessage(seqs, oldBoxName, boxName, messageIds)
     .then(function(data, status){
       self.listReload();
     })

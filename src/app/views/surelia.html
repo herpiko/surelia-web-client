@@ -56,7 +56,7 @@
       <br>
       {{'MOVE_TO' | translate}}  : 
       <button ng-click="surelia.moveMessage('Archive')">{{'ARCHIVE' | translate}}</button>
-      <button>Spam</button>
+      <button ng-click="surelia.moveMessage('Spam')">Spam</button>
       <button ng-click="surelia.moveMessage('Trash')">{{'TRASH' | translate}}</button>
       <button ng-repeat="box in surelia.moveToBoxes" ng-hide="(box.indexOf(surelia.currentBoxName) > -1)" ng-click="surelia.moveMessage(box)">{{box}}</button>
       <br>

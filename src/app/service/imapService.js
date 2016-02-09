@@ -278,13 +278,14 @@ ImapService.prototype.removeAttachment = function(attachmentId, canceler) {
 }
 
 
-ImapService.prototype.moveMessage = function(seqs, oldBoxName, boxName) {
+ImapService.prototype.moveMessage = function(seqs, oldBoxName, boxName, messageIds) {
   var self = this;
   // Convert to comma separated string
   var data = {
     seqs : seqs,
     oldBoxName : oldBoxName,
-    boxName : boxName
+    boxName : boxName,
+    messageIds : messageIds
   }
   var path = "/api/1.0/move-message";
   var token = self.localStorageService.get("token"); 
