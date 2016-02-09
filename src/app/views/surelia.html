@@ -9,12 +9,12 @@
     <!--Sidebar-->
     <div style="width:300px;display:inline-block;vertical-align:top;padding:10px;background:#ECECEC;">
       <ul>
-              <li ng-repeat="box in surelia.boxes" ng-click="surelia.listBox(box.boxName,{},true)" style="cursor:pointer">
+              <li ng-repeat="box in surelia.boxes track by $index" ng-click="surelia.listBox(box.boxName,{},true)" style="cursor:pointer">
               {{box.boxName | FirstLetterCapitalize }} 
               <span ng-show="box.meta.count > 0"> ({{box.meta.count}})</span>
               <span ng-show="surelia.currentBoxName==box.boxName"> *</span>
               </li>
-              <li ng-repeat="special in surelia.specialBoxes" ng-click="surelia.listBox(special.path, {}, true)" style="cursor:pointer">
+              <li ng-repeat="special in surelia.specialBoxes track by $index" ng-click="surelia.listBox(special.path, {}, true)" style="cursor:pointer">
               {{special.specialName | FirstLetterCapitalize}} <span ng-show="surelia.currentBoxName==special.specialName"> *</span>
               <span ng-show="special.meta.count > 0"> ({{special.meta.count}})</span>
               </li>

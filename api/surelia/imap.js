@@ -637,7 +637,6 @@ Imap.prototype.retrieveMessage = function(id, boxName, socket) {
         mailparser.on("attachment", function(attachment, mail) {
           var id = mongoose.Types.ObjectId();
           // Encrypt the attachment before it superimposed to fs
-          var now = new Date().valueOf();
           var key = id.toString() + new Date().valueOf().toString();
           var cipher = crypto.createCipher('aes192', key);
           var file = {
