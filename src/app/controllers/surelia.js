@@ -794,6 +794,12 @@ Surelia.prototype.sendMessage = function(msg){
   if (isUploading) {
     return self.ToastrService.attachmentUploadNotFinishedYet();
   }
+  // Remove unecessary child object
+  window.lodash.some(msg.attachments, function(a) {
+    delete(a.hover);
+    delete(a.progress);
+    delete(a.canceler);
+  })
   self.clearAutocomplete();
   var msg = angular.copy(msg);
   // Recipients should not be empty
