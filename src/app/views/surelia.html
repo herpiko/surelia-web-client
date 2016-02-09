@@ -9,12 +9,12 @@
     <!--Sidebar-->
     <div style="width:300px;display:inline-block;vertical-align:top;padding:10px;background:#ECECEC;">
       <ul>
-              <li ng-repeat="box in surelia.boxes" ng-click="surelia.listBox(box.boxName,{},true)" style="cursor:pointer">
+              <li ng-repeat="box in surelia.boxes track by $index" ng-click="surelia.listBox(box.boxName,{},true)" style="cursor:pointer">
               {{box.boxName | FirstLetterCapitalize }} 
               <span ng-show="box.meta.count > 0"> ({{box.meta.count}})</span>
               <span ng-show="surelia.currentBoxName==box.boxName"> *</span>
               </li>
-              <li ng-repeat="special in surelia.specialBoxes" ng-click="surelia.listBox(special.path, {}, true)" style="cursor:pointer">
+              <li ng-repeat="special in surelia.specialBoxes track by $index" ng-click="surelia.listBox(special.path, {}, true)" style="cursor:pointer">
               {{special.specialName | FirstLetterCapitalize}} <span ng-show="surelia.currentBoxName==special.specialName"> *</span>
               <span ng-show="special.meta.count > 0"> ({{special.meta.count}})</span>
               </li>
@@ -151,7 +151,8 @@
             <div>
               <ul>
                   <li ng-repeat="attachment in surelia.currentMessage.parsed.attachments" class="{{attachment.icon}}">
-                  <span style="cursor:pointer" ng-click="surelia.getAttachment(attachment)">{{attachment.fileName}} - {{attachment.size | SizeFilter }}</span>
+                  <span ng-show="attachment.ready" style="cursor:pointer" ng-click="surelia.getAttachment(attachment)">{{attachment.fileName}} - {{attachment.size | SizeFilter }}</span>
+                  <span ng-hide="attachment.ready">{{attachment.fileName}} - {{attachment.size | SizeFilter }} <i class="fa fa-spinner"></i></span>
                 </li>
               </ul>
             </div>
@@ -279,17 +280,18 @@
           <div class="form-group">
             <div class="col-lg-10">
              <button ngf-select="surelia.uploadFiles($files, $invalidFiles)" multiple
-               ngf-max-height="1000" ngf-max-size="15MB" class="btn btn-default btn-file">
+               ngf-max-height="5000" ngf-max-size="16MB" class="btn btn-default btn-file">
               <i class="fa fa-paperclip"></i> Lampiran
              </button>
            </div>
            <ul>
-             <li ng-show="surelia.newMessage.attachments.length > 0" ng-repeat="a in surelia.newMessage.attachments" class="compose-attachments">
+             <li ng-show="surelia.newMessage.attachments.length > 0" ng-repeat="a in surelia.newMessage.attachments" class="compose-attachments" ng-mouseenter="a.hover=true" ng-mouseleave="a.hover=false">
               {{a.filename}}
-               <span ng-show="a.progress.status=='uploading'"> - {{'UPLOADING' | translate}}</span>
-               <span ng-show="a.progress.status=='failed'"> - {{'UPLOAD_FAILED' | translate}} </span>
-               <span ng-show="a.progress.status=='uploaded'"><i class="fa fa-check"></i></span> 
-                <span ng-show="a.progress.percentage && a.progress.status=='uploading'">{{a.progress.percentage}} %</span>
+               <span ng-show="!a.hover && a.progress.status=='uploading'"> - {{'UPLOADING' | translate}}</span>
+               <span ng-show="!a.hover && a.progress.status=='failed'"> - {{'UPLOAD_FAILED' | translate}} </span>
+               <span ng-show="!a.hover && a.progress.status=='uploaded'"><i class="fa fa-check"></i></span> 
+               <span ng-show="!a.hover && a.progress.percentage && a.progress.status=='uploading'">{{a.progress.percentage}} %</span>
+               <span ng-show="a.hover" ng-click="surelia.cancelAttachment(a, $index)"><i class="fa fa-close"></i></span> 
              </li>
            </ul>
           </div>

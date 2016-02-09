@@ -128,6 +128,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   
   if (self.localStorageService.get("username")) {
     self.$rootScope.currentUsername = self.localStorageService.get("username");
+    self.$rootScope.socket.emit("join", self.$rootScope.currentUsername);
   }
   // getBoxes() and getSpecialBoxes are running in async
   // Make sure loading progress get completed 
@@ -291,6 +292,37 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
     self.option_delimited = {
       suggest: suggest_email_delimited,
     };
+  // Socket event
+  var attachmentReady = function(key) {
+    console.log(key)
+    for (var i in self.currentMessage.parsed.attachments) {
+      console.log(self.currentMessage.parsed.attachments[i].key);
+      if (self.currentMessage.parsed.attachments[i].key.toString() === key.toString()) {
+        self.currentMessage.parsed.attachments[i].ready = true;
+        self.$scope.$apply();
+        break;
+      }
+    }
+  }
+  $rootScope.socket.on('attachmentReady', function(key){
+    // Maximum estimated time until the message is loaded to DOM
+    if (
+      self.currentMessage && 
+      self.currentMessage.parsed && 
+      self.currentMessage.parsed.attachments && 
+      self.currentMessage.parsed.attachments.length > 0
+    ) {
+      attachmentReady(key);
+    } else {
+      self.$timeout(function(){
+        attachmentReady(key);
+      }, 3000);
+    }
+  })
+  $rootScope.socket.on('updateSeq', function(){
+    console.log('Update sequence');
+    self.listReload();
+  })
 }
 
 Surelia.prototype.toggleMobileMenu = function() {
@@ -702,6 +734,8 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
         });
       }
 
+      // Update seq in other client instance
+      self.$rootScope.socket.emit("updateSeq", self.$rootScope.currentUsername);
     })
     .catch(function(data, status){
       self.loading.complete();
@@ -712,7 +746,7 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
 
 Surelia.prototype.getAttachment = function(attachment) {
   var self = this;
-  self.ImapService.getAttachment(attachment.attachmentId)
+  self.ImapService.getAttachment(attachment.attachmentId, attachment.key)
     .then(function(data){
       self.loading.complete();
 
@@ -749,6 +783,7 @@ Surelia.prototype.getAttachment = function(attachment) {
 
 Surelia.prototype.logout = function(){
   var self = this;
+  self.$rootScope.socket.emit("leave", self.$rootScope.currentUsername);
   self.ImapService.logout();
 }
 
@@ -762,6 +797,12 @@ Surelia.prototype.sendMessage = function(msg){
   if (isUploading) {
     return self.ToastrService.attachmentUploadNotFinishedYet();
   }
+  // Remove unecessary child object
+  window.lodash.some(msg.attachments, function(a) {
+    delete(a.hover);
+    delete(a.progress);
+    delete(a.canceler);
+  })
   self.clearAutocomplete();
   var msg = angular.copy(msg);
   // Recipients should not be empty
@@ -843,6 +884,8 @@ Surelia.prototype.sendMessage = function(msg){
           }
         });
       }
+      // Update seq in other client instance
+      self.$rootScope.socket.emit("updateSeq", self.$rootScope.currentUsername);
        
     })
     .error(function(data, status){
@@ -872,6 +915,8 @@ Surelia.prototype.removeMessage = function(seq, messageId, boxName){
         self.ToastrService.deleted();
       }
       self.listReload();
+      // Update seq in other client instance
+      self.$rootScope.socket.emit("updateSeq", self.$rootScope.currentUsername);
     })
     .error(function(data, status){
       console.log(data, status);
@@ -1076,6 +1121,8 @@ Surelia.prototype.saveDraft = function(){
             } 
           });
         }
+        // Update seq in other client instance
+        self.$rootScope.socket.emit("updateSeq", self.$rootScope.currentUsername);
       })
       .error(function(data, status, header){
         self.loading.complete();
@@ -1107,6 +1154,8 @@ Surelia.prototype.discardDraft = function(id){
       .success(function(data, status, header){
         self.listBox(draftPath);
         self.loading.complete();
+        // Update seq in other client instance
+        self.$rootScope.socket.emit("updateSeq", self.$rootScope.currentUsername);
       })
       .error(function(data, status, header){
         self.loading.complete();
@@ -1132,6 +1181,12 @@ Surelia.prototype.showBcc = function(){
   self.bcc = true;
 }
 
+Surelia.prototype.cancelAttachment = function(a, index){
+  var self = this;
+  a.canceler.resolve();
+  self.newMessage.attachments.splice(index,1);
+}
+
 Surelia.prototype.uploadFiles = function(files, errFiles) {
   var self = this;
   angular.forEach(files, function(file) {
@@ -1144,8 +1199,10 @@ Surelia.prototype.uploadFiles = function(files, errFiles) {
         status : "uploading",
       }
     }
-    self.newMessage.attachments.push(attachment);
-    self.ImapService.uploadAttachment(file)
+    self.ImapService.uploadAttachment(file, function(canceler){
+      attachment.canceler = canceler;
+      self.newMessage.attachments.push(attachment);
+    })
       .then(function(res){
         var result = res.data;
         window.lodash.some(self.newMessage.attachments, function(attachment){
@@ -1210,6 +1267,8 @@ Surelia.prototype.moveMessage = function(boxName) {
   self.ImapService.moveMessage(seqs, oldBoxName, boxName)
     .then(function(data, status){
       self.listReload();
+      // Update seq in other client instance
+      self.$rootScope.socket.emit("updateSeq", self.$rootScope.currentUsername);
     })
     .catch(function(data, status){
       self.loading.complete();
@@ -1237,6 +1296,8 @@ Surelia.prototype.flagMessage = function(flag) {
   self.ImapService.flagMessage(seqs, flag, boxName)
     .then(function(data, status){
       self.listReload();
+      // Update seq in other client instance
+      self.$rootScope.socket.emit("updateSeq", self.$rootScope.currentUsername);
     })
     .catch(function(data, status){
       self.loading.complete();

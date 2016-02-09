@@ -131,6 +131,8 @@ var app = angular.module("App", [
     if (conf.gearman) {
       $rootScope.gearman = true;
     }
+    window.socket = $rootScope.socket = io();
+
   }
 ])
 

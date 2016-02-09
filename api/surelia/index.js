@@ -15,6 +15,7 @@ var base64Stream = require("base64-stream");
 var objectHash = require("object-hash");
 var gearmanode = require("gearmanode");
 var Utils = require("./utils");
+var crypto = require('crypto');
 Grid.mongo = mongoose.mongo;
 gfs = Grid(mongoose.connection.db);
 
@@ -25,10 +26,16 @@ var ImapAPI = function(server, options, next) {
   if (options.gearmanServer) {
     this.gearmanClient = gearmanode.client({servers : [{ host : options.gearmanServer}] })
   }
+  this.io = server.plugins['hapi-io'].io;
+  var self = this;
 }
 
 ImapAPI.prototype.registerEndPoints = function(){
   var self = this;
+  stateConfigs = {
+    parse : true,
+    failAction : 'ignore'
+  }
   self.server.route({
     method : "POST",
     path : "/api/1.0/send",
@@ -36,6 +43,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.send(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         payload : {
           recipients : Joi.array().items(Joi.string().email()).required(),
@@ -68,6 +76,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.auth(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         payload : {
           username : Joi.string().email().required(),
@@ -89,6 +98,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/special-boxes",
     handler : function(request, reply){
       self.getSpecialBoxes(request, reply);
+    },
+    config : {
+      state : stateConfigs
     }
   })
   self.server.route({
@@ -96,6 +108,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/boxes",
     handler : function(request, reply){
       self.getBoxes(request, reply);
+    },
+    config : {
+      state : stateConfigs
     }
   })
   self.server.route({
@@ -105,6 +120,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.listBox(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         query : {
           boxName : Joi.string().required(),
@@ -123,6 +139,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/box",
     handler : function(request, reply){
       self.addBox(request, reply);
+    },
+    config : {
+      state : stateConfigs
     }
   })
   self.server.route({
@@ -130,6 +149,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/rename-box",
     handler : function(request, reply){
       self.renameBox(request, reply);
+    },
+    config : {
+      state : stateConfigs
     }
   })
   self.server.route({
@@ -137,6 +159,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/box",
     handler : function(request, reply){
       self.removeBox(request, reply);
+    },
+    config : {
+      state : stateConfigs
     }
   })
   self.server.route({
@@ -144,6 +169,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/message",
     handler : function(request, reply){
       self.retrieveMessage(request, reply);
+    },
+    config : {
+      state : stateConfigs
     }
   })
   self.server.route({
@@ -153,6 +181,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.moveMessage(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         payload : {
           seqs : Joi.array().items(Joi.number()).required(),
@@ -167,6 +196,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/message",
     handler : function(request, reply){
       self.removeMessage(request, reply);
+    },
+    config : {
+      state : stateConfigs
     }
   })
   self.server.route({
@@ -174,6 +206,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/message",
     handler : function(request, reply){
       self.newMessage(request, reply);
+    },
+    config : {
+      state : stateConfigs
     }
   })
   self.server.route({
@@ -181,6 +216,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/logout",
     handler : function(request, reply){
       self.logout(request, reply);
+    },
+    config : {
+      state : stateConfigs
     }
   })
   self.server.route({
@@ -188,6 +226,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/attachment",
     handler : function(request, reply){
       self.getAttachment(request, reply);
+    },
+    config : {
+      state : stateConfigs
     }
   })
   self.server.route({
@@ -197,13 +238,14 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.uploadAttachment(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         payload : {
           content : Joi.required(),
         }
       },
       payload : {
-        maxBytes: 5000000, 
+        maxBytes: 16000000, 
         output : "stream",
         parse : true,
         allow : "multipart/form-data"
@@ -215,6 +257,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/attachment",
     handler : function(request, reply){
       self.removeAttachment(request, reply);
+    },
+    config : {
+      state : stateConfigs
     }
   })
   
@@ -225,6 +270,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.saveDraft(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         payload : {
           recipients : Joi.array().items(Joi.string()).allow(""),
@@ -256,6 +302,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/quota-info",
     handler : function(request, reply){
       self.quotaInfo(request, reply);
+    },
+    config : {
+      state : stateConfigs
     }
   })
   
@@ -266,6 +315,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.setFlag(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         payload : {
           flag : Joi.string().required(),
@@ -283,6 +333,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.getAddressBook(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         query : {
           page : Joi.number().allow(""),
@@ -299,6 +350,9 @@ ImapAPI.prototype.registerEndPoints = function(){
     path : "/api/1.0/contacts/candidates",
     handler : function(request, reply){
       self.getContactCandidates(request, reply);
+    },
+    config : {
+      state : stateConfigs
     }
   })
   
@@ -309,6 +363,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.getContact(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         query : {
           id : Joi.string().allow(""),
@@ -324,6 +379,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.deleteContact(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         query : {
           id : Joi.string().required(),
@@ -339,6 +395,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.addContact(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         payload : {
           emailAddress : Joi.string().required(""),
@@ -360,6 +417,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.updateContact(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         payload : {
           _id : Joi.string().required(""),
@@ -382,6 +440,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.uploadAvatar(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         query : {
           emailAddress : Joi.string().required(),
@@ -404,6 +463,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.getAvatar(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         query : {
           emailAddress : Joi.string().required(),
@@ -418,6 +478,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       self.setPassword(request, reply);
     },
     config : {
+      state : stateConfigs,
       validate : {
         payload : {
           username : Joi.string().email().required(),
@@ -575,13 +636,13 @@ ImapAPI.prototype.send = function(request, reply) {
                       var err = new Error("Attachment not found");
                       return reply({err : err.message}).code(500);
                     }
-                    var file = gfs.createReadStream({ _id : attachment.attachmentId });
+                    var file = gfs.createReadStream({ _id : attachment.attachmentId }).pipe(base64Stream.encode());
                     var string = "";
                     file.on("error", function(err){
                       return reply(err).code(500);
                     })
                     file.on("data", function(chunk){
-                      string += chunk;
+                      string += chunk.toString('utf8');
                     })
                     file.on("end", function(){
                       attachment.content = string;
@@ -632,6 +693,7 @@ var createPool = function(request, reply, credential, callback){
   try {
     var client = pool.create(id, null, createFunc, destroyFunc);
   } catch(err) {
+    console.log(err);
     return reply(err);
   }
   callback(client);
@@ -1103,8 +1165,13 @@ ImapAPI.prototype.renameBox = function(request, reply) {
  *
  */
 ImapAPI.prototype.retrieveMessage = function(request, reply) {
+  var self = this;
   var realFunc = function(client, request, reply) {
-    client.retrieveMessage(request.query.id, request.query.boxName)
+    var socket = {
+      io : self.io,
+      room : request.headers.username
+    }
+    client.retrieveMessage(request.query.id, request.query.boxName, socket)
       .then(function(message){
         delete(message.original);
         if (request.query.boxName.indexOf("Drafts") > -1) {
@@ -1114,66 +1181,7 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
         if (!message.hasAttachments && !message.parsed.attachments) {
           return reply(message);
         }
-        message.inlineAttachments = {};
-        async.eachSeries(message.parsed.attachments, function(attachment, cb){
-          if (attachment.contentDisposition.toLowerCase() === "inline") {
-            message.inlineAttachments[attachment.contentId] = Utils.ab2Base64(attachment.content);
-          }
-          return cb();
-        }, function(err){
-          if (err) {
-            return reply(err).code(500);
-          }
-          // Save attachments to uploadAttachment collection in purpose of drafts and forward
-          gfs.exist({ filename : message.parsed.messageId}, function(err, isExist){
-            if (err) {
-              return reply(err).code(500);
-            }
-            if (!isExist) {
-              async.eachSeries(message.parsed.attachments, function(attachment, cb){
-                // Prepare streams
-                var id = mongoose.Types.ObjectId();
-                var file = {
-                  _id : id,
-                  filename :  message.parsed.messageId,
-                  contentType : attachment.contentType,
-                  metadata : {
-                    filename : attachment.fileName,
-                  }
-                }
-                var content = attachment.content;
-                attachment.attachmentId = id;
-                
-                var writeStream = gfs.createWriteStream(file);
-                writeStream.on("finish", function(){
-                  cb();
-                });
-                writeStream.on("error", function(err){
-                  cb(err);
-                });
-                var readableStreamBuffer = streamifier.createReadStream(content);
-                readableStreamBuffer.pipe(base64Stream.encode()).pipe(writeStream);
-              }, function(err){
-                if (err) {
-                  return reply({err : err.message}).code(500);
-                }
-                reply(message);
-              })
-            } else {
-              // Assign the attachment Id
-              gfs.files.find({filename : message.parsed.messageId}).toArray(function(err, files){
-                lodash.some(message.parsed.attachments, function(attachment){
-                  lodash.some(files, function(file){
-                    if (file.metadata && file.metadata.filename == attachment.fileName) {
-                      attachment.attachmentId = file._id; 
-                    }
-                  })
-                })
-                reply(message);
-              })
-            }
-          })
-        })
+        reply(message);
       })
       .catch(function(err){
         reply({err : err.message}).code(500);
@@ -1235,7 +1243,7 @@ ImapAPI.prototype.removeMessage = function(request, reply) {
  */
 ImapAPI.prototype.getAttachment = function(request, reply) {
   var realFunc = function(client, request, reply) {
-    gfs.exist({_id : request.query.attachmentId}, function(err, isExist) {
+    gfs.findOne({_id : request.query.attachmentId}, function(err, isExist) {
       if (err) {
         return reply(err).code(500);
       }
@@ -1243,16 +1251,8 @@ ImapAPI.prototype.getAttachment = function(request, reply) {
         return reply({err : new Error("Attachment not found").message}).code(404);
       }
       var file = gfs.createReadStream({ _id : request.query.attachmentId });
-      var string = "";
-      file.on("error", function(err){
-        return reply(err).code(500);
-      })
-      file.on("data", function(chunk){
-        string += chunk;
-      })
-      file.on("end", function(){
-        reply(string);
-      })
+      var decipher = crypto.createDecipher('aes192', request.query.key.toString());
+      reply(file.pipe(decipher));
     })
   }
   
@@ -1276,7 +1276,7 @@ ImapAPI.prototype.uploadAttachment = function(request, reply) {
     writeStream.on("error", function(err){
       reply(err);
     });
-    request.payload.content.pipe(base64Stream.encode()).pipe(writeStream);
+    request.payload.content.pipe(writeStream);
   }
   
   checkPool(request, reply, realFunc);
