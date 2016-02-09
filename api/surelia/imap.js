@@ -238,7 +238,7 @@ Imap.prototype.listBox = function(name, limit, page, opts) {
     isDraft = true;
   }
   return new Promise(function(resolve, reject){
-    var bodies = "HEADER.FIELDS (FROM TO CC SUBJECT DATE)";
+    var bodies = "HEADER.FIELDS (FROM TO CC SUBJECT DATE MESSAGE-ID)";
     var result = [];
     var fetcher = function(seqs){
       var total = seqs.messages.total;
