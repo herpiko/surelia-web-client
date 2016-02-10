@@ -185,7 +185,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       validate : {
         payload : {
           seqs : Joi.array().items(Joi.number()).required(),
-          messageIds : Joi.array().items(Joi.string()).required(),
+          messageIds : Joi.array().items(Joi.string()),
           boxName : Joi.string().required(),
           oldBoxName : Joi.string().required(),
         }  
@@ -1203,30 +1203,32 @@ ImapAPI.prototype.moveMessage = function(request, reply) {
       .then(function(){
         reply();
         // Spam assassin learner
-        if (request.payload.boxName.toLowerCase().indexOf('spam') > -1 && self.gearmanClient) {
-          for (var i in request.payload.messageIds) {
-            var params = JSON.stringify({
-              username : request.headers.username,
-              messageId : request.payload.messageIds[i],
-              type : 'spam'
-            })
-            var job = self.gearmanClient.submitJob('saLearn', params);
-            job.on('complete', function(){
-              console.log(job.response.toString());
-            })
+        if (request.payload.messageIds && request.payload.messageIds.length > 0) {
+          if (request.payload.boxName.toLowerCase().indexOf('spam') > -1 && self.gearmanClient) {
+            for (var i in request.payload.messageIds) {
+              var params = JSON.stringify({
+                username : request.headers.username,
+                messageId : request.payload.messageIds[i],
+                type : 'spam'
+              })
+              var job = self.gearmanClient.submitJob('saLearn', params);
+              job.on('complete', function(){
+                console.log(job.response.toString());
+              })
+            }
           }
-        }
-        if (request.payload.oldboxName.toLowerCase().indexOf('spam') > -1 && self.gearmanClient) {
-          for (var i in request.payload.messageIds) {
-            var params = JSON.stringify({
-              username : request.headers.username,
-              messageId : request.payload.messageIds[i],
-              type : 'ham'
-            })
-            var job = self.gearmanClient.submitJob('saLearn', params);
-            job.on('complete', function(){
-              console.log(job.response.toString());
-            })
+          if (request.payload.oldboxName.toLowerCase().indexOf('spam') > -1 && self.gearmanClient) {
+            for (var i in request.payload.messageIds) {
+              var params = JSON.stringify({
+                username : request.headers.username,
+                messageId : request.payload.messageIds[i],
+                type : 'ham'
+              })
+              var job = self.gearmanClient.submitJob('saLearn', params);
+              job.on('complete', function(){
+                console.log(job.response.toString());
+              })
+            }
           }
         }
       })
