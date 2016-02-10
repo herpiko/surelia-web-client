@@ -1262,7 +1262,7 @@ Surelia.prototype.markAsSpam = function(){
   var self = this;
   var messageIds = [self.currentMessage.parsed.messageId]
   var seqs = [self.currentMessage.seq];
-  var boxName = self.spamBox.boxName;
+  var boxName = self.spamBox;
   var oldBoxName = self.currentBoxPath;
   self.ImapService.moveMessage(seqs, messageIds, oldBoxName, boxName)
     .then(function(data, status) {
@@ -1279,7 +1279,7 @@ Surelia.prototype.notSpam = function(){
   var messageIds = [self.currentMessage.parsed.messageId]
   var seqs = [self.currentMessage.seq];
   var boxName = "INBOX";
-  var oldBoxName = self.spamBox.boxName;
+  var oldBoxName = self.spamBox;
   self.ImapService.moveMessage(seqs, messageIds, oldBoxName, boxName)
     .then(function(data, status) {
       self.listReload();
