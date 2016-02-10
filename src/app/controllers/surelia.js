@@ -168,15 +168,23 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
       self.ToastrService.parse(data, status);
       // short boxes
       self.boxes = [];
-      var shortedEnums = ["INBOX", "Draft", "Sent", "Junk", "Trash"];
+      self.shortedBoxes = [];
+      self.unshortedBoxes = [];
+      var shortedEnums = ["inbox", "draft", "sent", "spam", "junk", "trash"];
       window.async.eachSeries(shortedEnums, function(boxName, cb){
         lodash.some(data, function(box){
-          if (box.boxName.indexOf(boxName) > -1) {
-            self.boxes.push(box);
+          if (self.shortedBoxes.indexOf(box) < 0 && box.boxName.toLowerCase().indexOf(boxName) > -1) {
+            self.shortedBoxes.push(box);
           }
-        })
+        });
         cb();
       }, function(err){
+        lodash.some(data, function(box){
+          if (self.shortedBoxes.indexOf(box) < 0 && self.unshortedBoxes.indexOf(box) < 0) {
+            self.unshortedBoxes.push(box);
+          }
+        });
+        self.boxes = self.shortedBoxes.concat(self.unshortedBoxes);
         /*
         Trash, Sent and Drafts has different message count definition.
          - Show no count in Trash and Sent box
@@ -195,6 +203,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
           }
         });
       })
+      self.searchForSpamBox(data);
     })
     .error(function(data, status){
       console.log(data, status);
@@ -296,23 +305,22 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   
   // Search for spam box
   self.searchForSpamBox = function(boxes, isSpecial){
-    if (iSpecial) {
-      var keys = Object.keys(boxes);
-      for (var key in keys) {
-        if (self.spamBox && boxes[key].specialName.toLowerCase().indexOf('spam') > -1) {
-          self.spamBox = boxes[key].path;
-        } else if (!self.spamBox && boxes[key].specialName.toLowerCase().indexOf('junk') > -1) {
-          self.spamBox = boxes[key].path;
-        }
-      }
-    } else {
-      window.lodash(boxes, function(box) {
+    if (!isSpecial) {
+      console.log(boxes);
+      window.lodash.some(boxes, function(box) {
         if (!self.spamBox && box.boxName.toLowerCase().indexOf('spam') > -1) {
-          self.spamBox = box;
-        } else if (!self.spamBox && box.boxName.toLowerCase().indexOf('junk') > -1) {
           self.spamBox = box;
         }
       })
+    } else {
+      console.log(boxes);
+      var keys = Object.keys(boxes);
+      for (var key in keys) {
+        console.log(boxes[key].specialName);
+        if (!self.spamBox && boxes[key].specialName.toLowerCase().indexOf('spam') > -1) {
+          self.spamBox = boxes[key].path;
+        }
+      }
     }
   }
 
@@ -727,7 +735,6 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
           }
         });
       }
-
     })
     .catch(function(data, status){
       self.loading.complete();
@@ -1213,6 +1220,38 @@ Surelia.prototype.checkAllContacts = function(){
   } else {
     self.currentContactSelection = [];
   }
+}
+
+Surelia.prototype.markAsSpam = function(){
+  var self = this;
+  var messageIds = [self.currentMessage.parsed.messageId]
+  var seqs = [self.currentMessage.seq];
+  var boxName = self.spamBox.boxName;
+  var oldBoxName = self.currentBoxPath;
+  self.ImapService.moveMessage(seqs, oldBoxName, boxName, messageIds)
+    .then(function(data, status){
+      self.listReload();
+    })
+    .catch(function(data, status){
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
+    })
+}
+
+Surelia.prototype.notSpam = function(){
+  var self = this;
+  var messageIds = [self.currentMessage.parsed.messageId]
+  var seqs = [self.currentMessage.seq];
+  var oldBoxName = self.spamBox.boxName;
+  var boxName = "INBOX";
+  self.ImapService.moveMessage(seqs, oldBoxName, boxName, messageIds)
+    .then(function(data, status){
+      self.listReload();
+    })
+    .catch(function(data, status){
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
+    })
 }
 
 Surelia.prototype.moveMessage = function(boxName) {

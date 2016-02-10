@@ -64,6 +64,7 @@ module.exports = {
   "FLAG_AS" : "Flag as",
   "FILTER" : "Filter",
   "ATTACHMENTS" : "Attachments",
+  "NOT_SPAM" : "Not spam",
   
   // Contact
   "ADD" : "Add",

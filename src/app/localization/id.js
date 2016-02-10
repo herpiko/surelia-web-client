@@ -62,6 +62,7 @@ module.exports = {
   "FLAG_AS" : "Tandai sebagai",
   "FILTER" : "Filter",
   "ATTACHMENTS" : "Lampiran",
+  "NOT_SPAM" : "Bukan spam",
 
   // Contact
   "ADD" : "Tambah",

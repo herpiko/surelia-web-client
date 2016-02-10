@@ -9,12 +9,12 @@
     <!--Sidebar-->
     <div style="width:300px;display:inline-block;vertical-align:top;padding:10px;background:#ECECEC;">
       <ul>
-              <li ng-repeat="box in surelia.boxes" ng-click="surelia.listBox(box.boxName,{},true)" style="cursor:pointer">
+              <li ng-repeat="box in surelia.boxes track by $index" ng-click="surelia.listBox(box.boxName,{},true)" style="cursor:pointer">
               {{box.boxName | FirstLetterCapitalize }} 
               <span ng-show="box.meta.count > 0"> ({{box.meta.count}})</span>
               <span ng-show="surelia.currentBoxName==box.boxName"> *</span>
               </li>
-              <li ng-repeat="special in surelia.specialBoxes" ng-click="surelia.listBox(special.path, {}, true)" style="cursor:pointer">
+              <li ng-repeat="special in surelia.specialBoxes track by $index" ng-click="surelia.listBox(special.path, {}, true)" style="cursor:pointer">
               {{special.specialName | FirstLetterCapitalize}} <span ng-show="surelia.currentBoxName==special.specialName"> *</span>
               <span ng-show="special.meta.count > 0"> ({{special.meta.count}})</span>
               </li>
@@ -56,7 +56,6 @@
       <br>
       {{'MOVE_TO' | translate}}  : 
       <button ng-click="surelia.moveMessage('Archive')">{{'ARCHIVE' | translate}}</button>
-      <button ng-click="surelia.moveMessage('Spam')">Spam</button>
       <button ng-click="surelia.moveMessage('Trash')">{{'TRASH' | translate}}</button>
       <button ng-repeat="box in surelia.moveToBoxes" ng-hide="(box.indexOf(surelia.currentBoxName) > -1)" ng-click="surelia.moveMessage(box)">{{box}}</button>
       <br>
@@ -66,6 +65,8 @@
       {{'FLAG_AS' | translate}}  : 
       <button ng-click="surelia.flagMessage('UNREAD')">{{'UNREAD' | translate}}</button>
       <button ng-click="surelia.flagMessage('READ')">{{'READ' | translate}}</button>
+      <button ng-show="surelia.spamBox && surelia.currentBoxName.toLowerCase().indexOf('spam') < 0" ng-click="surelia.markAsSpam()">Spam</button>
+      <button ng-show="surelia.spamBox && surelia.currentBoxName.toLowerCase().indexOf('spam') > -1" ng-click="surelia.notSpam()">{{'NOT_SPAM' | translate}}</button>
       <br>
       <input type="checkbox" ng-model="surelia.selectAll" ng-true-value="true" ng-false-value="false" ng-change="surelia.checkAll()">
       <div ng-repeat="message in surelia.currentList" style="cursor:pointer;margin-top:3px;background:#ECECEC">
@@ -133,7 +134,8 @@
               <button ng-click="surelia.composeMessage(surelia.currentMessage, 'all')">{{'REPLY_ALL' | translate}}</button>
               <button ng-click="surelia.composeMessage(surelia.currentMessage, 'forward')">{{'FORWARD' | translate}}</button>
               <button ng-click="">{{'ARCHIVE' | translate}}</button>
-              <button ng-click="">Spam</button>
+              <button ng-show="surelia.spamBox && surelia.currentBoxName.toLowerCase().indexOf('spam') < 0" ng-click="surelia.markAsSpam()">Spam</button>
+              <button ng-show="surelia.spamBox && surelia.currentBoxName.toLowerCase().indexOf('spam') > -1" ng-click="surelia.notSpam()">{{'NOT_SPAM' | translate}}</button>
               <button ng-hide="surelia.currentMessage.deleted" ng-click="surelia.removeMessage(surelia.currentMessage.seq, surelia.currentMessage.parsed.messageId, surelia.currentMessage.boxName)">{{'DELETE' | translate}}</button>
               <button ng-show="surelia.currentMessage.deleted" ng-click="surelia.removeMessage(surelia.currentMessage.attributes.uid, surelia.currentMessage.parsed.messageId, surelia.currentMessage.boxName, { permanentDelete : true })">{{'DELETE' | translate}}</button>
             </div>
