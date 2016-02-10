@@ -117,7 +117,28 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.rawAvatar="";
   self.croppedAvatar="";
   self.showCropArea = false;
-  self.$sce = $sce;
+  self.spamBox = null
+
+  self.searchForSpamBox = function(boxes, isSpecial) {
+    if (!isSpecial) {
+      console.log('search for spam box');
+      console.log(boxes);
+      window.lodash.some(boxes, function(box) {
+        console.log(box);
+        if (!self.spamBox && box.boxName.toLowerCase().indexOf('spam') > -1) {
+          self.spamBox = box;
+        }
+      })
+    } else {
+      var keys = Object.keys(boxes);
+      for (var key in keys) {
+        if (!self.spamBox && boxes[key].specialName.toLowerCase().indexOf('spam') > -1) {
+          self.spamBox = boxes[key].path;
+        }
+      }
+    }
+  }
+
   // This array will be used in "Move to" submenu in multiselect action
   self.moveToBoxes = [];
   self.flags = ["Read", "Unread"];
@@ -168,15 +189,24 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
       self.ToastrService.parse(data, status);
       // short boxes
       self.boxes = [];
-      var shortedEnums = ["INBOX", "Draft", "Sent", "Junk", "Trash"];
+      self.shortedBoxes = [];
+      self.unshortedBoxes = [];
+      var shortedEnums = ["inbox", "draft", "sent", "junk", "spam", "trash"];
       window.async.eachSeries(shortedEnums, function(boxName, cb){
         lodash.some(data, function(box){
-          if (box.boxName.indexOf(boxName) > -1) {
-            self.boxes.push(box);
+          if (self.shortedBoxes.indexOf(box) < 0 && box.boxName.toLowerCase().indexOf(boxName) > -1) {
+            self.shortedBoxes.push(box);
           }
         })
         cb();
       }, function(err){
+        window.lodash.some(data, function(box) {
+          if (self.shortedBoxes.indexOf(box) < 0 && self.unshortedBoxes.indexOf(box) < 0) {
+            self.unshortedBoxes.push(box);
+          }
+        })
+        self.boxes = self.shortedBoxes.concat(self.unshortedBoxes);
+        self.searchForSpamBox(self.boxes);
         /*
         Trash, Sent and Drafts has different message count definition.
          - Show no count in Trash and Sent box
@@ -219,6 +249,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
             self.moveToBoxes.push(box.specialName);
           } 
         });
+        self.searchForSpamBox(self.specialBoxes, true);
       })
       .error(function(data, status){
         console.log(data, status);
@@ -354,6 +385,7 @@ Surelia.prototype.getBoxes = function(){
       console.log(data);
       self.ToastrService.parse(data, status);
       self.boxes = data;
+      self.searchForSpamBox(data);
     })
     .error(function(data, status){
       console.log(data, status);
@@ -1246,13 +1278,47 @@ Surelia.prototype.checkAllContacts = function(){
   }
 }
 
+Surelia.prototype.markAsSpam = function(){
+  var self = this;
+  var messageIds = [self.currentMessage.parsed.messageId]
+  var seqs = [self.currentMessage.seq];
+  var boxName = self.spamBox.boxName;
+  var oldBoxName = self.currentBoxPath;
+  self.ImapService.moveMessage(seqs, messageIds, oldBoxName, boxName)
+    .then(function(data, status) {
+      self.listReload();
+    })
+    .catch(function(data, status) {
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
+    })
+}
+
+Surelia.prototype.notSpam = function(){
+  var self = this;
+  var messageIds = [self.currentMessage.parsed.messageId]
+  var seqs = [self.currentMessage.seq];
+  var boxName = "INBOX";
+  var oldBoxName = self.spamBox.boxName;
+  self.ImapService.moveMessage(seqs, messageIds, oldBoxName, boxName)
+    .then(function(data, status) {
+      self.listReload();
+    })
+    .catch(function(data, status) {
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
+    })
+}
+
 Surelia.prototype.moveMessage = function(boxName) {
   var self = this;
   // Collect seq number
   var seqs = [];
+  var messageIds = [];
   window.lodash.some(self.currentSelection, function(msg){
-    if (msg.seq) {
+    if (msg.seq && msg.header['message-id'][0]) {
       seqs.push(msg.seq);
+      messageIds.push(msg.header['message-id'][0]);
     }
   });
   if (self.currentBoxName.indexOf(boxName) > -1) {
@@ -1264,7 +1330,7 @@ Surelia.prototype.moveMessage = function(boxName) {
   self.loading.start();
   var oldBoxName = self.currentBoxName;
   console.log(seqs, oldBoxName, boxName);
-  self.ImapService.moveMessage(seqs, oldBoxName, boxName)
+  self.ImapService.moveMessage(seqs, messageIds, oldBoxName, boxName)
     .then(function(data, status){
       self.listReload();
       // Update seq in other client instance
