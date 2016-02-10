@@ -12,7 +12,8 @@ var config = {
     port: 465 
   },
   lang : "id",
-  gearman : sureliaConf.options.gearmanServer
+  gearman : sureliaConf.options.gearmanServer,
+  spamFolder : "Spam"
 }
 
 module.exports = config;
