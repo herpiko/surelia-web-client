@@ -81,7 +81,7 @@ var mimeTypes = {
     ]
   }
 }
-var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce, $translate, ContactService, SettingsService){
+var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce, $translate, ContactService, SettingsService, conf){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -99,6 +99,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.$translate = $translate;
   this.ContactService = ContactService;
   this.SettingsService = SettingsService;
+  this.conf = conf;
   var self = this;
   self.listView = "messages";
   self.list = "message";
@@ -117,27 +118,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.rawAvatar="";
   self.croppedAvatar="";
   self.showCropArea = false;
-  self.spamBox = null
-
-  self.searchForSpamBox = function(boxes, isSpecial) {
-    if (!isSpecial) {
-      console.log('search for spam box');
-      console.log(boxes);
-      window.lodash.some(boxes, function(box) {
-        console.log(box);
-        if (!self.spamBox && box.boxName.toLowerCase().indexOf('spam') > -1) {
-          self.spamBox = box;
-        }
-      })
-    } else {
-      var keys = Object.keys(boxes);
-      for (var key in keys) {
-        if (!self.spamBox && boxes[key].specialName.toLowerCase().indexOf('spam') > -1) {
-          self.spamBox = boxes[key].path;
-        }
-      }
-    }
-  }
+  self.spamBox = conf.spamFolder;
 
   // This array will be used in "Move to" submenu in multiselect action
   self.moveToBoxes = [];
@@ -206,7 +187,6 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
           }
         })
         self.boxes = self.shortedBoxes.concat(self.unshortedBoxes);
-        self.searchForSpamBox(self.boxes);
         /*
         Trash, Sent and Drafts has different message count definition.
          - Show no count in Trash and Sent box
@@ -249,7 +229,6 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
             self.moveToBoxes.push(box.specialName);
           } 
         });
-        self.searchForSpamBox(self.specialBoxes, true);
       })
       .error(function(data, status){
         console.log(data, status);
@@ -385,7 +364,6 @@ Surelia.prototype.getBoxes = function(){
       console.log(data);
       self.ToastrService.parse(data, status);
       self.boxes = data;
-      self.searchForSpamBox(data);
     })
     .error(function(data, status){
       console.log(data, status);
