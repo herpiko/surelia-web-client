@@ -1246,7 +1246,9 @@ Surelia.prototype.uploadFiles = function(files, errFiles) {
           }
         })
       }, function(res){
-        self.ToastrService.parse(res.data, res.status);
+        if (attachment.progress.percentage != 100) {
+          self.ToastrService.parse(res.data, res.status);
+        }
         window.lodash.some(self.newMessage.attachments, function(attachment){
           if (attachment.fileName === file.filename && attachment.progress.status === "uploading") {
             attachment.progress.status = "failed";
