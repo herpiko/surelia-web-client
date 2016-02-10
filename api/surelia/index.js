@@ -185,6 +185,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       validate : {
         payload : {
           seqs : Joi.array().items(Joi.number()).required(),
+          messageIds : Joi.array().items(Joi.string()).required(),
           boxName : Joi.string().required(),
           oldBoxName : Joi.string().required(),
         }  
@@ -1196,10 +1197,38 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
  *
  */
 ImapAPI.prototype.moveMessage = function(request, reply) {
+  var self = this;
   var realFunc = function(client, request, reply) {
     client.moveMessage(request.payload.seqs, request.payload.oldBoxName, request.payload.boxName)
       .then(function(){
         reply();
+        // Spam assassin learner
+        if (request.payload.boxName.toLowerCase().indexOf('spam') > -1 && self.gearmanClient) {
+          for (var i in request.payload.messageIds) {
+            var params = JSON.stringify({
+              username : request.headers.username,
+              messageId : request.payload.messageIds[i],
+              type : 'spam'
+            })
+            var job = self.gearmanClient.submitJob('saLearn', params);
+            job.on('complete', function(){
+              console.log(job.response.toString());
+            })
+          }
+        }
+        if (request.payload.oldboxName.toLowerCase().indexOf('spam') > -1 && self.gearmanClient) {
+          for (var i in request.payload.messageIds) {
+            var params = JSON.stringify({
+              username : request.headers.username,
+              messageId : request.payload.messageIds[i],
+              type : 'ham'
+            })
+            var job = self.gearmanClient.submitJob('saLearn', params);
+            job.on('complete', function(){
+              console.log(job.response.toString());
+            })
+          }
+        }
       })
       .catch(function(err){
         reply({err : err.message}).code(500);
