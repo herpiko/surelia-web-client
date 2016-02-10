@@ -86,6 +86,8 @@ Imap.prototype.getSpecialBoxes = function() {
     // See : http://tools.ietf.org/html/rfc6154#page-3
     var specialBoxes = ["All", "Archive", "Drafts", "Sent", "Junk", "Inbox", "Trash"];
     self.client.getBoxes(function(err, mboxes){
+      console.log('special boxes');
+      console.log(mboxes);
       if (err) {
         return reject(err);
       }
@@ -177,6 +179,8 @@ Imap.prototype.getBoxes = function() {
   var result = [];
   return new Promise(function(resolve, reject){
     self.client.getBoxes(function(err, boxes){
+      console.log('regular boxes');
+      console.log(boxes);
       if (err) {
         return reject(err);
       }

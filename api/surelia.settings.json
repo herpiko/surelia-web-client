@@ -1,5 +1,5 @@
 {
   "options" : {
-    "gearmanServer" : false
+    "gearmanServer" : "localhost"
   }
 }

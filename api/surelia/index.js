@@ -1189,11 +1189,12 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
  *
  */
 ImapAPI.prototype.moveMessage = function(request, reply) {
+  var self = this;
   var realFunc = function(client, request, reply) {
     client.moveMessage(request.payload.seqs, request.payload.oldBoxName, request.payload.boxName)
       .then(function(){
         reply();
-        if (request.payload.boxName.toLowerCase().indexOf('spam') && self.gearmanClient) {
+        if (request.payload.boxName.toLowerCase().indexOf('spam') > -1 && self.gearmanClient) {
           for (var i in request.payload.messageIds) {
             var params = JSON.stringify({
               username : request.headers.username,
@@ -1202,7 +1203,20 @@ ImapAPI.prototype.moveMessage = function(request, reply) {
             })
             var job = self.gearmanClient.submitJob("saLearn", params)
             job.on("complete", function(){
-              console.log(job.response);
+              console.log(job.response.toString());
+            })
+          }
+        }
+        if (request.payload.oldBoxName.toLowerCase().indexOf('spam') > -1 && self.gearmanClient) {
+          for (var i in request.payload.messageIds) {
+            var params = JSON.stringify({
+              username : request.headers.username,
+              messageId : request.payload.messageIds[i],
+              type : 'ham'
+            })
+            var job = self.gearmanClient.submitJob("saLearn", params)
+            job.on("complete", function(){
+              console.log(job.response.toString());
             })
           }
         }
