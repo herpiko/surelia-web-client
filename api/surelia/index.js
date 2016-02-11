@@ -1217,7 +1217,7 @@ ImapAPI.prototype.moveMessage = function(request, reply) {
               })
             }
           }
-          if (request.payload.oldboxName.toLowerCase().indexOf('spam') > -1 && self.gearmanClient) {
+          if (request.payload.oldBoxName.toLowerCase().indexOf('spam') > -1 && self.gearmanClient) {
             for (var i in request.payload.messageIds) {
               var params = JSON.stringify({
                 username : request.headers.username,
