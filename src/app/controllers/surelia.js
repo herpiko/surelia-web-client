@@ -756,39 +756,8 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
 
 Surelia.prototype.getAttachment = function(attachment) {
   var self = this;
-  self.ImapService.getAttachment(attachment.attachmentId, attachment.key)
-    .then(function(data){
-      self.loading.complete();
-
-      var binary_string = window.atob(data);
-      var len = binary_string.length;
-      var bytes = new Uint8Array(len);
-      for (var i = 0; i < len; i++ ) {
-        bytes[i] = binary_string.charCodeAt(i);
-      }
-      var blob = new Blob([bytes.buffer], { type: attachment.contentType || "binary/octet-stream" });
-      if (typeof window.navigator.msSaveBlob !== 'undefined') {
-        window.navigator.msSaveBlob(blob, attachment.fileName);
-      } else {
-        var URL = window.URL || window.webkitURL;
-        var downloadUrl = URL.createObjectURL(blob);
-        var a = document.createElement("a");
-        if (typeof a.download === 'undefined') {
-          window.location = downloadUrl;
-        } else {
-          a.href = downloadUrl;
-          a.download = attachment.fileName;
-          document.body.appendChild(a);
-          a.click();
-        }
-        setTimeout(function () { URL.revokeObjectURL(downloadUrl); }, 100);
-      }
-    })
-    .catch(function(data, status){
-      self.loading.complete();
-      self.ToastrService.parse(data, status);
-    })
-    
+  var path = "/api/1.0/attachment/" + encodeURIComponent(attachment.fileName) + "?attachmentId=" + attachment.attachmentId + "&key=" + attachment.key;
+  window.open(path,'_blank');
 }
 
 Surelia.prototype.logout = function(){
