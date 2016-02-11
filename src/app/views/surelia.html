@@ -66,6 +66,7 @@
       <button ng-click="surelia.flagMessage('UNREAD')">{{'UNREAD' | translate}}</button>
       <button ng-click="surelia.flagMessage('READ')">{{'READ' | translate}}</button>
       <button ng-show="surelia.spamBox && surelia.currentBoxName.toLowerCase().indexOf('spam') < 0" ng-click="surelia.moveMessage('Spam')">Spam</button>
+      <button ng-show="surelia.spamBox && surelia.currentBoxName.toLowerCase().indexOf('spam') > -1" ng-click="surelia.moveMessage('INBOX')">{{'NOT_SPAM' | translate}}</button>
       <br>
       <input type="checkbox" ng-model="surelia.selectAll" ng-true-value="true" ng-false-value="false" ng-change="surelia.checkAll()">
       <div ng-repeat="message in surelia.currentList" style="cursor:pointer;margin-top:3px;background:#ECECEC">
