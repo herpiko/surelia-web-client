@@ -224,11 +224,12 @@ ImapAPI.prototype.registerEndPoints = function(){
   })
   self.server.route({
     method : "GET",
-    path : "/api/1.0/attachment",
+    path : "/api/1.0/attachment/{filename}",
     handler : function(request, reply){
       self.getAttachment(request, reply);
     },
     config : {
+      auth : false,
       state : stateConfigs
     }
   })
@@ -1273,21 +1274,19 @@ ImapAPI.prototype.removeMessage = function(request, reply) {
  *
  */
 ImapAPI.prototype.getAttachment = function(request, reply) {
-  var realFunc = function(client, request, reply) {
-    gfs.findOne({_id : request.query.attachmentId}, function(err, isExist) {
-      if (err) {
-        return reply(err).code(500);
-      }
-      if (!isExist) {
-        return reply({err : new Error("Attachment not found").message}).code(404);
-      }
-      var file = gfs.createReadStream({ _id : request.query.attachmentId });
-      var decipher = crypto.createDecipher('aes192', request.query.key.toString());
-      reply(file.pipe(decipher));
-    })
-  }
-  
-  checkPool(request, reply, realFunc);
+  gfs.findOne({_id : request.query.attachmentId}, function(err, attachment) {
+    if (err) {
+      return reply(err).code(500);
+    }
+    if (!attachment) {
+      return reply({err : new Error("Attachment not found").message}).code(404);
+    }
+    var file = gfs.createReadStream({ _id : request.query.attachmentId });
+    var decipher = crypto.createDecipher('aes192', request.query.key.toString());
+    reply(file.pipe(decipher).pipe(base64Stream.decode()))
+      .header('Content-Type', attachment.metadata.contentType)
+      .header('Content-Disposition:', 'attachment; filename="' + attachment.metadata.fileName + '"');
+  })
 }
 
 /**
