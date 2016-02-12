@@ -1168,7 +1168,7 @@ hoodiecrowServer.listen(1143, function(){
       request.post("/api/1.0/attachment")
         .set("token", token)
         .set("username", process.env.TEST_SMTP_USERNAME)
-        .attach("content", __dirname + "/assets/simple_grey.png")
+        .attach("content", __dirname + "/assets/hello.txt")
         .end(function(err, res){
           should(res.statusCode).equal(200);
           attachmentId = res.body.attachmentId;
@@ -1217,11 +1217,11 @@ hoodiecrowServer.listen(1143, function(){
                     username : process.env.TEST_SMTP_USERNAME
                   }
                 }, function(response){
-                  console.log(response);
                   var key = response.result.parsed.attachments[0].key;
+                  var attachmentId = response.result.parsed.attachments[0].attachmentId;
                   server.inject({
                     method: "GET",  
-                    url : "/api/1.0/attachment?attachmentId=" + attachmentId + "&key=" + key,
+                    url : "/api/1.0/attachment/hello.txt?attachmentId=" + attachmentId + "&key=" + key,
                     headers : {
                       token : token,
                       username : process.env.TEST_SMTP_USERNAME

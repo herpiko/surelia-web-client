@@ -81,7 +81,7 @@ var mimeTypes = {
     ]
   }
 }
-var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce, $translate, ContactService, SettingsService){
+var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ngProgressFactory, $compile, $timeout, Upload, ToastrService, $templateCache, $sce, $translate, ContactService, SettingsService, conf){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -99,6 +99,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   this.$translate = $translate;
   this.ContactService = ContactService;
   this.SettingsService = SettingsService;
+  this.conf = conf;
   var self = this;
   self.listView = "messages";
   self.list = "message";
@@ -117,7 +118,8 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.rawAvatar="";
   self.croppedAvatar="";
   self.showCropArea = false;
-  self.$sce = $sce;
+  self.spamBox = conf.spamFolder;
+
   // This array will be used in "Move to" submenu in multiselect action
   self.moveToBoxes = [];
   self.flags = ["Read", "Unread"];
@@ -168,15 +170,23 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
       self.ToastrService.parse(data, status);
       // short boxes
       self.boxes = [];
-      var shortedEnums = ["INBOX", "Draft", "Sent", "Junk", "Trash"];
+      self.shortedBoxes = [];
+      self.unshortedBoxes = [];
+      var shortedEnums = ["inbox", "draft", "sent", "junk", "spam", "trash"];
       window.async.eachSeries(shortedEnums, function(boxName, cb){
         lodash.some(data, function(box){
-          if (box.boxName.indexOf(boxName) > -1) {
-            self.boxes.push(box);
+          if (self.shortedBoxes.indexOf(box) < 0 && box.boxName.toLowerCase().indexOf(boxName) > -1) {
+            self.shortedBoxes.push(box);
           }
         })
         cb();
       }, function(err){
+        window.lodash.some(data, function(box) {
+          if (self.shortedBoxes.indexOf(box) < 0 && self.unshortedBoxes.indexOf(box) < 0) {
+            self.unshortedBoxes.push(box);
+          }
+        })
+        self.boxes = self.shortedBoxes.concat(self.unshortedBoxes);
         /*
         Trash, Sent and Drafts has different message count definition.
          - Show no count in Trash and Sent box
@@ -746,39 +756,8 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
 
 Surelia.prototype.getAttachment = function(attachment) {
   var self = this;
-  self.ImapService.getAttachment(attachment.attachmentId, attachment.key)
-    .then(function(data){
-      self.loading.complete();
-
-      var binary_string = window.atob(data);
-      var len = binary_string.length;
-      var bytes = new Uint8Array(len);
-      for (var i = 0; i < len; i++ ) {
-        bytes[i] = binary_string.charCodeAt(i);
-      }
-      var blob = new Blob([bytes.buffer], { type: attachment.contentType || "binary/octet-stream" });
-      if (typeof window.navigator.msSaveBlob !== 'undefined') {
-        window.navigator.msSaveBlob(blob, attachment.fileName);
-      } else {
-        var URL = window.URL || window.webkitURL;
-        var downloadUrl = URL.createObjectURL(blob);
-        var a = document.createElement("a");
-        if (typeof a.download === 'undefined') {
-          window.location = downloadUrl;
-        } else {
-          a.href = downloadUrl;
-          a.download = attachment.fileName;
-          document.body.appendChild(a);
-          a.click();
-        }
-        setTimeout(function () { URL.revokeObjectURL(downloadUrl); }, 100);
-      }
-    })
-    .catch(function(data, status){
-      self.loading.complete();
-      self.ToastrService.parse(data, status);
-    })
-    
+  var path = "/api/1.0/attachment/" + encodeURIComponent(attachment.fileName) + "?attachmentId=" + attachment.attachmentId + "&key=" + attachment.key;
+  window.open(path,'_blank');
 }
 
 Surelia.prototype.logout = function(){
@@ -1214,7 +1193,9 @@ Surelia.prototype.uploadFiles = function(files, errFiles) {
           }
         })
       }, function(res){
-        self.ToastrService.parse(res.data, res.status);
+        if (attachment.progress.percentage != 100) {
+          self.ToastrService.parse(res.data, res.status);
+        }
         window.lodash.some(self.newMessage.attachments, function(attachment){
           if (attachment.fileName === file.filename && attachment.progress.status === "uploading") {
             attachment.progress.status = "failed";
@@ -1246,13 +1227,47 @@ Surelia.prototype.checkAllContacts = function(){
   }
 }
 
+Surelia.prototype.markAsSpam = function(){
+  var self = this;
+  var messageIds = [self.currentMessage.parsed.messageId]
+  var seqs = [self.currentMessage.seq];
+  var boxName = self.spamBox;
+  var oldBoxName = self.currentBoxPath;
+  self.ImapService.moveMessage(seqs, messageIds, oldBoxName, boxName)
+    .then(function(data, status) {
+      self.listReload();
+    })
+    .catch(function(data, status) {
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
+    })
+}
+
+Surelia.prototype.notSpam = function(){
+  var self = this;
+  var messageIds = [self.currentMessage.parsed.messageId]
+  var seqs = [self.currentMessage.seq];
+  var boxName = "INBOX";
+  var oldBoxName = self.spamBox;
+  self.ImapService.moveMessage(seqs, messageIds, oldBoxName, boxName)
+    .then(function(data, status) {
+      self.listReload();
+    })
+    .catch(function(data, status) {
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
+    })
+}
+
 Surelia.prototype.moveMessage = function(boxName) {
   var self = this;
   // Collect seq number
   var seqs = [];
+  var messageIds = [];
   window.lodash.some(self.currentSelection, function(msg){
-    if (msg.seq) {
+    if (msg.seq && msg.header['message-id'][0]) {
       seqs.push(msg.seq);
+      messageIds.push(msg.header['message-id'][0]);
     }
   });
   if (self.currentBoxName.indexOf(boxName) > -1) {
@@ -1264,7 +1279,7 @@ Surelia.prototype.moveMessage = function(boxName) {
   self.loading.start();
   var oldBoxName = self.currentBoxName;
   console.log(seqs, oldBoxName, boxName);
-  self.ImapService.moveMessage(seqs, oldBoxName, boxName)
+  self.ImapService.moveMessage(seqs, messageIds, oldBoxName, boxName)
     .then(function(data, status){
       self.listReload();
       // Update seq in other client instance

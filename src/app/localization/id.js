@@ -60,6 +60,7 @@ module.exports = {
   "SORT_BY" : "Urutkan",
   "MOVE_TO" : "Pindah ke",
   "FLAG_AS" : "Tandai sebagai",
+  "NOT_SPAM" : "Bukan spam",
   "FILTER" : "Filter",
   "ATTACHMENTS" : "Lampiran",
 

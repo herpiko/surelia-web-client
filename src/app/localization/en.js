@@ -62,6 +62,7 @@ module.exports = {
   "SORT_BY" : "Sort by",
   "MOVE_TO" : "Move to",
   "FLAG_AS" : "Flag as",
+  "NOT_SPAM" : "Not spam",
   "FILTER" : "Filter",
   "ATTACHMENTS" : "Attachments",
   

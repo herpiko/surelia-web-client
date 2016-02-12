@@ -283,11 +283,12 @@ ImapService.prototype.removeAttachment = function(attachmentId, canceler) {
 }
 
 
-ImapService.prototype.moveMessage = function(seqs, oldBoxName, boxName) {
+ImapService.prototype.moveMessage = function(seqs, messageIds, oldBoxName, boxName) {
   var self = this;
   // Convert to comma separated string
   var data = {
     seqs : seqs,
+    messageIds : messageIds,
     oldBoxName : oldBoxName,
     boxName : boxName
   }

@@ -185,6 +185,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       validate : {
         payload : {
           seqs : Joi.array().items(Joi.number()).required(),
+          messageIds : Joi.array().items(Joi.string()),
           boxName : Joi.string().required(),
           oldBoxName : Joi.string().required(),
         }  
@@ -223,11 +224,12 @@ ImapAPI.prototype.registerEndPoints = function(){
   })
   self.server.route({
     method : "GET",
-    path : "/api/1.0/attachment",
+    path : "/api/1.0/attachment/{filename}",
     handler : function(request, reply){
       self.getAttachment(request, reply);
     },
     config : {
+      auth : false,
       state : stateConfigs
     }
   })
@@ -1196,10 +1198,40 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
  *
  */
 ImapAPI.prototype.moveMessage = function(request, reply) {
+  var self = this;
   var realFunc = function(client, request, reply) {
     client.moveMessage(request.payload.seqs, request.payload.oldBoxName, request.payload.boxName)
       .then(function(){
         reply();
+        // Spam assassin learner
+        if (request.payload.messageIds && request.payload.messageIds.length > 0) {
+          if (request.payload.boxName.toLowerCase().indexOf('spam') > -1 && self.gearmanClient) {
+            for (var i in request.payload.messageIds) {
+              var params = JSON.stringify({
+                username : request.headers.username,
+                messageId : request.payload.messageIds[i],
+                type : 'spam'
+              })
+              var job = self.gearmanClient.submitJob('saLearn', params);
+              job.on('complete', function(){
+                console.log(job.response.toString());
+              })
+            }
+          }
+          if (request.payload.oldBoxName.toLowerCase().indexOf('spam') > -1 && self.gearmanClient) {
+            for (var i in request.payload.messageIds) {
+              var params = JSON.stringify({
+                username : request.headers.username,
+                messageId : request.payload.messageIds[i],
+                type : 'ham'
+              })
+              var job = self.gearmanClient.submitJob('saLearn', params);
+              job.on('complete', function(){
+                console.log(job.response.toString());
+              })
+            }
+          }
+        }
       })
       .catch(function(err){
         reply({err : err.message}).code(500);
@@ -1242,21 +1274,21 @@ ImapAPI.prototype.removeMessage = function(request, reply) {
  *
  */
 ImapAPI.prototype.getAttachment = function(request, reply) {
-  var realFunc = function(client, request, reply) {
-    gfs.findOne({_id : request.query.attachmentId}, function(err, isExist) {
-      if (err) {
-        return reply(err).code(500);
-      }
-      if (!isExist) {
-        return reply({err : new Error("Attachment not found").message}).code(404);
-      }
-      var file = gfs.createReadStream({ _id : request.query.attachmentId });
-      var decipher = crypto.createDecipher('aes192', request.query.key.toString());
-      reply(file.pipe(decipher));
-    })
-  }
-  
-  checkPool(request, reply, realFunc);
+  gfs.findOne({_id : request.query.attachmentId}, function(err, attachment) {
+    if (err) {
+      return reply(err).code(500);
+    }
+    if (!attachment) {
+      return reply({err : new Error("Attachment not found").message}).code(404);
+    }
+    var file = gfs.createReadStream({ _id : request.query.attachmentId });
+    var decipher = crypto.createDecipher('aes192', request.query.key.toString());
+    console.log('---------------------------------------------------------------');
+    console.log(attachment);
+    reply(file.pipe(decipher).pipe(base64Stream.decode()))
+      .header('Content-Type', attachment.metadata.contentType)
+      .header('Content-Disposition:', 'attachment; filename="' + attachment.metadata.fileName + '"');
+  })
 }
 
 /**
