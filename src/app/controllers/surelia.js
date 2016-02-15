@@ -199,8 +199,8 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
             box.meta.count = 0;
           } else if (box && box.boxName && box.boxName.indexOf("Drafts") > -1) {
             box.meta.count = box.meta.total;
-          } else {
-            // Add everything except Trash, Sent and Drafts
+          } else if (box && box.boxName && box.boxName.indexOf(self.spamBox) < 0) {
+            // Add everything except Trash, Sent, Drafts and Spam box
             self.moveToBoxes.push(box.boxName);
           }
         });
