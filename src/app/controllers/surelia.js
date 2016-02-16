@@ -755,6 +755,9 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
 }
 
 Surelia.prototype.getAttachment = function(attachment) {
+  if (!attachment.ready) {
+    return;
+  }
   var self = this;
   var path = "/api/1.0/attachment/" + encodeURIComponent(attachment.fileName) + "?attachmentId=" + attachment.attachmentId + "&key=" + attachment.key;
   window.open(path,'_blank');
