@@ -1193,7 +1193,7 @@ Surelia.prototype.uploadFiles = function(files, errFiles) {
           }
         })
       }, function(res){
-        if (attachment.progress.percentage != 100) {
+        if (attachment.progress.percentage != 100 && res.data != null && res.status < 0) {
           self.ToastrService.parse(res.data, res.status);
         }
         window.lodash.some(self.newMessage.attachments, function(attachment){
