@@ -55,3 +55,10 @@ To kill daemon
 ```
 npm run kill
 ```
+
+Environment variable examples
+
+```
+DB_HOST=user:password@localhost DB=surelia PORT=3001 GEARMAN=192.168.1.1 NODE_TLS_REJECT_UNAUTHORIZED=0
+```
+
