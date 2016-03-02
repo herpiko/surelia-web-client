@@ -1287,7 +1287,7 @@ ImapAPI.prototype.getAttachment = function(request, reply) {
     console.log(attachment);
     reply(file.pipe(decipher).pipe(base64Stream.decode()))
       .header('Content-Type', attachment.metadata.contentType)
-      .header('Content-Disposition:', 'attachment; filename="' + attachment.metadata.fileName + '"');
+      .header('Content-Disposition', 'attachment; filename="' + attachment.metadata.fileName + '"');
   })
 }
 
