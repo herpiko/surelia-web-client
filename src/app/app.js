@@ -28,6 +28,7 @@ window.lodash = require("lodash");
 window.async = require("async");
 window.monowrap = require("monowrap");
 window.html2text = require("html-to-text");
+window.htmlSpecialChars = require('htmlspecialchars');
 var conf = require("../../conf/prod/surelia.js");
 var id = require("./localization/id.js");
 var en = require("./localization/en.js");

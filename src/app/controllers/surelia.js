@@ -942,11 +942,12 @@ Surelia.prototype.composeMessage = function(message, action){
         var trimmed = self.$templateCache.get("trimmed-message.html");
         console.log(trimmed);
         var content = msg.parsed.text || window.html2text.fromString(msg.parsed.html);
-        content = window.monowrap(content, {width:72,}).replace(new RegExp('\r?\n','g'), '<br>');
+        content = window.monowrap(window.htmlSpecialChars(content), {width:72,}).replace(new RegExp('\r?\n','g'), '<br>');
         console.log(content);
         self.newMessage.html = trimmed.replace("CONTENT", content)
                                 .replace("DATE", msg.parsed.date)
                                 .replace("ADDRESS", msg.parsed.from[0].address);
+        console.log(self.newMessage.html);
       }
       if (msg.parsed.subject && action == "forward") {
         self.newMessage.subject = "Fwd: " + msg.parsed.subject;
