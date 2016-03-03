@@ -113,6 +113,7 @@ ToastrService.prototype.oldPasswordMustBeFilled = function() {
 // instead of writing a bunch of toastr functions.
 ToastrService.prototype.parse = function(data, status) {
   var self = this;
+  console.log('----------------------');
   console.log(data);
   console.log(status);
   if (status == 401) {
@@ -135,9 +136,12 @@ ToastrService.prototype.parse = function(data, status) {
   if (status === 500) {
     return self.error500();
   }
-  if (data == null && (status == undefined || status < 0)) {
+  if (data == null && status < 0) {
     // If this point reached, it must be a connection error / timeout / no response
     return self.connectionError();
+  }
+  if (data == null && status == undefined) {
+    // Request got canceled. Do nothing
   }
 }
 
