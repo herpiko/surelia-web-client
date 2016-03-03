@@ -963,6 +963,7 @@ Surelia.prototype.composeMessage = function(message, action){
             self.newMessage.attachments.push(a);
           }
         }
+        self.newMessage.isForward = true;
       } else {
         self.newMessage.subject = "Re: " + msg.parsed.subject;
         if (msg.parsed.from && msg.parsed.from.length > 0) {
@@ -1088,7 +1089,7 @@ Surelia.prototype.saveDraft = function(){
       .success(function(data, status, header){
         self.ToastrService.savedAsDraft();
         // If it's an existing draft, remove the old one
-        if (msg.seq && msg.messageId && !msg.isReply) {
+        if (msg.seq && msg.messageId && !msg.isReply && !msg.isForward) {
           self.ImapService.removeMessage(msg.seq, msg.messageId, draftPath)
             .success(function(data, status, header){
               self.listBox(draftPath, {}, true);
