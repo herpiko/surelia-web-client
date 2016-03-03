@@ -932,7 +932,7 @@ Surelia.prototype.composeMessage = function(message, action){
       if (msg.parsed.html) {
         var trimmed = self.$templateCache.get("trimmed-message.html");
         console.log(trimmed);
-        var content = msg.parsed.text || window.html2text(msg.parsed.html);
+        var content = msg.parsed.text || window.html2text.fromString(msg.parsed.html);
         content = window.monowrap(content, {width:72,}).replace(new RegExp('\r?\n','g'), '<br>');
         console.log(content);
         self.newMessage.html = trimmed.replace("CONTENT", content)
