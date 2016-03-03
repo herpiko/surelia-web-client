@@ -11,6 +11,7 @@ var base64Stream = require("base64-stream");
 var Stream = require('stream');
 var mongoose = require("mongoose");
 var Grid = require("gridfs-stream");
+var config = require('../../conf/prod/surelia');
 Grid.mongo = mongoose.mongo;
 gfs = Grid(mongoose.connection.db);
 
@@ -29,6 +30,10 @@ gfs = Grid(mongoose.connection.db);
  */
 
 var Imap = function(credentials) {
+  // Assign IMAP username prefix
+  if (config.imapUsernamePrefix) {
+    credentials.user = config.imapUsernamePrefix + credentials.user;
+  }
   // Increase timeout
   credentials.connTimeout = 60000;
   credentials.authTimeout = 60000;
