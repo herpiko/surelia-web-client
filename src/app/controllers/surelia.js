@@ -938,7 +938,7 @@ Surelia.prototype.composeMessage = function(message, action){
     self.newMessage.messageId = msg.parsed.messageId;
     // If there is a msg parameter and an action, then it is a reply / reply all / forward
     if (action && (action === "reply" || action === "all" || action === "forward")) {
-      if (msg.parsed.html) {
+      if (msg.parsed.html || msg.parsed.text) {
         var trimmed = self.$templateCache.get("trimmed-message.html");
         console.log(trimmed);
         var content = msg.parsed.text || window.html2text.fromString(msg.parsed.html);
