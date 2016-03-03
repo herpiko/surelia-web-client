@@ -228,7 +228,7 @@
               <input type="text" ng-model="surelia.newMessage.recipients" class="compose-input-to form-control" mass-autocomplete-item="surelia.option_delimited" ng-change="surelia.currentAutocomplete='recipients'">
             </div>
           </div>
-          <div class="ac-container" ng-show="surelia.contactCandidatesAutocomplete.recipients.length > 0" style="position:absolute;">
+          <div class="ac-container" ng-show="surelia.nextSuggestion && surelia.contactCandidatesAutocomplete.recipients.length > 0" style="position:absolute;">
             <ul class="ac-menu">
               <li ng-repeat="result in surelia.contactCandidatesAutocomplete.recipients track by $index"
                 ng-if="$index > -1"
@@ -244,7 +244,7 @@
               <input type="text" ng-model="surelia.newMessage.cc" class="compose-input-cc form-control" mass-autocomplete-item="surelia.option_delimited" ng-change="surelia.currentAutocomplete='cc'">
             </div>
           </div>
-          <div class="ac-container" ng-show="surelia.contactCandidatesAutocomplete.cc.length > 0" style="position:absolute;">
+          <div class="ac-container" ng-show="surelia.nextSuggestion && surelia.contactCandidatesAutocomplete.cc.length > 0" style="position:absolute;">
             <ul class="ac-menu">
               <li ng-repeat="result in surelia.contactCandidatesAutocomplete.cc track by $index"
                 ng-if="$index > -1"
@@ -266,7 +266,7 @@
               <input type="text"  ng-model="surelia.newMessage.subject" class="compose-input-subject form-control">
             </div>
           </div>
-          <div class="ac-container" ng-show="surelia.contactCandidatesAutocomplete.bcc.length > 0" style="position:absolute;">
+          <div class="ac-container" ng-show="surelia.nextSuggestion && surelia.contactCandidatesAutocomplete.bcc.length > 0" style="position:absolute;">
             <ul class="ac-menu">
               <li ng-repeat="result in surelia.contactCandidatesAutocomplete.bcc track by $index"
                 ng-if="$index > -1"

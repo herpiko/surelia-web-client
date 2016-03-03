@@ -111,6 +111,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.currentMessage = {};
   self.contactCandidates = [];
   self.enableAutocomplete = true;
+  self.nextSuggestion = true;
   self.currentAutocomplete = {};
   self.contactCandidatesAutocomplete = {};
   self.sortBy = null;
@@ -274,6 +275,11 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
       return results;
     }
     var suggest_email_delimited = function(term) {
+      if (term.replace(/ /g,'')[term.length - 1] === ',') {
+        return self.nextSuggestion = false;
+      } else {
+        self.nextSuggestion = true;
+      }
       if (self.enableAutocomplete) {
         var ix = term.lastIndexOf(","),
             lhs = term.substring(0, ix + 1),
@@ -288,6 +294,9 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
       }
     };
     self.select_suggested = function(val, form) { 
+      if (val.indexOf(',') > -1) {
+        val = val.replace(/ /g,'').split(',')[val.split(',').length - 1];  
+      }
       self.enableAutocomplete = false;
       var str = self.newMessage[form].split(",");
       var length = str.length;
