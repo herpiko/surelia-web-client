@@ -711,7 +711,7 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
               html = html.replace(contentIds[i], inlineAttachments[contentIds[i]]);
             }
           }
-        } else {
+        } else if (self.currentMessage.parsed.text) {
           console.log("text");
           html = "<pre>" + self.currentMessage.parsed.text + "</pre>";
         }
