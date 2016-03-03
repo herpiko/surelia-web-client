@@ -759,36 +759,36 @@ Imap.prototype.retrieveMessage = function(id, boxName, socket) {
 Imap.prototype.moveMessage = function(seqs, oldBox, newBox) {
   var self = this;
   return new Promise(function(resolve, reject){
-    if (newBox.indexOf("Trash") > -1) {
-      // Remove to trash
-      self.removeMessage(seqs, oldBox)
-        .then(function(){
-          resolve();
-        })
-        .catch(function(err){
-          reject(err);
-        });
-    } else if (newBox.indexOf("Archive") > -1) {
-      self.removeMessage(seqs, oldBox, {archive : true})
-        .then(function(){
-          resolve();
-        })
-        .catch(function(err){
-          reject(err);
-        });
-    } else {
-      self.client.openBox(oldBox, false, function(err){
-        if (err) {
-          return reject(err);
-        }
+    self.client.openBox(oldBox, false, function(err){
+      if (err) {
+        return reject(err);
+      }
+      if (newBox.indexOf("Trash") > -1) {
+        // Remove to trash
+        self.removeMessage(seqs, oldBox)
+          .then(function(){
+            resolve();
+          })
+          .catch(function(err){
+            reject(err);
+          });
+      } else if (newBox.indexOf("Archive") > -1) {
+        self.removeMessage(seqs, oldBox, {archive : true})
+          .then(function(){
+            resolve();
+          })
+          .catch(function(err){
+            reject(err);
+          });
+      } else {
         self.client.seq.move(seqs, newBox, function(err){
           if (err) {
             return reject(err);
           }
           resolve();
         });
-      })
-    }
+      }
+    });
   })
 }
 
