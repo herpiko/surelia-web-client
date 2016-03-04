@@ -1047,7 +1047,8 @@ Surelia.prototype.composeMessage = function(message, action){
     }
   }
   // Get the hash. It needed for comparing the draft later
-  self.currentMessageHash = window.objectHash(self.newMessage);
+  var obj = angular.copy(self.newMessage);
+  self.currentMessageHash = window.objectHash(obj);
   console.log(self.currentMessageHash);
 }
 
@@ -1062,10 +1063,14 @@ Surelia.prototype.saveDraft = function(){
   }
   self.clearAutocomplete();
   self.compose = false;
+  // Remove unecessary child object
+  window.lodash.some(self.newMessage.attachments, function(a) {
+    delete(a.hover);
+  });
   var msg = angular.copy(self.newMessage);
+  var newHash = window.objectHash(msg);
+  console.log(newHash);
   // Save as draft if it has modified
-  console.log(window.objectHash(self.newMessage));
-  var newHash = window.objectHash(self.newMessage);
   if (newHash !== self.currentMessageHash) {
     self.loading.start();
     console.log("save draft");
