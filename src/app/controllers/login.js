@@ -13,6 +13,7 @@ var Login = function ($scope, $rootScope, $state, $window, $stateParams, localSt
   this.$translate = $translate;
   var self = this;
 
+  self.$rootScope.pageTitle = 'Login - PNSMail';
   self.loading = self.ngProgressFactory.createInstance();
 
   if (self.$rootScope.isLoggedIn || self.localStorageService.get("token")) {
