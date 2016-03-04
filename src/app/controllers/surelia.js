@@ -1471,7 +1471,8 @@ Surelia.prototype.listContact = function(opts, canceler){
       var colors = window.randomcolor({count:opts.limit, luminosity : "dark"});
       var assignedColor = [];
       for (var i in self.currentContactList) {
-        var hash = window.objectHash(self.currentContactList[i].emailAddress);
+        var str = self.currentContactList[i].emailAddress || self.currentContactList[i].seq.toString();
+        var hash = window.objectHash(str);
         if (self.currentContactList[i].name.length > 0) {
           var index = self.isAlpha(self.currentContactList[i].name[0]) ? 0 : 1;
           self.currentContactList[i].avatar = self.currentContactList[i].name[index].toUpperCase();
