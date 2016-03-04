@@ -225,10 +225,10 @@
              <span class="compose-label">Kepada</span>
              <span class="compose-label-cc-button" ng-hide="surelia.cc" ng-click="surelia.showCc()">Cc</span>
              <span class="compose-label-bcc-button" ng-hide="surelia.bcc" ng-click="surelia.showBcc()">Bcc</span>
-              <input type="text" ng-model="surelia.newMessage.recipients" class="compose-input-to form-control" mass-autocomplete-item="surelia.option_delimited" ng-change="surelia.currentAutocomplete='recipients'">
+              <input type="text" ng-click="surelia.nextSuggestion=false;" ng-model="surelia.newMessage.recipients" class="compose-input-to form-control" mass-autocomplete-item="surelia.option_delimited" ng-change="surelia.currentAutocomplete='recipients'">
             </div>
           </div>
-          <div class="ac-container" ng-show="surelia.contactCandidatesAutocomplete.recipients.length > 0" style="position:absolute;">
+          <div class="ac-container" ng-show="surelia.nextSuggestion && surelia.contactCandidatesAutocomplete.recipients.length > 0" style="position:absolute;">
             <ul class="ac-menu">
               <li ng-repeat="result in surelia.contactCandidatesAutocomplete.recipients track by $index"
                 ng-if="$index > -1"
@@ -241,10 +241,10 @@
           <div class="form-group" ng-show="surelia.cc">
             <div class="col-lg-12" mass-autocomplete>
              <span class="compose-label">Cc</span>
-              <input type="text" ng-model="surelia.newMessage.cc" class="compose-input-cc form-control" mass-autocomplete-item="surelia.option_delimited" ng-change="surelia.currentAutocomplete='cc'">
+              <input type="text" ng-click="surelia.nextSuggestion=false;" ng-model="surelia.newMessage.cc" class="compose-input-cc form-control" mass-autocomplete-item="surelia.option_delimited" ng-change="surelia.currentAutocomplete='cc'">
             </div>
           </div>
-          <div class="ac-container" ng-show="surelia.contactCandidatesAutocomplete.cc.length > 0" style="position:absolute;">
+          <div class="ac-container" ng-show="surelia.nextSuggestion && surelia.contactCandidatesAutocomplete.cc.length > 0" style="position:absolute;">
             <ul class="ac-menu">
               <li ng-repeat="result in surelia.contactCandidatesAutocomplete.cc track by $index"
                 ng-if="$index > -1"
@@ -257,16 +257,16 @@
           <div class="form-group" ng-show="surelia.bcc">
             <div class="col-lg-12" mass-autocomplete>
              <span class="compose-label">Bcc</span>
-              <input type="text" ng-model="surelia.newMessage.bcc" class="compose-input-bcc form-control" mass-autocomplete-item="surelia.option_delimited" ng-change="surelia.currentAutocomplete='bcc'">
+              <input type="text" ng-click="surelia.nextSuggestion=false;" ng-model="surelia.newMessage.bcc" class="compose-input-bcc form-control" mass-autocomplete-item="surelia.option_delimited" ng-change="surelia.currentAutocomplete='bcc'">
             </div>
           </div>
           <div class="form-group">
             <div class="col-lg-12">
              <span class="compose-label">Judul</span>
-              <input type="text"  ng-model="surelia.newMessage.subject" class="compose-input-subject form-control">
+              <input type="text" ng-click="surelia.nextSuggestion=false;" ng-model="surelia.newMessage.subject" class="compose-input-subject form-control">
             </div>
           </div>
-          <div class="ac-container" ng-show="surelia.contactCandidatesAutocomplete.bcc.length > 0" style="position:absolute;">
+          <div class="ac-container" ng-show="surelia.nextSuggestion && surelia.contactCandidatesAutocomplete.bcc.length > 0" style="position:absolute;">
             <ul class="ac-menu">
               <li ng-repeat="result in surelia.contactCandidatesAutocomplete.bcc track by $index"
                 ng-if="$index > -1"
@@ -277,9 +277,9 @@
             </ul>
           </div>
           <div>
-              <text-angular ta-unsafe-sanitizer="true" ng-model="surelia.newMessage.html"></text-angular>
+              <text-angular ng-click="surelia.nextSuggestion=false;" ta-unsafe-sanitizer="true" ng-model="surelia.newMessage.html"></text-angular>
           </div>
-          <div class="form-group">
+          <div class="form-group" ng-click="surelia.nextSuggestion=false;">
             <div class="col-lg-10">
              <button ngf-select="surelia.uploadFiles($files, $invalidFiles)" multiple
                ngf-max-height="5000" ngf-max-size="16MB" class="btn btn-default btn-file">
@@ -298,7 +298,7 @@
            </ul>
           </div>
         </fieldset>
-        <div class='button-bar'>
+        <div class='button-bar' ng-click="surelia.nextSuggestion=false;">
             <button class="btn btn-success" type="reset" ng-click="surelia.discardDraft()"><i class="fa fa-envelope-o"></i> {{'DISCARD' | translate}}</button>
             <button type="submit" class="btn btn-success"><i class="fa fa-envelope-o"></i> {{'SEND' | translate}}</button>
         </div>

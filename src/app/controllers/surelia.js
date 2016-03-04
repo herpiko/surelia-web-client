@@ -111,6 +111,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.currentMessage = {};
   self.contactCandidates = [];
   self.enableAutocomplete = true;
+  self.nextSuggestion = true;
   self.currentAutocomplete = {};
   self.contactCandidatesAutocomplete = {};
   self.sortBy = null;
@@ -274,6 +275,11 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
       return results;
     }
     var suggest_email_delimited = function(term) {
+      if (term.replace(/ /g,'')[term.length - 1] === ',') {
+        return self.nextSuggestion = false;
+      } else {
+        self.nextSuggestion = true;
+      }
       if (self.enableAutocomplete) {
         var ix = term.lastIndexOf(","),
             lhs = term.substring(0, ix + 1),
@@ -288,6 +294,9 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
       }
     };
     self.select_suggested = function(val, form) { 
+      if (val.indexOf(',') > -1) {
+        val = val.replace(/ /g,'').split(',')[val.split(',').length - 1];  
+      }
       self.enableAutocomplete = false;
       var str = self.newMessage[form].split(",");
       var length = str.length;
@@ -929,15 +938,16 @@ Surelia.prototype.composeMessage = function(message, action){
     self.newMessage.messageId = msg.parsed.messageId;
     // If there is a msg parameter and an action, then it is a reply / reply all / forward
     if (action && (action === "reply" || action === "all" || action === "forward")) {
-      if (msg.parsed.html) {
+      if (msg.parsed.html || msg.parsed.text) {
         var trimmed = self.$templateCache.get("trimmed-message.html");
         console.log(trimmed);
-        var content = msg.parsed.text || window.html2text(msg.parsed.html);
-        content = window.monowrap(content, {width:72,}).replace(new RegExp('\r?\n','g'), '<br>');
+        var content = msg.parsed.text || window.html2text.fromString(msg.parsed.html);
+        content = window.monowrap(window.htmlSpecialChars(content), {width:72,}).replace(new RegExp('\r?\n','g'), '<br>');
         console.log(content);
         self.newMessage.html = trimmed.replace("CONTENT", content)
                                 .replace("DATE", msg.parsed.date)
                                 .replace("ADDRESS", msg.parsed.from[0].address);
+        console.log(self.newMessage.html);
       }
       if (msg.parsed.subject && action == "forward") {
         self.newMessage.subject = "Fwd: " + msg.parsed.subject;
@@ -953,6 +963,7 @@ Surelia.prototype.composeMessage = function(message, action){
             self.newMessage.attachments.push(a);
           }
         }
+        self.newMessage.isForward = true;
       } else {
         self.newMessage.subject = "Re: " + msg.parsed.subject;
         if (msg.parsed.from && msg.parsed.from.length > 0) {
@@ -1036,7 +1047,8 @@ Surelia.prototype.composeMessage = function(message, action){
     }
   }
   // Get the hash. It needed for comparing the draft later
-  self.currentMessageHash = window.objectHash(self.newMessage);
+  var obj = angular.copy(self.newMessage);
+  self.currentMessageHash = window.objectHash(obj);
   console.log(self.currentMessageHash);
 }
 
@@ -1051,10 +1063,14 @@ Surelia.prototype.saveDraft = function(){
   }
   self.clearAutocomplete();
   self.compose = false;
+  // Remove unecessary child object
+  window.lodash.some(self.newMessage.attachments, function(a) {
+    delete(a.hover);
+  });
   var msg = angular.copy(self.newMessage);
+  var newHash = window.objectHash(msg);
+  console.log(newHash);
   // Save as draft if it has modified
-  console.log(window.objectHash(self.newMessage));
-  var newHash = window.objectHash(self.newMessage);
   if (newHash !== self.currentMessageHash) {
     self.loading.start();
     console.log("save draft");
@@ -1078,7 +1094,7 @@ Surelia.prototype.saveDraft = function(){
       .success(function(data, status, header){
         self.ToastrService.savedAsDraft();
         // If it's an existing draft, remove the old one
-        if (msg.seq && msg.messageId && !msg.isReply) {
+        if (msg.seq && msg.messageId && !msg.isReply && !msg.isForward) {
           self.ImapService.removeMessage(msg.seq, msg.messageId, draftPath)
             .success(function(data, status, header){
               self.listBox(draftPath, {}, true);

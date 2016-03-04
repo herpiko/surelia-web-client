@@ -11,6 +11,8 @@ var base64Stream = require("base64-stream");
 var Stream = require('stream');
 var mongoose = require("mongoose");
 var Grid = require("gridfs-stream");
+var config = require('../../conf/prod/surelia');
+var extend = require('util')._extend;
 Grid.mongo = mongoose.mongo;
 gfs = Grid(mongoose.connection.db);
 
@@ -29,6 +31,11 @@ gfs = Grid(mongoose.connection.db);
  */
 
 var Imap = function(credentials) {
+  var credentials = extend({}, credentials);
+  // Assign IMAP username prefix
+  if (config.imapUsernamePrefix) {
+    credentials.user = config.imapUsernamePrefix + credentials.user;
+  }
   // Increase timeout
   credentials.connTimeout = 60000;
   credentials.authTimeout = 60000;
@@ -759,36 +766,36 @@ Imap.prototype.retrieveMessage = function(id, boxName, socket) {
 Imap.prototype.moveMessage = function(seqs, oldBox, newBox) {
   var self = this;
   return new Promise(function(resolve, reject){
-    if (newBox.indexOf("Trash") > -1) {
-      // Remove to trash
-      self.removeMessage(seqs, oldBox)
-        .then(function(){
-          resolve();
-        })
-        .catch(function(err){
-          reject(err);
-        });
-    } else if (newBox.indexOf("Archive") > -1) {
-      self.removeMessage(seqs, oldBox, {archive : true})
-        .then(function(){
-          resolve();
-        })
-        .catch(function(err){
-          reject(err);
-        });
-    } else {
-      self.client.openBox(oldBox, false, function(err){
-        if (err) {
-          return reject(err);
-        }
+    self.client.openBox(oldBox, false, function(err){
+      if (err) {
+        return reject(err);
+      }
+      if (newBox.indexOf("Trash") > -1) {
+        // Remove to trash
+        self.removeMessage(seqs, oldBox)
+          .then(function(){
+            resolve();
+          })
+          .catch(function(err){
+            reject(err);
+          });
+      } else if (newBox.indexOf("Archive") > -1) {
+        self.removeMessage(seqs, oldBox, {archive : true})
+          .then(function(){
+            resolve();
+          })
+          .catch(function(err){
+            reject(err);
+          });
+      } else {
         self.client.seq.move(seqs, newBox, function(err){
           if (err) {
             return reject(err);
           }
           resolve();
         });
-      })
-    }
+      }
+    });
   })
 }
 
