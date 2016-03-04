@@ -523,6 +523,7 @@ Surelia.prototype.listBox = function(boxName, opts, canceler){
           msg.header.subject = msg.header.subject[0];
         }
       })
+      self.$rootScope.pageTitle = boxName;
       // Assign message count
       window.lodash.some(self.specialBoxes, function(box){
         if (box.specialName.indexOf(boxName) >= 0 && 
@@ -530,6 +531,9 @@ Surelia.prototype.listBox = function(boxName, opts, canceler){
           boxName.indexOf("Sent") < 0
         ) {
           box.meta.count = data.meta.count;
+          if (box.specialName.indexOf(self.currentBoxName) > -1) {
+            self.$rootScope.pageTitle += ' (' + data.meta.count + ') ';
+          }
           return;
         } 
       });
@@ -539,10 +543,13 @@ Surelia.prototype.listBox = function(boxName, opts, canceler){
           boxName.indexOf("Sent") < 0
         ) {
           box.meta.count = data.meta.count;
+          if (box.boxName.indexOf(self.currentBoxName) > -1) {
+            self.$rootScope.pageTitle += ' (' + data.meta.count + ')';
+          }
           return;
         } 
       });
-
+      self.$rootScope.pageTitle += ' - ' + self.$rootScope.currentUsername + ' - ' + self.conf.appName;
       // generate avatar, unread status
       opts.limit = opts.limit || 10;
       var colors = window.randomcolor({count:opts.limit, luminosity : "dark"});
@@ -1427,6 +1434,7 @@ Surelia.prototype.listContactReload = function(){
 
 Surelia.prototype.listContact = function(opts, canceler){
   var self = this;
+  self.$rootScope.pageTitle = 'Contact - ' + self.$rootScope.currentUsername + ' - ' + self.conf.appName;
   var opts = opts || {};
   console.log(opts);
   if (!opts.search) {
