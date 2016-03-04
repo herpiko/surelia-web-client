@@ -260,8 +260,8 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   
       for (var i = 0; i < self.contactCandidates.length && results.length < 10; i++) {
         var a = self.contactCandidates[i];
-        if (a.emailAddress.toLowerCase().indexOf(q) == 0
-          || a.name.toLowerCase().indexOf(q) == 0
+        if (a.emailAddress && (a.emailAddress.toLowerCase().indexOf(q) == 0
+          || a.name.toLowerCase().indexOf(q) == 0)
         ) {
           var label = a.name;
           if (label.length > 0) {
@@ -1465,12 +1465,12 @@ Surelia.prototype.listContact = function(opts, canceler){
       var colors = window.randomcolor({count:opts.limit, luminosity : "dark"});
       var assignedColor = [];
       for (var i in self.currentContactList) {
-        var hash = window.objectHash(self.currentContactList[i].emailAddress);
+        var hash = window.objectHash(self.currentContactList[i].emailAddress || self.currentContactList[i].name);
         if (self.currentContactList[i].name.length > 0) {
           var index = self.isAlpha(self.currentContactList[i].name[0]) ? 0 : 1;
           self.currentContactList[i].avatar = self.currentContactList[i].name[index].toUpperCase();
         } else {
-          var index = self.isAlpha(self.currentContactList[i].emailAddress[0]) ? 0 : 1;
+          var index = self.isAlpha(self.currentContactList[i].emailAddress[0] || self.currentContactList[i].name[0]) ? 0 : 1;
           self.currentContactList[i].avatar = self.currentContactList[i].emailAddress[index].toUpperCase();
         }
         if (assignedColor.indexOf(hash) < 0) {
