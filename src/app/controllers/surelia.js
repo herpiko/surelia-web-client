@@ -260,8 +260,8 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   
       for (var i = 0; i < self.contactCandidates.length && results.length < 10; i++) {
         var a = self.contactCandidates[i];
-        if (a.emailAddress.toLowerCase().indexOf(q) == 0
-          || a.name.toLowerCase().indexOf(q) == 0
+        if (a.emailAddress && (a.emailAddress.toLowerCase().indexOf(q) == 0
+          || a.name.toLowerCase().indexOf(q) == 0)
         ) {
           var label = a.name;
           if (label.length > 0) {
@@ -555,9 +555,10 @@ Surelia.prototype.listBox = function(boxName, opts, canceler){
       var colors = window.randomcolor({count:opts.limit, luminosity : "dark"});
       var assignedColor = [];
       for (var i in self.currentList) {
-        var hash = window.objectHash(self.currentList[i].header.from[0]);
-        var index = self.isAlpha(self.currentList[i].header.from[0]) ? 0 : 1;
-        self.currentList[i].avatar = self.currentList[i].header.from[index].toUpperCase();
+        var from = self.currentList[i].from || self.currentList[i].seq.toString();
+        var hash = window.objectHash(from);
+        var index = self.isAlpha(from) ? 0 : 1;
+        self.currentList[i].avatar = from.toUpperCase();
         if (assignedColor.indexOf(hash) < 0) {
           assignedColor.push(hash);
           self.currentList[i].color = colors[assignedColor.indexOf(hash)];
@@ -580,13 +581,18 @@ Surelia.prototype.listBox = function(boxName, opts, canceler){
       }
       // Fetch avatar image
       window.lodash.some(self.currentList, function(message){
-        self.ContactService.getAvatar(message.parsed.from[0].address)
-          .then(function(data, status){
-            if (data.length > 0) {
-              message.avatarImg = "data:image/png;base64," + data;
-            }
-          })
-          // Do not catch error
+        if (message.parsed && 
+        message.parsed.from && 
+        message.parsed.from[0] && 
+        message.parsed.from[0].address) {
+          self.ContactService.getAvatar(message.parsed.from[0].address)
+            .then(function(data, status){
+              if (data.length > 0) {
+                message.avatarImg = "data:image/png;base64," + data;
+              }
+            })
+            // Do not catch error
+        }
       })
       // calculate pagination nav
       var meta = self.currentListMeta;
@@ -1357,12 +1363,12 @@ Surelia.prototype.retrieveContact = function(id){
       self.currentContact = data;
       // grab the current Contact avatar color and letter;
       window.lodash.some(self.currentContactList, function(contact){
-        if (contact.emailAddress == self.currentContact.emailAddress){
+        if (contact.emailAddress && contact.emailAddress == self.currentContact.emailAddress){
           self.currentContact.color = contact.color;
           self.currentContact.avatar = contact.avatar;
         }
       })
-      if (self.currentContact.avatarId) {
+      if (self.currentContact.avatarId && self.currentContact.emailAddress) {
         self.ContactService.getAvatar(self.currentContact.emailAddress)
           .then(function(data, status){
             if (data.length > 0) {
