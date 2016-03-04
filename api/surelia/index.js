@@ -16,6 +16,7 @@ var objectHash = require("object-hash");
 var gearmanode = require("gearmanode");
 var Utils = require("./utils");
 var crypto = require('crypto');
+var emailValidator = require('email-validator');
 Grid.mongo = mongoose.mongo;
 gfs = Grid(mongoose.connection.db);
 
@@ -1004,6 +1005,9 @@ ImapAPI.prototype.listBox = function(request, reply) {
               // Fast async document creation could make duplicated items
               // Let's process it one by one
               async.eachSeries(addressArray, function(email, cb){
+                if (!emailValidator.validate(email.address)) {
+                  return cb();
+                }
                 // Check if the email address exists in db
                 addressBookModel().findOne({emailAddress:email.address, account : request.headers.username}, function(err, result){
                   if (result){
