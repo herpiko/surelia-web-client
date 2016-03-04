@@ -12,6 +12,7 @@ var Stream = require('stream');
 var mongoose = require("mongoose");
 var Grid = require("gridfs-stream");
 var config = require('../../conf/prod/surelia');
+var extend = require('util')._extend;
 Grid.mongo = mongoose.mongo;
 gfs = Grid(mongoose.connection.db);
 
@@ -30,6 +31,7 @@ gfs = Grid(mongoose.connection.db);
  */
 
 var Imap = function(credentials) {
+  var credentials = extend({}, credentials);
   // Assign IMAP username prefix
   if (config.imapUsernamePrefix) {
     credentials.user = config.imapUsernamePrefix + credentials.user;
