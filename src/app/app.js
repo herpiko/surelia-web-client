@@ -126,6 +126,7 @@ var app = angular.module("App", [
 })
 .run([ "$rootScope", "$state", "$stateParams", "amMoment", 
   function ($rootScope, $state, $stateParams, amMoment) {
+    $rootScope.pageTitle = conf.appName;
     if (conf.lang == "id") {
       amMoment.changeLocale(conf.lang);
     }
