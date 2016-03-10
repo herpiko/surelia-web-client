@@ -204,7 +204,7 @@ Imap.prototype.getBoxes = function() {
         if (boxes[box].attribs.indexOf("\\Noselect") > -1) {
           cb();
         } else {
-          self.client.openBox(box, true, function(err, seqs){
+          self.client.status(box, function(err, seqs){
             if (err) {
               return cb(err);
             }
@@ -215,11 +215,7 @@ Imap.prototype.getBoxes = function() {
               obj.meta = seqs.messages;
             }
             result.push(obj);
-            self.client.closeBox(function(err){
-              // Do not check closeBox's error
-              // If it does not allowed now, go on
-              cb();
-            })
+            cb();
           })
         }
       }, function(err){
