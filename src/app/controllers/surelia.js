@@ -202,6 +202,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
             box.meta.count = box.meta.total;
           } else if (box && box.boxName && box.boxName.indexOf(self.spamBox) < 0) {
             // Add everything except Trash, Sent, Drafts and Spam box
+            box.meta.count = box.meta.new;
             self.moveToBoxes.push(box.boxName);
           }
         });
@@ -227,6 +228,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
             box.meta.count = box.meta.total;
           } else {
             // Add everything except Trash, Sent and Drafts
+            box.meta.count = box.meta.new;
             self.moveToBoxes.push(box.specialName);
           } 
         });
