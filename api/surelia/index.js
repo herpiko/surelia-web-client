@@ -409,7 +409,8 @@ ImapAPI.prototype.registerEndPoints = function(){
           name : Joi.string().allow(""),
           officeAddress : Joi.string().allow(""),
           homeAddress : Joi.string().allow(""),
-          phone : [Joi.string().allow(""),Joi.number().allow("")]
+          phone : [Joi.string().allow(""),Joi.number().allow("")],
+          color : Joi.string().allow(""),
         }  
       }
     }
@@ -432,7 +433,8 @@ ImapAPI.prototype.registerEndPoints = function(){
           name : Joi.string().allow(""),
           officeAddress : Joi.string().allow(""),
           homeAddress : Joi.string().allow(""),
-          phone : [Joi.string().allow(""),Joi.number().allow("")]
+          phone : [Joi.string().allow(""),Joi.number().allow("")],
+          color : Joi.string().allow(""),
         }  
       }
     }
