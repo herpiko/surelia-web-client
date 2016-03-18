@@ -15,7 +15,8 @@ var config = {
   gearman : sureliaConf.options.gearmanServer,
   spamFolder : "Spam",
   imapUsernamePrefix : '',
-  appName : 'Surelia'
+  appName : 'Surelia',
+  mainDomain : 'domain.com'
 }
 
 module.exports = config;
