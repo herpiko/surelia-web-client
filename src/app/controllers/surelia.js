@@ -737,6 +737,9 @@ Surelia.prototype.retrieveMessage = function(id, boxName){
           console.log("text");
           html = "<pre>" + self.currentMessage.parsed.text + "</pre>";
         }
+
+        // Add target="_system" attribute to each a tag
+        html = html.replace(/ href=\"/g," target=\"_system\" href=\"")
         self.currentMessage.content = self.$sce.trustAsHtml(html);
         console.log(self.currentMessage.content);
 
