@@ -36,6 +36,13 @@ Login.prototype.switchLang = function(lang) {
   self.$translate.use(lang);
 }
 
+Login.prototype.completeUsername = function(credential) {
+  var self = this;
+  if (self.$scope.credential && self.$scope.credential.username && self.$scope.credential.username.indexOf('@') < 0) {
+    self.$scope.credential.username += '&' + self.conf.mainDomain;
+  }
+}
+
 Login.prototype.auth = function(credential){
   var self = this;
   self.loading.start();
