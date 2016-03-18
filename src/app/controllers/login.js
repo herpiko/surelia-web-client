@@ -39,7 +39,7 @@ Login.prototype.switchLang = function(lang) {
 Login.prototype.completeUsername = function(credential) {
   var self = this;
   if (self.$scope.credential && self.$scope.credential.username && self.$scope.credential.username.indexOf('@') < 0) {
-    self.$scope.credential.username += '&' + self.conf.mainDomain;
+    self.$scope.credential.username += '@' + self.conf.mainDomain;
   }
 }
 
