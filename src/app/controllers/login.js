@@ -65,6 +65,8 @@ Login.prototype.completeUsername = function() {
       .catch(function(data, status){
         self.currentDomainLogo = self.defaultDomainLogo;
       })
+  } else {
+    self.currentDomainLogo = self.defaultDomainLogo;
   }
 }
 
