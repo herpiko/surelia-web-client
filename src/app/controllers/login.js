@@ -50,7 +50,7 @@ Login.prototype.completeUsername = function() {
     self.$scope.credential.username += '@' + self.conf.mainDomain;
   }
   // Fetch domain logo
-  if (self.conf.domainLogoApi) {
+  if (self.conf.domainLogoApi && self.$scope.credential.username.split('@')[1] != self.conf.mainDomain) {
     self.$http({
       method: "GET",
       url : self.conf.domainLogoApi + self.$scope.credential.username.split('@')[1]
