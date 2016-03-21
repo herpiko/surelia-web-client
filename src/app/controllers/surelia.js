@@ -120,30 +120,6 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   self.croppedAvatar="";
   self.showCropArea = false;
   self.spamBox = conf.spamFolder;
-  
-  // Fetch domain logo
-  if (self.conf.domainLogoApi && self.conf.defaultDomainLogoPath) {
-    if (self.$scope.currentUsername.split('@')[1] != self.conf.mainDomain) {
-      self.defaultDomainLogo = self.conf.defaultDomainLogoPath;
-      self.$http({
-        method: "GET",
-        url : self.conf.domainLogoApi + self.$scope.currentUsername.split('@')[1]
-      })
-        .then(function(data, status){
-          console.log(data);
-          if (data && data.data) {
-            return self.currentDomainLogo = "data:image/png;base64," + data.data;
-          }
-          self.currentDomainLogo = self.defaultDomainLogo;
-        })
-        .catch(function(data, status){
-          self.currentDomainLogo = self.defaultDomainLogo;
-        })
-    } else {
-      self.currentDomainLogo = self.defaultDomainLogo;
-    }
-  }
-
 
   // This array will be used in "Move to" submenu in multiselect action
   self.moveToBoxes = [];
@@ -156,6 +132,30 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   if (self.localStorageService.get("username")) {
     self.$rootScope.currentUsername = self.localStorageService.get("username");
     self.$rootScope.socket.emit("join", self.$rootScope.currentUsername);
+  
+    // Fetch domain logo
+    if (self.conf.domainLogoApi && self.conf.defaultDomainLogoPath) {
+      if (self.$scope.currentUsername.split('@')[1] != self.conf.mainDomain) {
+        self.defaultDomainLogo = self.conf.defaultDomainLogoPath;
+        self.$http({
+          method: "GET",
+          url : self.conf.domainLogoApi + self.$scope.currentUsername.split('@')[1]
+        })
+          .then(function(data, status){
+            console.log(data);
+            if (data && data.data) {
+              return self.currentDomainLogo = "data:image/png;base64," + data.data;
+            }
+            self.currentDomainLogo = self.defaultDomainLogo;
+          })
+          .catch(function(data, status){
+            self.currentDomainLogo = self.defaultDomainLogo;
+          })
+      } else {
+        self.currentDomainLogo = self.defaultDomainLogo;
+      }
+    }
+
   }
   // getBoxes() and getSpecialBoxes are running in async
   // Make sure loading progress get completed 
