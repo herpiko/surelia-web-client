@@ -867,7 +867,7 @@ var checkPool = function(request, reply, realFunc) {
           port : request.payload.imapPort,
           tls : request.payload.imapTLS
         }
-        console.log('Log into ' + credential.host + ':' + credential.port');
+        console.log('Log into ' + credential.host + ':' + credential.port);
         createPool(request, reply, credential, function(client){
           // Recall to extend expiry time
           var client = pool.get(credential.user);
