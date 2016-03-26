@@ -5,7 +5,7 @@
 const fs = require('fs');
 
 const db = JSON.parse(fs.readFileSync(__dirname + '/../api/hapi-mongoose-db-connector.settings.json')).options.mongodbUrl;
-const lifetime = process.env.LIFETIME || 36000;
+const lifetime = process.env.LIFETIME || 86400;
 
 const mongoose = require('mongoose');
 const Grid = require('gridfs-stream');
