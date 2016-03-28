@@ -315,8 +315,7 @@ var Surelia = function ($scope, $rootScope, $state, $window, $stateParams, local
   var attachmentReady = function(key) {
     console.log(key)
     for (var i in self.currentMessage.parsed.attachments) {
-      console.log(self.currentMessage.parsed.attachments[i].key);
-      if (self.currentMessage.parsed.attachments[i].key.toString() === key.toString()) {
+      if (self.currentMessage.parsed.attachments[i].key && self.currentMessage.parsed.attachments[i].key.toString() === key.toString()) {
         self.currentMessage.parsed.attachments[i].ready = true;
         self.$scope.$apply();
         break;

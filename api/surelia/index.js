@@ -867,6 +867,7 @@ var checkPool = function(request, reply, realFunc) {
           port : request.payload.imapPort,
           tls : request.payload.imapTLS
         }
+        console.log('Log into ' + credential.host + ':' + credential.port);
         createPool(request, reply, credential, function(client){
           // Recall to extend expiry time
           var client = pool.get(credential.user);
@@ -1891,11 +1892,6 @@ var fsModel = function() {
 }
 
 exports.model = model;
-
-// Interval function to remove expired temporary attachment
-setInterval(function(){
-  fsModel().remove({uploadDate : {$lt : moment().subtract(24, "hours")}});
-}, 10000)
 
 exports.register = function(server, options, next) {
   new ImapAPI(server, options, next);
