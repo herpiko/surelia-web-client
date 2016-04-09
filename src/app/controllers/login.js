@@ -1,5 +1,5 @@
 'use strict';
-var Login = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ngProgressFactory, ToastrService, conf, $translate){
+var Login = function ($scope, $rootScope, $state, $window, $stateParams, localStorageService, ImapService, ngProgressFactory, ToastrService, conf, $translate, $http){
   this.$scope = $scope;
   this.$rootScope = $rootScope;
   this.$state = $state;
@@ -11,8 +11,13 @@ var Login = function ($scope, $rootScope, $state, $window, $stateParams, localSt
   this.ToastrService = ToastrService;
   this.conf = conf;
   this.$translate = $translate;
+  this.$http = $http;
   var self = this;
-
+  
+  if (self.conf.domainLogoApi && self.conf.defaultDomainLogoPath) {
+    self.defaultDomainLogo = self.conf.defaultDomainLogoPath;
+    self.currentDomainLogo = self.defaultDomainLogo;
+  }
   self.$rootScope.pageTitle = 'Login - ' + self.conf.appName;
   self.loading = self.ngProgressFactory.createInstance();
 
@@ -34,6 +39,38 @@ var Login = function ($scope, $rootScope, $state, $window, $stateParams, localSt
 Login.prototype.switchLang = function(lang) {
   var self = this;
   self.$translate.use(lang);
+}
+
+Login.prototype.completeUsername = function() {
+  var self = this;
+  if (!self.$scope.credential || !self.$scope.credential.username) {
+    return;
+  } 
+  if (self.$scope.credential.username.indexOf('@') < 0) {
+    self.$scope.credential.username += '@' + self.conf.mainDomain;
+  }
+  // Fetch domain logo
+  if (self.conf.domainLogoApi && 
+  self.$scope.credential.username.split('@')[1] && 
+  self.$scope.credential.username.split('@')[1].length > 1 && 
+  self.$scope.credential.username.split('@')[1] != self.conf.mainDomain
+  ) {
+    self.$http({
+      method: "GET",
+      url : self.conf.domainLogoApi + self.$scope.credential.username.split('@')[1]
+    })
+      .then(function(data, status){
+        if (data && data.data) {
+          return self.currentDomainLogo = "data:image/png;base64," + data.data;
+        }
+        self.currentDomainLogo = self.defaultDomainLogo;
+      })
+      .catch(function(data, status){
+        self.currentDomainLogo = self.defaultDomainLogo;
+      })
+  } else {
+    self.currentDomainLogo = self.defaultDomainLogo;
+  }
 }
 
 Login.prototype.auth = function(credential){
