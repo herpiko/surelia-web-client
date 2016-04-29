@@ -41,7 +41,7 @@ require("./controllers/index");
 require("./js/templates");
 
 var app = angular.module("App", [
-  "ui.router", 
+  "ui.router",
   "ui.bootstrap",
   "ngAnimate",
   "ngSanitize",
@@ -86,6 +86,13 @@ var app = angular.module("App", [
       }
     }
   )
+  .state("ForgetPassword", {
+      url: "/reset-password",
+      templateProvider: function($templateCache) {
+        return $templateCache.get("reset-password.html");
+      }
+    }
+  )
 })
 .config(function($provide){
   $provide.decorator('taOptions', ['taRegisterTool', '$delegate', function(taRegisterTool, taOptions){
@@ -117,14 +124,14 @@ var app = angular.module("App", [
         "insertVideo"
       ]
     ]
-    return taOptions; 
+    return taOptions;
     }]);
 })
 // Register controller
 .controller("AppCtrl", function($scope, $state) {
   $state.go("Login");
 })
-.run([ "$rootScope", "$state", "$stateParams", "amMoment", 
+.run([ "$rootScope", "$state", "$stateParams", "amMoment",
   function ($rootScope, $state, $stateParams, amMoment) {
     $rootScope.pageTitle = conf.appName;
     if (conf.lang == "id") {

@@ -67,7 +67,7 @@ ImapAPI.prototype.registerEndPoints = function(){
             progress : Joi.any(),
             attachmentId : Joi.string(),
           }))
-        }  
+        }
       }
     }
   })
@@ -91,7 +91,7 @@ ImapAPI.prototype.registerEndPoints = function(){
           smtpTLS : Joi.boolean(),
           smtpSecure : Joi.boolean(),
           rememberMe : Joi.boolean(),
-        }  
+        }
       }
     }
   })
@@ -132,7 +132,7 @@ ImapAPI.prototype.registerEndPoints = function(){
           filter : Joi.string().allow(""),
           limit : Joi.string().allow(""),
           page : Joi.string().allow(""),
-        }  
+        }
       }
     }
   })
@@ -190,7 +190,7 @@ ImapAPI.prototype.registerEndPoints = function(){
           messageIds : Joi.array().items(Joi.string()),
           boxName : Joi.string().required(),
           oldBoxName : Joi.string().required(),
-        }  
+        }
       }
     }
   })
@@ -249,11 +249,11 @@ ImapAPI.prototype.registerEndPoints = function(){
         }
       },
       payload : {
-        maxBytes: 16000000, 
+        maxBytes: 16000000,
         output : "stream",
         parse : true,
         allow : "multipart/form-data"
-      }  
+      }
     }
   })
   self.server.route({
@@ -266,7 +266,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       state : stateConfigs
     }
   })
-  
+
   self.server.route({
     method : "POST",
     path : "/api/1.0/draft",
@@ -297,7 +297,7 @@ ImapAPI.prototype.registerEndPoints = function(){
             progress : Joi.any(),
             attachmentId : Joi.string(),
           }))
-        }  
+        }
       }
     }
   })
@@ -312,7 +312,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       state : stateConfigs
     }
   })
-  
+
   self.server.route({
     method : "POST",
     path : "/api/1.0/set-flag",
@@ -326,11 +326,11 @@ ImapAPI.prototype.registerEndPoints = function(){
           flag : Joi.string().required(),
           seqs : Joi.array().items(Joi.number()).required(),
           boxName : Joi.string().required(),
-        }  
+        }
       }
     }
   })
-  
+
   self.server.route({
     method : "GET",
     path : "/api/1.0/contacts",
@@ -345,11 +345,11 @@ ImapAPI.prototype.registerEndPoints = function(){
           sort : Joi.string().allow(""),
           limit : Joi.number().allow(""),
           q : Joi.string().allow(""),
-        }  
+        }
       }
     }
   })
-  
+
   self.server.route({
     method : "GET",
     path : "/api/1.0/contacts/candidates",
@@ -360,7 +360,7 @@ ImapAPI.prototype.registerEndPoints = function(){
       state : stateConfigs
     }
   })
-  
+
   self.server.route({
     method : "GET",
     path : "/api/1.0/contact",
@@ -372,11 +372,11 @@ ImapAPI.prototype.registerEndPoints = function(){
       validate : {
         query : {
           id : Joi.string().allow(""),
-        }  
+        }
       }
     }
   })
-  
+
   self.server.route({
     method : "DELETE",
     path : "/api/1.0/contact",
@@ -388,11 +388,11 @@ ImapAPI.prototype.registerEndPoints = function(){
       validate : {
         query : {
           id : Joi.string().required(),
-        }  
+        }
       }
     }
   })
-  
+
   self.server.route({
     method : "POST",
     path : "/api/1.0/contact",
@@ -411,11 +411,11 @@ ImapAPI.prototype.registerEndPoints = function(){
           homeAddress : Joi.string().allow(""),
           phone : [Joi.string().allow(""),Joi.number().allow("")],
           color : Joi.string().allow(""),
-        }  
+        }
       }
     }
   })
-  
+
   self.server.route({
     method : "PUT",
     path : "/api/1.0/contact",
@@ -435,11 +435,11 @@ ImapAPI.prototype.registerEndPoints = function(){
           homeAddress : Joi.string().allow(""),
           phone : [Joi.string().allow(""),Joi.number().allow("")],
           color : Joi.string().allow(""),
-        }  
+        }
       }
     }
   })
-  
+
   self.server.route({
     method : "POST",
     path : "/api/1.0/avatar",
@@ -451,16 +451,16 @@ ImapAPI.prototype.registerEndPoints = function(){
       validate : {
         query : {
           emailAddress : Joi.string().required(),
-        },  
+        },
         payload : {
           content : Joi.required(),
         }
       },
       payload : {
-        maxBytes: 32457280, 
+        maxBytes: 32457280,
         parse : true,
         allow : "multipart/form-data"
-      }  
+      }
     }
   })
   self.server.route({
@@ -491,10 +491,26 @@ ImapAPI.prototype.registerEndPoints = function(){
           username : Joi.string().email().required(),
           oldPassword : Joi.string().required(),
           newPassword : Joi.string().required(),
-        }  
+        }
       }
     }
   })
+  self.server.route({
+    method : "POST",
+    path : "/api/1.0/settings/reset-password",
+    handler : function(request, reply){
+      self.resetPassword(request, reply);
+    },
+    config : {
+      state : stateConfigs,
+      validate : {
+        payload : {
+          username : Joi.string().email().required(),
+        }
+      }
+    }
+  })
+
 }
 
 /**
@@ -659,7 +675,7 @@ ImapAPI.prototype.send = function(request, reply) {
                       // Remove temporary attachment
                       gfs.files.remove({_id : attachment.attachmentId});
                       // But do not wait
-                      cb(); 
+                      cb();
                     })
                   })
                 }, function(err){
@@ -707,7 +723,7 @@ var createPool = function(request, reply, credential, callback){
 }
 
 /**
- * Check whether the pool is exist/active or not, then execute the real function 
+ * Check whether the pool is exist/active or not, then execute the real function
  * @param {Object} request - Hapi's request object
  * @param {Object} reply - Hapi's reply object
  * @param {Function} realFunc - The function that will be executed after the pool has been elaborated.
@@ -771,7 +787,7 @@ var checkPool = function(request, reply, realFunc) {
             })
           }
           // Pool doesn't exist, but there is a token in request header.
-          // This token is a public key that will be used to 
+          // This token is a public key that will be used to
           // encrypt credential password which has been stored in db
           // Get the public key's pair (private key) in purpose to decrypt password
           keyModel().findOne({publicKey : request.headers.token})
@@ -802,7 +818,7 @@ var checkPool = function(request, reply, realFunc) {
                       }
                       // Dercypt the password
                       credential.password = privateKey.decrypt(result.password);
-        
+
                       createPool(request, reply, credential, function(client){
                         // Recall to extend expiry time
                         var client = pool.get(id);
@@ -877,7 +893,7 @@ var checkPool = function(request, reply, realFunc) {
               // create key pair to encrypt password
               var keys = forge.pki.rsa.generateKeyPair({bits:1024});
               var publicKey = keys.publicKey;
-        
+
               // Save key pair to db
               var keyPair = {}
               var publicKeyPem = forge.pki.publicKeyToPem(keys.publicKey);
@@ -913,8 +929,8 @@ var checkPool = function(request, reply, realFunc) {
               if (err) {
                 if ( err.message === "Invalid credentials (Failure)"
                   || err.message.indexOf("Lookup failed") > -1
-                  || err.type.toLowerCase() === "no" 
-                  || err.type.toLowerCase() === "bad" 
+                  || err.type.toLowerCase() === "no"
+                  || err.type.toLowerCase() === "bad"
                 ) {
                    var err = new Error("Invalid credentials")
                    return reply({err : err.message}).code(401);
@@ -1021,7 +1037,7 @@ ImapAPI.prototype.listBox = function(request, reply) {
                       return cb();
                     }
                     email.name = email.name || "";
-                    addressBookModel().create({emailAddress : email.address, name : email.name, account : request.headers.username}, function(err){ 
+                    addressBookModel().create({emailAddress : email.address, name : email.name, account : request.headers.username}, function(err){
                       cb();
                     });
                   })
@@ -1053,7 +1069,7 @@ ImapAPI.prototype.listBox = function(request, reply) {
                 })
                 .then(function(){
                   // Save the new message hash
-                  collectedMessageModel().create({hash : hash}, function(err, result){ 
+                  collectedMessageModel().create({hash : hash}, function(err, result){
                     cb();
                   })
                 })
@@ -1083,7 +1099,7 @@ ImapAPI.prototype.listBox = function(request, reply) {
  *
  */
 ImapAPI.prototype.getBoxes = function(request, reply) {
-  
+
   var realFunc = function(client, request, reply) {
     client.getBoxes()
       .then(function(boxes){
@@ -1093,7 +1109,7 @@ ImapAPI.prototype.getBoxes = function(request, reply) {
         reply(err.message);
       })
   }
-  
+
   checkPool(request, reply, realFunc);
 }
 
@@ -1131,7 +1147,7 @@ ImapAPI.prototype.addBox = function(request, reply) {
         reply({err : err.message}).code(500);
       })
   }
-  
+
   checkPool(request, reply, realFunc);
 }
 
@@ -1149,7 +1165,7 @@ ImapAPI.prototype.removeBox = function(request, reply) {
         reply({err : err.message}).code(500);
       })
   }
-  
+
   checkPool(request, reply, realFunc);
 }
 
@@ -1167,7 +1183,7 @@ ImapAPI.prototype.renameBox = function(request, reply) {
         reply({err : err.message}).code(500);
       })
   }
-  
+
   checkPool(request, reply, realFunc);
 }
 
@@ -1198,7 +1214,7 @@ ImapAPI.prototype.retrieveMessage = function(request, reply) {
         reply({err : err.message}).code(500);
       })
   }
-  
+
   checkPool(request, reply, realFunc);
 }
 
@@ -1246,7 +1262,7 @@ ImapAPI.prototype.moveMessage = function(request, reply) {
         reply({err : err.message}).code(500);
       })
   }
-  
+
   checkPool(request, reply, realFunc);
 }
 
@@ -1274,7 +1290,7 @@ ImapAPI.prototype.removeMessage = function(request, reply) {
         })
     })
   }
-  
+
   checkPool(request, reply, realFunc);
 }
 
@@ -1319,7 +1335,7 @@ ImapAPI.prototype.uploadAttachment = function(request, reply) {
     });
     request.payload.content.pipe(writeStream);
   }
-  
+
   checkPool(request, reply, realFunc);
 }
 
@@ -1329,7 +1345,7 @@ ImapAPI.prototype.removeAttachment = function(request, reply) {
     // Async
     reply().code(200);
   }
-  
+
   checkPool(request, reply, realFunc);
 }
 
@@ -1353,7 +1369,7 @@ ImapAPI.prototype.saveDraft = function(request, reply) {
         })
     })
   }
-  
+
   var realFunc = function(client, request, reply) {
     var msg = {
       from : request.payload.from,
@@ -1397,7 +1413,7 @@ ImapAPI.prototype.saveDraft = function(request, reply) {
             // Remove temporary attachment
             gfs.files.remove({_id : attachment.attachmentId});
             // But do not wait
-            cb(); 
+            cb();
           })
         })
       }, function(err){
@@ -1407,7 +1423,7 @@ ImapAPI.prototype.saveDraft = function(request, reply) {
       realSaveDraft(request, reply, client, msg);
     }
   }
-  
+
   checkPool(request, reply, realFunc);
 }
 
@@ -1433,7 +1449,7 @@ ImapAPI.prototype.setFlag = function(request, reply) {
     if (request.payload.flag.toUpperCase() === "UNREAD") {
       return client.removeFlag(request.payload.seqs, "Seen", request.payload.boxName)
         .then(function(){
-          reply(); 
+          reply();
         })
         .catch(function(err){
           reply({err : err.message}).code(500);
@@ -1442,14 +1458,14 @@ ImapAPI.prototype.setFlag = function(request, reply) {
     if (request.payload.flag.toUpperCase() === "READ") {
       return client.addFlag(request.payload.seqs, "Seen", request.payload.boxName)
         .then(function(){
-          reply(); 
+          reply();
         })
         .catch(function(err){
           reply({err : err.message}).code(500);
         })
     }
   }
-  
+
   checkPool(request, reply, realFunc);
 }
 
@@ -1467,7 +1483,7 @@ ImapAPI.prototype.getContactCandidates = function(request, reply) {
       reply(result);
     })
   }
-  
+
   checkPool(request, reply, realFunc);
 }
 
@@ -1479,7 +1495,7 @@ ImapAPI.prototype.getAddressBook = function(request, reply) {
 
     var defaultLimit = 10;
     var sort = { emailAddress : 1 };
-  
+
     var query = {
       account : request.headers.username
     };
@@ -1503,17 +1519,17 @@ ImapAPI.prototype.getAddressBook = function(request, reply) {
       if (err) {
         return reply(err);
       }
-  
+
       var q = addressBookModel()
         .find(query)
         .sort(sort)
         .lean();
-  
-      var numPages = 1; 
+
+      var numPages = 1;
       q.limit(limit);
       q.skip(limit * (page - 1));
       numPages =  Math.ceil(count/limit);
-  
+
       q.exec(function(err, result) {
         if (err) {
           return reply(err).code(500);
@@ -1530,7 +1546,7 @@ ImapAPI.prototype.getAddressBook = function(request, reply) {
       });
     });
   }
-  
+
   checkPool(request, reply, realFunc);
 }
 
@@ -1541,7 +1557,7 @@ ImapAPI.prototype.getContact = function(request, reply) {
   var realFunc = function(client, request, reply) {
     addressBookModel().findOne({_id:request.query.id})
       .select({
-        name : 1, 
+        name : 1,
         emailAddress : 1,
         officeAddress : 1,
         organization : 1,
@@ -1560,7 +1576,7 @@ ImapAPI.prototype.getContact = function(request, reply) {
         reply(result);
     })
   }
-  
+
   checkPool(request, reply, realFunc);
 }
 
@@ -1589,7 +1605,7 @@ ImapAPI.prototype.addContact = function(request, reply) {
     })
 
   }
-  
+
   checkPool(request, reply, realFunc);
 }
 
@@ -1667,7 +1683,7 @@ ImapAPI.prototype.uploadAvatar = function(request, reply) {
   var realFunc = function(client, request, reply) {
     // There are probability of duplicated contact on different account,
     // Then, query by email address only isn't appropriate.
-    // So does the avatarId, because it doesn't included in listBox result. 
+    // So does the avatarId, because it doesn't included in listBox result.
     // Combined hash of current username
     // and the contact email address is used both as filename and query key
     var hash = objectHash(request.headers.username + request.query.emailAddress);
@@ -1688,7 +1704,7 @@ ImapAPI.prototype.uploadAvatar = function(request, reply) {
               return reply(err).code(500);
             }
             reply({avatarId : id}).code(200);
-          }) 
+          })
       });
       writeStream.on("error", function(err){
         reply(err).code(500);
@@ -1697,7 +1713,7 @@ ImapAPI.prototype.uploadAvatar = function(request, reply) {
       readableStreamBuffer.pipe(writeStream);
     });
   }
-  
+
   checkPool(request, reply, realFunc);
 }
 
@@ -1728,12 +1744,12 @@ ImapAPI.prototype.getAvatar = function(request, reply) {
       })
     })
   }
-  
+
   checkPool(request, reply, realFunc);
 }
 
 /**
- * Set new password 
+ * Set new password
  * @param {String} username - Email address
  * @param {String} oldPassword - Old password
  * @param {String} newPassword - New password
@@ -1755,9 +1771,31 @@ ImapAPI.prototype.setPassword = function(request, reply) {
       reply(job.response);
     })
   }
-  
+
   checkPool(request, reply, realFunc);
 }
+
+/**
+ * Reset password
+ * @param {String} username - The email address being reset
+ */
+ImapAPI.prototype.resetPassword = function(request, reply) {
+  var self = this;
+  var realFunc = function(client, request, reply) {
+    if (!self.gearmanClient) {
+      return reply({"err":"Reset password feature is not supported"}).code(500);
+    }
+    var params = JSON.stringify({
+      username : request.payload.username
+    })
+    var job = self.gearmanClient.submitJob("resetPassword", params)
+    job.on("complete", function(){
+      reply(job.response);
+    })
+  }
+  realFunc(null, request, reply);
+}
+
 
 // Model
 
