@@ -11,7 +11,7 @@
     "stop": "./node_modules/.bin/idup stop teman-iklan",
     "kill": "./node_modules/.bin/idup kill",
     "build": "rm -rf public && ./node_modules/.bin/gulp prod",
-    "postinstall": "(cd node_modules && cd hapi-io && ../../scripts/install-plugin hapi-io 00-hapi-io)"
+    "postinstall": "./scripts/postinst.sh"
   },
   "author": "KodeKreatif <info@kodekreatif.co.id>",
   "license": "GNU AGPLv3",
