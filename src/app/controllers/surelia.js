@@ -858,7 +858,7 @@ Surelia.prototype.sendMessage = function(msg){
   msg.seq = msg.seq || undefined;
   // convert comma separated string to array, then check if they are a valid email
   if (msg.recipients && msg.recipients.length > 0) {
-    msg.recipients = msg.recipients.replace(" ", "").split(",");
+    msg.recipients = msg.recipients.replace(/ /g, "").split(",");
     for (var i in msg.recipients) {
       if (!self.isValidEmail(msg.recipients[i])) {
         return self.ToastrService.invalidEmailAddress(msg.recipients[i]);
@@ -866,7 +866,7 @@ Surelia.prototype.sendMessage = function(msg){
     }
   }
   if (msg.bcc && msg.bcc.length > 0) {
-    msg.bcc = msg.bcc.replace(" ", "").split(",");
+    msg.bcc = msg.bcc.replace(/ /g, "").split(",");
     for (var i in msg.bcc) {
       if (!self.isValidEmail(msg.bcc[i])) {
         return self.ToastrService.invalidEmailAddress(msg.bcc[i]);
@@ -874,7 +874,7 @@ Surelia.prototype.sendMessage = function(msg){
     }
   }
   if (msg.cc && msg.cc.length > 0) {
-    msg.cc = msg.cc.replace(" ", "").split(",");
+    msg.cc = msg.cc.replace(/ /g, "").split(",");
     for (var i in msg.cc) {
       if (!self.isValidEmail(msg.cc[i])) {
         return self.ToastrService.invalidEmailAddress(msg.cc[i]);
@@ -1125,13 +1125,13 @@ Surelia.prototype.saveDraft = function(){
     }
     // convert comma separated string to array
     if (msg.recipients && msg.recipients.length > 0) {
-      msg.recipients = msg.recipients.replace(" ", "").split(",");
+      msg.recipients = msg.recipients.replace(/ /g, "").split(",");
     }
     if (msg.bcc && msg.recipients.length > 0) {
-      msg.bcc = msg.bcc.replace(" ", "").split(",");
+      msg.bcc = msg.bcc.replace(/ /g, "").split(",");
     }
     if (msg.cc && msg.recipients.length > 0) {
-      msg.cc = msg.cc.replace(" ", "").split(",");
+      msg.cc = msg.cc.replace(/ /g, "").split(",");
     }
     self.ImapService.saveDraft(msg, draftPath)
       .success(function(data, status, header){
