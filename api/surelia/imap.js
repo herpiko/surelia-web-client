@@ -664,7 +664,7 @@ Imap.prototype.retrieveMessage = function(id, boxName, socket) {
               length : attachment.length
             }
           }
-          if (attachment.contentDisposition.toLowerCase() === 'inline') {
+          if (attachment.contentDisposition && attachment.contentDisposition.toLowerCase() === 'inline') {
             mail.hasInlineAttachments = true;
             file.metadata.content = '';
             attachment.stream.pipe(base64Stream.encode())
