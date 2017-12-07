@@ -1,6 +1,7 @@
 
 ## REQUIREMENT
 
+- Node v4.x
 - If deployed behind a NGINX server, it needs  NGINX version > 1.3.
 
 ## INSTALLATION
