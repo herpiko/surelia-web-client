@@ -205,6 +205,7 @@ Imap.prototype.getBoxes = function() {
         if (boxes[box].attribs.indexOf("\\Noselect") > -1) {
           cb();
         } else {
+
           self.client.openBox(box, true, function(err, seqs){
             if (err && err.message.indexOf('Mailbox doesn\'t exist:') > -1) {
               // Skip inconsistent box existence
@@ -219,11 +220,7 @@ Imap.prototype.getBoxes = function() {
               obj.meta = seqs.messages;
             }
             result.push(obj);
-            self.client.closeBox(function(err){
-              // Do not check closeBox's error
-              // If it does not allowed now, go on
-              cb();
-            })
+            cb();
           })
         }
       }, function(err){
