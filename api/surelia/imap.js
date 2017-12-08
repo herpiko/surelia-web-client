@@ -123,7 +123,8 @@ Imap.prototype.getSpecialBoxes = function() {
               doneIteratingCildrens(err);
             })
           } else {
-            if (mboxes[index].special_use_attribs === "\\" + special || mboxes[index].attribs.indexOf("\\" + special) === 0) {
+            if ((mboxes[index].special_use_attribs === "\\" + special || (mboxes[index].attribs && mboxes[index].attribs.indexOf("\\" + special) === 0))
+            || mboxes[index].special_use_attrib === "\\" + special || (mboxes[index].attrib && mboxes[index].attrib.indexOf("\\" + special) === 0)) {
               specials[special] = {
                 path : index
               }
@@ -204,8 +205,12 @@ Imap.prototype.getBoxes = function() {
         if (boxes[box].attribs.indexOf("\\Noselect") > -1) {
           cb();
         } else {
-          self.client.status(box, function(err, seqs){
-            if (err) {
+
+          self.client.openBox(box, true, function(err, seqs){
+            if (err && err.message.indexOf('Mailbox doesn\'t exist:') > -1) {
+              // Skip inconsistent box existence
+              return cb();
+            } else if (err) {
               return cb(err);
             }
             var obj = {

@@ -11,6 +11,8 @@ var config = {
     host: 'smtp.gmail.com',
     port: 465 
   },
+  loadBoxes : true,
+  loadSpecialBoxes : true,
   lang : "id",
   gearman : sureliaConf.options.gearmanServer,
   spamFolder : "Spam",

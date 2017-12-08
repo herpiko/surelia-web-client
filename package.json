@@ -1,6 +1,6 @@
 {
   "name": "surelia-web-client",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Surelia",
   "main": "index.js",
   "scripts": {
@@ -42,12 +42,12 @@
     "html-to-text": "1.5.0",
     "htmlspecialchars": "^1.0.5",
     "idup": "0.0.4",
-    "imap": "0.8.15",
+    "imap": "0.8.19",
     "joi": "7.0.0",
     "lodash": "3.10.1",
     "mailcomposer": "1.2.0",
     "mailparser": "0.5.2",
-    "moment": "2.10.6",
+    "moment": "2.11.2",
     "monowrap": "1.0.4",
     "ng-file-upload": "9.1.1",
     "ng-img-crop-npm": "0.3.2",
