@@ -845,18 +845,22 @@ Imap.prototype.removeMessage = function(seqs, boxName, opts) {
           } else {
             if (opts.archive) {
               // Archive it
-              self.addFlag(seqs, "Deleted")
-                .then(function(){
-                  self.client.expunge(function(err){
-                    if (err) {
-                      return reject(err);
-                    }
+
+              self.client.addBox('Archives', function(err){
+                if (err) {
+                  // Ignore err
+                  console.log(err);
+                }
+                self.client.seq.move(seqs, 'Archives' , function(err, code){
+                  if (err) {
+                    return reject(err);
+                  }
+                  self.client.closeBox(function(err){
+                    // Do not check closeBox's error, if it does not allowed now, go on
                     resolve();
                   })
-                })
-                .catch(function(err){
-                  return reject(err);
                 });
+              })
             } else {
               if (specials.Trash && specials.Trash.path) {
                 self.client.seq.move(seqs, specials.Trash.path, function(err, code){
