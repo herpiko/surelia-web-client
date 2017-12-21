@@ -133,7 +133,7 @@
               <button ng-click="surelia.composeMessage(surelia.currentMessage, 'reply')">{{'REPLY' | translate}}</button>
               <button ng-click="surelia.composeMessage(surelia.currentMessage, 'all')">{{'REPLY_ALL' | translate}}</button>
               <button ng-click="surelia.composeMessage(surelia.currentMessage, 'forward')">{{'FORWARD' | translate}}</button>
-              <button ng-click="">{{'ARCHIVE' | translate}}</button>
+              <button ng-click="surelia.archive()">{{'ARCHIVE' | translate}}</button>
               <button ng-show="surelia.spamBox && surelia.currentBoxName.toLowerCase().indexOf('spam') < 0" ng-click="surelia.markAsSpam()">Spam</button>
               <button ng-show="surelia.spamBox && surelia.currentBoxName.toLowerCase().indexOf('spam') > -1" ng-click="surelia.notSpam()">{{'NOT_SPAM' | translate}}</button>
               <button ng-hide="surelia.currentMessage.deleted" ng-click="surelia.removeMessage(surelia.currentMessage.seq, surelia.currentMessage.parsed.messageId, surelia.currentMessage.boxName)">{{'DELETE' | translate}}</button>

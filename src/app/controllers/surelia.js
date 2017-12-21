@@ -1,4 +1,4 @@
-ureliuse strict';
+'use strict';
 var mimeTypes = {
   "word" : {
     icon : "file-word-o",
@@ -1323,6 +1323,23 @@ Surelia.prototype.markAsSpam = function(){
       self.ToastrService.parse(data, status);
     })
 }
+
+Surelia.prototype.archive = function(){
+  var self = this;
+  var messageIds = [self.currentMessage.parsed.messageId]
+  var seqs = [self.currentMessage.seq];
+  var boxName = 'Archives';
+  var oldBoxName = self.currentBoxPath;
+  self.ImapService.moveMessage(seqs, messageIds, oldBoxName, boxName)
+    .then(function(data, status) {
+      self.listReload();
+    })
+    .catch(function(data, status) {
+      self.loading.complete();
+      self.ToastrService.parse(data, status);
+    })
+}
+
 
 Surelia.prototype.notSpam = function(){
   var self = this;
