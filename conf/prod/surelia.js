@@ -4,15 +4,13 @@ if (sureliaConf.options.gearmanServer) {
 }
 var config = {
   imap: {
-    host: 'imap.gmail.com',
+    host: 'pnsmail.go.id',
     port: 993
   },
   smtp: {
-    host: 'smtp.gmail.com',
+    host: 'pnsmail.go.id',
     port: 465 
   },
-  loadBoxes : true,
-  loadSpecialBoxes : true,
   lang : "id",
   gearman : sureliaConf.options.gearmanServer,
   spamFolder : "Spam",
